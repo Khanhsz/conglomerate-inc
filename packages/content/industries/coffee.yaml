@@ -17,6 +17,12 @@ overheadBaseMonthly: 300000  # $3,000
 overheadExponent: 1.2        # γo — phi hiệu quả theo quy mô
 usefulLifeMonths: 60
 
+newStore:                    # cửa hàng mới mở bằng lệnh OpenStore (spec §3)
+  staff: 4
+  morale: 0.5
+  serviceLevel: 0.6
+aiInitialStaff: 5            # cửa hàng ban đầu của AI trong scenario
+
 qualityTiers:
   basic:    { quality: 0.35, unitCostMultiplier: 0.75 }
   standard: { quality: 0.60, unitCostMultiplier: 1.00 }

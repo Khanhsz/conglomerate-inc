@@ -55,8 +55,8 @@ interface GameState {
   ledger: { entries: JournalEntry[]; nextEntryId: number;
             balances: Record<Id, AccountBalances> };  // số dư hiện tại, cập nhật trong post(); snapshot cho UI không kèm entries
   statements: Record<Id, MonthlyStatements[]>;   // theo companyId
-  commandQueue: QueuedCommand[];
-  events: GameEvent[];                     // log hiển thị: cảnh báo, từ chối lệnh, AI mở cửa hàng…
+  commandQueue: QueuedCommand[];           // { enqueuedDay, command } — không có id: lệnh bị từ chối chỉ để lại event
+  events: GameEvent[];                     // union theo `kind`: commandRejected, storeOpened, storeClosed (bước 05 thêm distress…)
   nextIds: { store: number; loan: number };
 }
 
@@ -71,7 +71,7 @@ interface Company {
 }
 
 interface Store {
-  id: Id; companyId: Id; districtId: Id; openedDay: number; status: 'open' | 'closed';
+  id: Id; companyId: Id; districtId: Id; openedDay: number; status: 'open' | 'closed'; closedDay?: number;
   price: Money; staff: number; wageMonthly: Money; rentMonthly: Money; rentResetDay: number;
   capex: Money; accumDep: Money;
   morale: number; skill: number; serviceLevel: number;
@@ -104,8 +104,8 @@ Doanh thu và giá vốn hằng ngày ghi **một bút toán cho mỗi công ty 
 | `RepayLoan` | `{ loanId }` | đủ tiền |
 
 Command bị từ chối → push `GameEvent { kind: 'commandRejected', reason }`, không thay đổi gì khác.
-Cửa hàng mới mặc định: giá = Pref, staff = 4, lương = lương thị trường, morale 0.5, skill = newHireSkill, serviceLevel 0.6.
-Trạng thái ban đầu: người chơi `qualityTier = standard`, marketing 0. Cửa hàng ban đầu của AI: giá = target theo personality (làm tròn 5 cent), staff 5, lương theo personality, marketing 0 tới ngày 30; capex trừ vào `startingCash` qua cùng logic `OpenStore`. Chi tiết: economic-model §9.
+Cửa hàng mới mặc định: giá = Pref, lương = lương thị trường, skill = newHireSkill; staff, morale, serviceLevel lấy từ `industry.newStore` (coffee: 4, 0.5, 0.6). Lệnh được chuẩn hóa qua JSON khi `enqueue` và validate lại ngay trước khi apply.
+Trạng thái ban đầu: người chơi `qualityTier = standard`, marketing 0. Cửa hàng ban đầu của AI: giá = target theo personality (làm tròn 5 cent), staff = `industry.aiInitialStaff` (coffee: 5), lương theo personality, marketing 0 tới ngày 30; capex trừ vào `startingCash` qua cùng logic `OpenStore`. Chi tiết: economic-model §9.
 
 ## 4. Thứ tự tick (mỗi ngày)
 ```
@@ -128,7 +128,8 @@ enqueue(state, cmd: Command): GameState                // chỉ thêm vào queue
 step(state, content): GameState                       // 1 ngày
 runDays(state, content, n, onMonth?: (s) => void): GameState
 validateCommand(state, content, cmd): { ok: true } | { ok: false; reason: string }
-selectors: { balances(state, companyId), latestStatements(state, companyId), storeTable(state, companyId), marketShares(state) }
+selectors: { balances(state, companyId), latestStatements(state, companyId), storeTable(state, companyId), marketShares(state, content) }
+expectedDemand(state, content): { byStore, potential, captured }   // cầu kỳ vọng trước nhiễu (economic-model §3.3)
 hashState(state): string
 checkInvariants(state, content): InvariantViolation[]  // dùng trong test và balance:smoke
 ```

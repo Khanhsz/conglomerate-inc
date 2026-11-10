@@ -67,6 +67,10 @@ export interface IndustryContent {
   readonly overheadBaseMonthly: Money;
   readonly overheadExponent: number;
   readonly usefulLifeMonths: number;
+  /** Giá trị ban đầu của cửa hàng mở bằng OpenStore. */
+  readonly newStore: { readonly staff: number; readonly morale: number; readonly serviceLevel: number };
+  /** Số nhân viên của cửa hàng ban đầu của AI. */
+  readonly aiInitialStaff: number;
   readonly qualityTiers: { readonly [T in QualityTier]: QualityTierDef };
   readonly brand: BrandParams;
   readonly segments: { readonly [id: SegmentId]: SegmentDef };

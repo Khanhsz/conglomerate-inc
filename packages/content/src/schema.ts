@@ -3,7 +3,7 @@
  * ràng buộc chéo giữa industry và scenario nằm ở load.ts.
  * Output phải gán được vào IndustryContent / ScenarioContent của sim-core (kiểm tra ở load.ts lúc biên dịch).
  */
-import { money, PERSONALITIES, QUALITY_TIERS } from '@game/sim-core';
+import { MAX_STAFF_PER_STORE, money, PERSONALITIES, QUALITY_TIERS } from '@game/sim-core';
 import { z } from 'zod';
 
 const MIX_TOLERANCE = 1e-9;
@@ -42,37 +42,61 @@ const aiPersonalityDef = z.strictObject({
   marketingShareOfRevenue: unit,
 });
 
-export const industrySchema = z.strictObject({
-  id,
-  name: z.strictObject({ vi: z.string(), en: z.string() }),
-  referencePrice: positiveMoneyCents,
-  unitCost: positiveMoneyCents,
-  dailyDemandNoise: nonNegative,
-  serviceAdjustRate: unit,
-  customersPerStaffPerDay: positive,
-  minStaffPerStore: z.number().int().min(1),
-  moraleWageSensitivity: positive,
-  moraleAdjustRate: unit,
-  skillGainPerDay: unit,
-  newHireSkill: unit,
-  overheadBaseMonthly: moneyCents,
-  overheadExponent: positive,
-  usefulLifeMonths: z.number().int().min(1),
-  qualityTiers: z.strictObject({ basic: qualityTierDef, standard: qualityTierDef, premium: qualityTierDef }),
-  brand: z.strictObject({
-    alpha: unit,
-    halfSaturationDaily: positiveMoneyCents,
-    decayPerDay: unit,
-    wordOfMouth: nonNegative,
-    initialAwareness: unit,
-  }),
-  segments: z.record(id, segmentDef).refine((s) => Object.keys(s).length > 0, 'cần ít nhất một phân khúc'),
-  aiPersonalities: z.strictObject({
-    discount: aiPersonalityDef,
-    balanced: aiPersonalityDef,
-    premium: aiPersonalityDef,
-  }),
-});
+export const industrySchema = z
+  .strictObject({
+    id,
+    name: z.strictObject({ vi: z.string(), en: z.string() }),
+    referencePrice: positiveMoneyCents,
+    unitCost: positiveMoneyCents,
+    dailyDemandNoise: nonNegative,
+    serviceAdjustRate: unit,
+    customersPerStaffPerDay: positive,
+    minStaffPerStore: z.number().int().min(1),
+    moraleWageSensitivity: positive,
+    moraleAdjustRate: unit,
+    skillGainPerDay: unit,
+    newHireSkill: unit,
+    overheadBaseMonthly: moneyCents,
+    overheadExponent: positive,
+    usefulLifeMonths: z.number().int().min(1),
+    newStore: z.strictObject({
+      staff: z.number().int().min(1).max(MAX_STAFF_PER_STORE),
+      morale: unit,
+      serviceLevel: unit,
+    }),
+    aiInitialStaff: z.number().int().min(1).max(MAX_STAFF_PER_STORE),
+    qualityTiers: z.strictObject({
+      basic: qualityTierDef,
+      standard: qualityTierDef,
+      premium: qualityTierDef,
+    }),
+    brand: z.strictObject({
+      alpha: unit,
+      halfSaturationDaily: positiveMoneyCents,
+      decayPerDay: unit,
+      wordOfMouth: nonNegative,
+      initialAwareness: unit,
+    }),
+    segments: z.record(id, segmentDef).refine((s) => Object.keys(s).length > 0, 'cần ít nhất một phân khúc'),
+    aiPersonalities: z.strictObject({
+      discount: aiPersonalityDef,
+      balanced: aiPersonalityDef,
+      premium: aiPersonalityDef,
+    }),
+  })
+  .superRefine((ind, ctx) => {
+    const min = ind.minStaffPerStore;
+    if (ind.newStore.staff < min) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['newStore', 'staff'],
+        message: `phải ≥ minStaffPerStore (${min})`,
+      });
+    }
+    if (ind.aiInitialStaff < min) {
+      ctx.addIssue({ code: 'custom', path: ['aiInitialStaff'], message: `phải ≥ minStaffPerStore (${min})` });
+    }
+  });
 
 const districtDef = z.strictObject({
   id,

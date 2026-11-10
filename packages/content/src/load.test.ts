@@ -124,6 +124,13 @@ describe('loadContent — validation errors point to the field', () => {
     expectIssue(issuesOf(bad, scenarioYaml), 'industry', '', /refrencePrice/);
   });
 
+  it('store defaults must respect minStaffPerStore', () => {
+    const bad = edit(industryYaml, (d) => {
+      at(d, 'newStore')['staff'] = 1;
+    });
+    expectIssue(issuesOf(bad, scenarioYaml), 'industry', 'newStore.staff', /minStaffPerStore/);
+  });
+
   it('money fields must be integer cents', () => {
     const bad = edit(industryYaml, (d) => {
       d['referencePrice'] = 3.5;
