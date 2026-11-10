@@ -1,0 +1,61 @@
+# Industry pack: coffee (M1). Mọi số tiền tính bằng CENT.
+# Đây là giá trị khởi đầu để hiệu chỉnh, không phải số liệu thực nghiệm.
+id: coffee
+name: { vi: "Chuỗi cà phê", en: "Coffee chain" }
+
+referencePrice: 350          # $3.50 — Pref trong utility
+unitCost: 90                 # $0.90 giá vốn / ly ở tier standard, trước CPI
+dailyDemandNoise: 0.05       # σ
+serviceAdjustRate: 0.2       # κw
+customersPerStaffPerDay: 90
+minStaffPerStore: 2
+moraleWageSensitivity: 6     # k_m
+moraleAdjustRate: 0.05       # κm
+skillGainPerDay: 0.002
+newHireSkill: 0.4
+overheadBaseMonthly: 300000  # $3,000
+overheadExponent: 1.2        # γo — phi hiệu quả theo quy mô
+usefulLifeMonths: 60
+
+qualityTiers:
+  basic:    { quality: 0.35, unitCostMultiplier: 0.75 }
+  standard: { quality: 0.60, unitCostMultiplier: 1.00 }
+  premium:  { quality: 0.85, unitCostMultiplier: 1.50 }
+
+brand:
+  alpha: 0.01
+  halfSaturationDaily: 10000   # $100/ngày ≈ $3,000/tháng
+  decayPerDay: 0.003
+  wordOfMouth: 0.002
+  initialAwareness: 0.05
+
+segments:
+  students:
+    visitsPerPersonPerDay: 0.045
+    maxTravelKm: 4
+    outsideUtility: 1.4
+    incomeElasticityOfPriceSensitivity: 0
+    betas: { q: 1.0, p: 2.5, b: 1.0, d: 0.9, w: 0.8 }
+  office:
+    visitsPerPersonPerDay: 0.065
+    maxTravelKm: 2.5
+    outsideUtility: 2.0
+    incomeElasticityOfPriceSensitivity: 0
+    betas: { q: 1.5, p: 1.5, b: 1.5, d: 1.2, w: 1.2 }
+  premium:
+    visitsPerPersonPerDay: 0.055
+    maxTravelKm: 6
+    outsideUtility: 2.4
+    incomeElasticityOfPriceSensitivity: 0
+    betas: { q: 3.0, p: 1.1, b: 2.0, d: 0.6, w: 1.5 }
+  other:
+    visitsPerPersonPerDay: 0.012
+    maxTravelKm: 3
+    outsideUtility: 2.8
+    incomeElasticityOfPriceSensitivity: 0
+    betas: { q: 1.0, p: 2.0, b: 1.0, d: 1.0, w: 0.5 }
+
+aiPersonalities:
+  discount: { qualityTier: basic,    markup: 3.7, wageRatio: 0.95, marketingShareOfRevenue: 0.02 }
+  balanced: { qualityTier: standard, markup: 3.9, wageRatio: 1.05, marketingShareOfRevenue: 0.04 }
+  premium:  { qualityTier: premium,  markup: 4.0, wageRatio: 1.20, marketingShareOfRevenue: 0.06 }

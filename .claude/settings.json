@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm test)",
+      "Bash(pnpm test:sim)",
+      "Bash(pnpm balance:smoke)",
+      "Bash(pnpm balance:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(rm -rf:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && if git diff --name-only HEAD 2>/dev/null | grep -q '^packages/sim-core/'; then pnpm -s --filter @game/sim-core exec tsc --noEmit 2>&1 | tail -20; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

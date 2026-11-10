@@ -1,0 +1,48 @@
+# Scenario M1: một thành phố 3×3 quận, ngành cà phê, 3 đối thủ AI.
+id: m1-default
+industry: coffee
+seed: 42
+
+macro:
+  inflationAnnual: 0.03
+  policyRateAnnual: 0.04
+  incomeIndex: 1.0
+  priceIndex: 1.0
+  corporateTaxRate: 0.20
+  marketWageMonthly: 220000      # $2,200
+
+finance:
+  startingCash: 25000000         # $250,000 cho người chơi
+  overdraftFloor: 2000000        # $20,000
+  overdraftSpread: 0.08
+  loanSpreads:                   # theo leverage = debt / EBITDA trailing 12m
+    - { maxLeverage: 1, spread: 0.02 }
+    - { maxLeverage: 2, spread: 0.035 }
+    - { maxLeverage: 3, spread: 0.05 }
+  earlyRepaymentFee: 0.01
+
+city:
+  name: "Riverton"
+  gridW: 3
+  gridH: 3
+  districtSizeKm: 2
+  sameDistrictKm: 0.5
+  # mix = tỷ trọng students/office/premium/other, tổng = 1
+  districts:
+    - { id: nw, x: 0, y: 0, pop: 22000, mix: { students: 0.40, office: 0.25, premium: 0.05, other: 0.30 }, rentMonthly: 500000, fitOutCost: 11000000 }
+    - { id: n,  x: 1, y: 0, pop: 24000, mix: { students: 0.20, office: 0.45, premium: 0.10, other: 0.25 }, rentMonthly: 650000, fitOutCost: 12000000 }
+    - { id: ne, x: 2, y: 0, pop: 20000, mix: { students: 0.15, office: 0.30, premium: 0.25, other: 0.30 }, rentMonthly: 700000, fitOutCost: 13000000 }
+    - { id: w,  x: 0, y: 1, pop: 21000, mix: { students: 0.30, office: 0.35, premium: 0.05, other: 0.30 }, rentMonthly: 550000, fitOutCost: 11000000 }
+    - { id: c,  x: 1, y: 1, pop: 30000, mix: { students: 0.10, office: 0.65, premium: 0.15, other: 0.10 }, rentMonthly: 900000, fitOutCost: 14000000 }
+    - { id: e,  x: 2, y: 1, pop: 22000, mix: { students: 0.15, office: 0.45, premium: 0.15, other: 0.25 }, rentMonthly: 700000, fitOutCost: 12000000 }
+    - { id: sw, x: 0, y: 2, pop: 20000, mix: { students: 0.35, office: 0.20, premium: 0.05, other: 0.40 }, rentMonthly: 450000, fitOutCost: 10000000 }
+    - { id: s,  x: 1, y: 2, pop: 21000, mix: { students: 0.45, office: 0.25, premium: 0.05, other: 0.25 }, rentMonthly: 500000, fitOutCost: 11000000 }
+    - { id: se, x: 2, y: 2, pop: 20000, mix: { students: 0.10, office: 0.25, premium: 0.30, other: 0.35 }, rentMonthly: 650000, fitOutCost: 13000000 }
+
+companies:
+  - { id: player, name: "Founder Co.", kind: player, startingCash: 25000000, initialStores: [] }
+  - { id: ai-bean,  name: "BeanBudget", kind: ai, personality: discount, startingCash: 60000000, initialStores: [sw, s, w] }
+  - { id: ai-daily, name: "Daily Grind", kind: ai, personality: balanced, startingCash: 60000000, initialStores: [c, n, e] }
+  - { id: ai-aura,  name: "Aura Roasters", kind: ai, personality: premium, startingCash: 60000000, initialStores: [ne, se, c] }
+
+# Cửa hàng ban đầu của AI mở ở ngày 0, staff = 5, lương theo personality.
