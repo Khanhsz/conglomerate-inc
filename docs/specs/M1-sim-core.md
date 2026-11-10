@@ -52,7 +52,8 @@ interface GameState {
   companies: Record<Id, Company>; companyIds: Id[];
   stores: Record<Id, Store>; storeIds: Id[];
   loans: Record<Id, Loan>; loanIds: Id[];
-  ledger: { entries: JournalEntry[]; nextEntryId: number };  // được thêm số dư lũy kế theo tháng; snapshot cho UI không kèm entries
+  ledger: { entries: JournalEntry[]; nextEntryId: number;
+            balances: Record<Id, AccountBalances> };  // số dư hiện tại, cập nhật trong post(); snapshot cho UI không kèm entries
   statements: Record<Id, MonthlyStatements[]>;   // theo companyId
   commandQueue: QueuedCommand[];
   events: GameEvent[];                     // log hiển thị: cảnh báo, từ chối lệnh, AI mở cửa hàng…

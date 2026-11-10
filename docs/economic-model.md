@@ -210,7 +210,17 @@ Chốt tháng chạy sau khi `clock.day` đã tăng (spec §4 bước 8), nên m
 - **P&L tháng:** Revenue, COGS, GrossProfit, Wages, Rent, Marketing, Admin, EBITDA, Depreciation, LossOnDisposal, EBIT, Interest, PreTax, IncomeTax, NetIncome.
 - **Bảng cân đối:** Cash, PP&E (gross), AccumDep, TotalAssets | Overdraft, Loans, TaxPayable, TotalLiabilities | ShareCapital, RetainedEarnings (= Σ NetIncome từ đầu), TotalEquity.
 - **Lưu chuyển tiền tệ (gián tiếp):** NetIncome + Depreciation + LossOnDisposal ± ΔTaxPayable = CFO; CFI = −capex; CFF = góp vốn + vay − trả gốc ± Δoverdraft. Kiểm tra: CFO + CFI + CFF = ΔCash.
-- **KPI:** gross margin, EBITDA margin, utilization trung bình, revenue/store, ROE (năm hóa), netDebt/EBITDA. KPI có mẫu số ≤ 0 lưu `null` (không bao giờ NaN/Infinity).
+  Lấy từ ledger: `capex` = phát sinh Nợ PPE trong tháng; vay / trả gốc = phát sinh Có / Nợ Loans; góp vốn = phát sinh ròng ShareCapital; các Δ = số dư cuối − đầu tháng. Đẳng thức chỉ đúng khi khấu hao luôn ghi Nợ Depreciation / Có AccumDep và thanh lý ghi đúng §6.1.
+- **RetainedEarnings** không có tài khoản riêng: = Σ số dư thu nhập − Σ số dư chi phí từ đầu (không có bút toán kết chuyển).
+- **KPI** (mẫu số ≤ 0 → `null`, không bao giờ NaN/Infinity):
+  | KPI | Công thức |
+  |---|---|
+  | gross margin | `grossProfit / revenue` |
+  | EBITDA margin | `ebitda / revenue` |
+  | utilization trung bình | do month close cung cấp (Σ served / Σ capacity các cửa hàng trong tháng) |
+  | revenue/store | `round(revenue / storeCount)` (Money) |
+  | ROE năm hóa | `12 × netIncome / totalEquity` cuối tháng |
+  | netDebt/EBITDA | `(loans + overdraft − cash) / (12 × ebitda)`; âm = tiền ròng |
 
 ## 12. Hệ thống tài khoản (chart of accounts)
 | Mã | Tên | Loại |
