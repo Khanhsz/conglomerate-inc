@@ -4,8 +4,12 @@
     "rootDir": "src",
     "outDir": "dist",
     "tsBuildInfoFile": "dist/.tsbuildinfo",
-    "types": []
+    "types": ["node"]
   },
   "include": ["src"],
-  "references": [{ "path": "../sim-core" }]
+  "references": [
+    {
+      "path": "../sim-core"
+    }
+  ]
 }
