@@ -44,15 +44,15 @@ type Money = number & { readonly __brand: 'Money' };   // cent, safe integer
 
 interface GameState {
   schemaVersion: 1;
-  contentRef: { industryId: string; scenarioId: string };
-  seed: number;
+  contentRef: { industryId: string; scenarioId: string; contentVersion: string };
+  seed: number;                            // opts.seed thắng scenario.seed
   clock: { day: number };
   macro: MacroState;                       // economic-model §1
   city: { districtIds: Id[] };             // hình học lấy từ content
   companies: Record<Id, Company>; companyIds: Id[];
   stores: Record<Id, Store>; storeIds: Id[];
   loans: Record<Id, Loan>; loanIds: Id[];
-  ledger: { entries: JournalEntry[]; nextEntryId: number };
+  ledger: { entries: JournalEntry[]; nextEntryId: number };  // được thêm số dư lũy kế theo tháng; snapshot cho UI không kèm entries
   statements: Record<Id, MonthlyStatements[]>;   // theo companyId
   commandQueue: QueuedCommand[];
   events: GameEvent[];                     // log hiển thị: cảnh báo, từ chối lệnh, AI mở cửa hàng…
@@ -64,7 +64,7 @@ interface Company {
   status: 'active' | 'distress' | 'bankrupt'; distressMonths: number;
   qualityTier: 'basic' | 'standard' | 'premium';
   brandAwareness: number;
-  marketingBudgetMonthly: Money;
+  marketingBudgetMonthly: Money; marketingAccrued: number;   // cent dạng float, reset khi chốt tháng
   tax: { preTaxProfitYTD: Money; taxBookedYTD: Money; lossCarryforward: Money };
   overdraft: { limit: Money; dailyBalanceSum: Money };
 }
@@ -75,7 +75,10 @@ interface Store {
   capex: Money; accumDep: Money;
   morale: number; skill: number; serviceLevel: number;
   today: { demand: number; served: number; lost: number; capacity: number };  // ghi đè mỗi ngày
-  mtd: { demand: number; served: number; capacity: number; revenue: Money; cogs: Money }; // reset đầu tháng
+  mtd: { demand: number; served: number; capacity: number; revenue: Money; cogs: Money;
+         wagesAccrued: number; rentAccrued: number }; // reset đầu tháng; *Accrued là cent dạng float
+  lastMonth: { revenue: Money; cogs: Money; wages: Money; rent: Money };  // cho AI §9 và UI
+  negContributionMonths: number;
 }
 
 interface JournalEntry {
@@ -83,6 +86,8 @@ interface JournalEntry {
   lines: { account: AccountCode; debit: Money; credit: Money }[];  // mỗi dòng đúng một vế > 0
 }
 ```
+Id sinh ra có đệm số 0 (`store-000010`, `loan-000003`) để sort theo chuỗi trùng thứ tự tạo. Type tách riêng `SegmentId` / `QualityTier` / `Personality` dù cùng có giá trị `premium`. Trường optional phải bỏ hẳn key, không gán `undefined`.
+Doanh thu và giá vốn hằng ngày ghi **một bút toán cho mỗi công ty mỗi ngày** (gộp các cửa hàng); chi tiết theo cửa hàng nằm ở `store.mtd`.
 
 ## 3. Commands (M1)
 | type | payload | validate chính |
@@ -99,18 +104,19 @@ interface JournalEntry {
 
 Command bị từ chối → push `GameEvent { kind: 'commandRejected', reason }`, không thay đổi gì khác.
 Cửa hàng mới mặc định: giá = Pref, staff = 4, lương = lương thị trường, morale 0.5, skill = newHireSkill, serviceLevel 0.6.
+Trạng thái ban đầu: người chơi `qualityTier = standard`, marketing 0. Cửa hàng ban đầu của AI: giá = target theo personality (làm tròn 5 cent), staff 5, lương theo personality, marketing 0 tới ngày 30; capex trừ vào `startingCash` qua cùng logic `OpenStore`. Chi tiết: economic-model §9.
 
 ## 4. Thứ tự tick (mỗi ngày)
 ```
 0. nếu day % 30 == 0 và day > 0: (đã chốt tháng ở cuối ngày trước) → AI ra quyết định tháng (§9)
 1. applyQueuedCommands
-2. macroSystem            (cập nhật priceIndex)
+2. macroSystem            (cập nhật priceIndex; bỏ qua ở ngày 0)
 3. brandSystem            (dùng spend + served hôm qua)
 4. demandSystem           (share, demand, noise)
-5. operationsSystem       (capacity, served, doanh thu + giá vốn ghi sổ, morale, skill, serviceLevel)
-6. financeDailySystem     (thấu chi tự rút/tự trả, cộng dồn số dư thấu chi)
+5. operationsSystem       (capacity, served, doanh thu + giá vốn ghi sổ, cộng dồn lương/thuê/marketing, morale, skill, serviceLevel)
+6. financeDailySystem     (thấu chi tự trả, cộng dồn số dư thấu chi; việc rút thấu chi nằm trong helper thanh toán — economic-model §7.2)
 7. clock.day += 1
-8. nếu clock.day % 30 == 0: monthCloseSystem (economic-model §10)
+8. nếu clock.day % 30 == 0: monthCloseSystem (economic-model §10; bút toán ghi day = clock.day − 1)
 ```
 Thứ tự duyệt thực thể: luôn theo `companyIds` / `storeIds` đã sort.
 

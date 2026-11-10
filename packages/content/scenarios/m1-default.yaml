@@ -12,7 +12,6 @@ macro:
   marketWageMonthly: 220000      # $2,200
 
 finance:
-  startingCash: 25000000         # $250,000 cho người chơi
   overdraftFloor: 2000000        # $20,000
   overdraftSpread: 0.08
   loanSpreads:                   # theo leverage = debt / EBITDA trailing 12m
@@ -45,4 +44,5 @@ companies:
   - { id: ai-daily, name: "Daily Grind", kind: ai, personality: balanced, startingCash: 60000000, initialStores: [c, n, e] }
   - { id: ai-aura,  name: "Aura Roasters", kind: ai, personality: premium, startingCash: 60000000, initialStores: [ne, se, c] }
 
-# Cửa hàng ban đầu của AI mở ở ngày 0, staff = 5, lương theo personality.
+# startingCash là trước capex; capex cửa hàng ban đầu trừ qua cùng logic OpenStore.
+# Cửa hàng ban đầu của AI mở ở ngày 0, staff = 5, giá = target theo personality, lương theo personality.
