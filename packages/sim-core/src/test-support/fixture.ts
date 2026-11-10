@@ -59,6 +59,16 @@ const industry: IndustryContent = {
       betas: betas.students,
     },
   },
+  aiRules: {
+    highUtilization: 0.95,
+    lowUtilization: 0.6,
+    priceAdjust: 0.03,
+    maxPriceStep: 0.05,
+    targetUtilization: 0.85,
+    maxStaffStep: 2,
+    closeAfterNegativeMonths: 3,
+    expansion: { minMonthlyRoi: 0.02, cashMultiple: 1.5 },
+  },
   aiPersonalities: {
     discount: { qualityTier: 'basic', markup: 3.7, wageRatio: 0.95, marketingShareOfRevenue: 0.02 },
     balanced: { qualityTier: 'standard', markup: 3.9, wageRatio: 1.05, marketingShareOfRevenue: 0.04 },

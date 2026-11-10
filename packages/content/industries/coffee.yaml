@@ -61,6 +61,19 @@ segments:
     incomeElasticityOfPriceSensitivity: 0
     betas: { q: 1.0, p: 2.0, b: 1.0, d: 1.0, w: 0.5 }
 
+# Luật tháng của AI (economic-model §9). Bot `sensible` dùng cùng luật với ngưỡng mở rộng riêng.
+aiRules:
+  highUtilization: 0.95        # > → đẩy giá mục tiêu lên
+  lowUtilization: 0.6          # < → hạ giá mục tiêu
+  priceAdjust: 0.03            # ±3% quanh giá target
+  maxPriceStep: 0.05           # giá dịch tối đa ±5%/tháng
+  targetUtilization: 0.85      # chọn staff để utilization dự kiến ≈ 0.85
+  maxStaffStep: 2              # ±2 người/tháng
+  closeAfterNegativeMonths: 3  # đóng cửa hàng lỗ đóng góp 3 tháng liền
+  expansion:
+    minMonthlyRoi: 0.02        # lãi đóng góp 3 tháng / capex > 2%/tháng
+    cashMultiple: 1.5          # cash ≥ 1.5 × capex của cửa hàng mới
+
 aiPersonalities:
   discount: { qualityTier: basic,    markup: 3.7, wageRatio: 0.95, marketingShareOfRevenue: 0.02 }
   balanced: { qualityTier: standard, markup: 3.9, wageRatio: 1.05, marketingShareOfRevenue: 0.04 }

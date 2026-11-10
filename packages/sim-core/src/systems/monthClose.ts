@@ -24,6 +24,7 @@ import type { CompanyId } from '../types/content';
 import type { SimContext, System } from '../types/context';
 import type { JournalLine, Ledger } from '../types/ledger';
 import type { GameState, Store } from '../types/state';
+import { emptyMonthToDate } from '../store';
 import { cashTrend, forecastNetCash, topExpenses } from './forecast';
 import { installment } from './loans';
 import { dailyRate } from './macro';
@@ -86,9 +87,10 @@ function liquidate(draft: GameState, store: Store, day: number): void {
   draft.events.push({ day, kind: 'storeClosed', companyId: store.companyId, storeId: store.id });
 }
 
-function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): void {
+/** Trả về các cửa hàng cần thanh lý (khi công ty vừa phá sản); việc thanh lý làm sau khi mọi công ty đã chốt. */
+function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): Store[] {
   const company = draft.companies[companyId];
-  if (!company || company.status === 'bankrupt') return;
+  if (!company || company.status === 'bankrupt') return [];
   const { industry, scenario } = ctx.content;
   const day = ctx.day;
   const month = monthOf(day);
@@ -227,6 +229,7 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
   const overdraft = balances[ACC.Overdraft];
   const netCash = balances[ACC.Cash] - overdraft;
   const trend = cashTrend(history);
+  const toLiquidate: Store[] = [];
   if (overdraft > company.overdraft.limit) {
     company.distressMonths += 1;
     const bankrupt = company.distressMonths >= DISTRESS_MONTHS_TO_BANKRUPTCY;
@@ -240,8 +243,7 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
       topExpenses: topExpenses(statements.pnl),
       cashForecast3m: forecastNetCash(netCash, trend, FORECAST_DISTRESS_MONTHS),
     });
-    // Thanh lý ghi vào ngày đầu tháng mới, sau khi báo cáo tháng này đã chốt.
-    if (bankrupt) for (const s of openStores) liquidate(draft, s, draft.clock.day);
+    if (bankrupt) toLiquidate.push(...openStores);
   } else {
     company.status = 'active';
     company.distressMonths = 0;
@@ -252,6 +254,10 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
   // Chuyển mtd sang lastMonth và reset cộng dồn.
   for (const s of stores) {
     const lastMonth = {
+      demand: s.mtd.demand,
+      served: s.mtd.served,
+      capacity: s.mtd.capacity,
+      days: s.mtd.days,
       revenue: s.mtd.revenue,
       cogs: s.mtd.cogs,
       wages: fromFloatCents(s.mtd.wagesAccrued),
@@ -262,9 +268,10 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
       s.negContributionMonths = contribution < 0 ? s.negContributionMonths + 1 : 0;
     }
     s.lastMonth = lastMonth;
-    s.mtd = { demand: 0, served: 0, capacity: 0, revenue: ZERO, cogs: ZERO, wagesAccrued: 0, rentAccrued: 0 };
+    s.mtd = emptyMonthToDate();
   }
   company.marketingAccrued = 0;
+  return toLiquidate;
 }
 
 /** Σ served / Σ capacity của tháng; null nếu không có công suất. */
@@ -279,5 +286,8 @@ function utilization(stores: readonly Store[]): number | null {
 }
 
 export const monthCloseSystem: System = (draft, ctx) => {
-  for (const companyId of draft.companyIds) closeCompany(draft, ctx, companyId);
+  const toLiquidate: Store[] = [];
+  for (const companyId of draft.companyIds) toLiquidate.push(...closeCompany(draft, ctx, companyId));
+  // Thanh lý ghi vào ngày đầu tháng mới, sau khi mọi công ty đã chốt tháng này (sổ ghi theo thứ tự ngày).
+  for (const store of toLiquidate) liquidate(draft, store, draft.clock.day);
 };

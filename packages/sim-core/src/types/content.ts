@@ -51,6 +51,25 @@ export interface AiPersonalityDef {
   readonly marketingShareOfRevenue: number;
 }
 
+export interface ExpansionRule {
+  /** Lãi đóng góp trung bình 3 tháng / tổng capex cửa hàng đang mở, mỗi tháng. */
+  readonly minMonthlyRoi: number;
+  /** Cash ≥ cashMultiple × capex của cửa hàng mới. */
+  readonly cashMultiple: number;
+}
+
+/** Luật tháng của AI (economic-model §9). */
+export interface AiRules {
+  readonly highUtilization: number;
+  readonly lowUtilization: number;
+  readonly priceAdjust: number;
+  readonly maxPriceStep: number;
+  readonly targetUtilization: number;
+  readonly maxStaffStep: number;
+  readonly closeAfterNegativeMonths: number;
+  readonly expansion: ExpansionRule;
+}
+
 export interface IndustryContent {
   readonly id: string;
   readonly name: { readonly vi: string; readonly en: string };
@@ -74,6 +93,7 @@ export interface IndustryContent {
   readonly qualityTiers: { readonly [T in QualityTier]: QualityTierDef };
   readonly brand: BrandParams;
   readonly segments: { readonly [id: SegmentId]: SegmentDef };
+  readonly aiRules: AiRules;
   readonly aiPersonalities: { readonly [P in Personality]: AiPersonalityDef };
 }
 

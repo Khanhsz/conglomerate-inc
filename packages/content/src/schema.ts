@@ -78,6 +78,16 @@ export const industrySchema = z
       initialAwareness: unit,
     }),
     segments: z.record(id, segmentDef).refine((s) => Object.keys(s).length > 0, 'cần ít nhất một phân khúc'),
+    aiRules: z.strictObject({
+      highUtilization: unit,
+      lowUtilization: unit,
+      priceAdjust: unit,
+      maxPriceStep: unit,
+      targetUtilization: z.number().gt(0).max(1),
+      maxStaffStep: z.number().int().min(1),
+      closeAfterNegativeMonths: z.number().int().min(1),
+      expansion: z.strictObject({ minMonthlyRoi: z.number(), cashMultiple: nonNegative }),
+    }),
     aiPersonalities: z.strictObject({
       discount: aiPersonalityDef,
       balanced: aiPersonalityDef,

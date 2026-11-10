@@ -1,6 +1,7 @@
 /** OpenStore (spec §3): capex = fitOutCost × priceIndex, trả qua pay() (có thể dùng thấu chi). */
 import { MAX_STORES_PER_DISTRICT, RENT_TERM_DAYS } from '../constants';
 import { formatId } from '../ids';
+import { emptyLastMonth, emptyMonthToDate } from '../store';
 import { ACC } from '../ledger/accounts';
 import { pay } from '../ledger/payments';
 import { money, mul, toDisplay, ZERO, type Money } from '../money';
@@ -70,8 +71,8 @@ export const openStore = {
       skill: industry.newHireSkill,
       serviceLevel: industry.newStore.serviceLevel,
       today: { demand: 0, served: 0, lost: 0, capacity: 0 },
-      mtd: { demand: 0, served: 0, capacity: 0, revenue: ZERO, cogs: ZERO, wagesAccrued: 0, rentAccrued: 0 },
-      lastMonth: { revenue: ZERO, cogs: ZERO, wages: ZERO, rent: ZERO },
+      mtd: emptyMonthToDate(),
+      lastMonth: emptyLastMonth(),
       negContributionMonths: 0,
     };
     draft.storeIds.push(id); // id tăng dần và đệm 0 → mảng vẫn đã sort

@@ -57,6 +57,31 @@ export interface StoreDayStats {
   capacity: number;
 }
 
+/** Cộng dồn trong tháng của một cửa hàng. `*Accrued` là cent dạng float, chỉ làm tròn khi ghi sổ. */
+export interface StoreMonthToDate {
+  demand: number;
+  served: number;
+  capacity: number;
+  /** Số ngày cửa hàng hoạt động trong tháng. */
+  days: number;
+  revenue: Money;
+  cogs: Money;
+  wagesAccrued: number;
+  rentAccrued: number;
+}
+
+/** Kết quả tháng trước của một cửa hàng (tiền đã làm tròn như khi ghi sổ). */
+export interface StoreLastMonth {
+  readonly demand: number;
+  readonly served: number;
+  readonly capacity: number;
+  readonly days: number;
+  readonly revenue: Money;
+  readonly cogs: Money;
+  readonly wages: Money;
+  readonly rent: Money;
+}
+
 export interface Store {
   readonly id: StoreId;
   readonly companyId: CompanyId;
@@ -77,18 +102,10 @@ export interface Store {
   serviceLevel: number;
   /** Ghi đè mỗi ngày. */
   today: StoreDayStats;
-  /** Cộng dồn trong tháng, reset khi chốt tháng. `*Accrued` là cent dạng float. */
-  mtd: {
-    demand: number;
-    served: number;
-    capacity: number;
-    revenue: Money;
-    cogs: Money;
-    wagesAccrued: number;
-    rentAccrued: number;
-  };
+  /** Cộng dồn trong tháng, reset khi chốt tháng. */
+  mtd: StoreMonthToDate;
   /** Kết quả tháng trước, cho AI (economic-model §9) và UI. */
-  lastMonth: { revenue: Money; cogs: Money; wages: Money; rent: Money };
+  lastMonth: StoreLastMonth;
   negContributionMonths: number;
 }
 

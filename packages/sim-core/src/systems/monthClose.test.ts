@@ -55,11 +55,21 @@ describe('month close entries (economic-model §6, §10)', () => {
   it('rolls store month-to-date into lastMonth and resets accruals', () => {
     const st = must(month0.stores['store-000001']);
     const pnl = must(month0.statements['ai-1']?.[0]).pnl;
-    expect(st.lastMonth).toEqual({ revenue: pnl.revenue, cogs: pnl.cogs, wages: 1_155_000, rent: 700_000 });
+    expect(st.lastMonth).toMatchObject({
+      revenue: pnl.revenue,
+      cogs: pnl.cogs,
+      wages: 1_155_000,
+      rent: 700_000,
+      days: 30,
+    });
+    expect(st.lastMonth.served).toBeLessThanOrEqual(st.lastMonth.capacity);
+    expect(st.lastMonth.served).toBeLessThanOrEqual(st.lastMonth.demand);
+    expect(st.lastMonth.capacity).toBeGreaterThanOrEqual(30 * 450); // 5 × 90 × productivity; lương 1.05× nên morale > 0.5
     expect(st.mtd).toEqual({
       demand: 0,
       served: 0,
       capacity: 0,
+      days: 0,
       revenue: 0,
       cogs: 0,
       wagesAccrued: 0,
@@ -134,11 +144,8 @@ describe('tax reversal at month close (economic-model §6.2)', () => {
     const m0 = runDays(createGame(big), big, 30);
     const tax0 = must(m0.statements['ai-1']?.[0]).pnl.incomeTax;
     expect(tax0).toBeGreaterThan(0);
-    const spend: Command = {
-      type: 'SetMarketingBudget',
-      companyId: 'ai-1',
-      payload: { monthly: money(100_000_000) },
-    };
+    // Lỗ lớn ở tháng 1: đóng cửa hàng → lỗ thanh lý ≈ 12M (AI không ghi đè được lệnh này như marketing/lương).
+    const spend: Command = { type: 'CloseStore', companyId: 'ai-1', payload: { storeId: 'store-000001' } };
     const s = runDays(enqueue(m0, spend), big, 30);
     const m1 = must(s.statements['ai-1']?.[1]);
     expect(m1.pnl.preTax).toBeLessThan(-must(m0.statements['ai-1']?.[0]).pnl.preTax); // lỗ YTD
@@ -225,5 +232,29 @@ describe('deliberate bankruptcy (economic-model §8)', () => {
       end.ledger.entries.filter((e) => e.companyId === 'player').length,
     );
     expect(later.statements['player']).toHaveLength(must(end.statements['player']).length);
+  });
+});
+
+describe('bankruptcy of an earlier company in companyIds order', () => {
+  it('liquidates after every company has closed, keeping the ledger in day order', () => {
+    // Đổi id người chơi thành 'a-player' để nó đứng trước 'ai-1': trước đây thanh lý của nó ghi ngày đầu tháng mới
+    // rồi chốt tháng của ai-1 ghi ngày cuối tháng → sổ lùi ngày.
+    const early = fixtureContent((d) => {
+      must(d.scenario.companies[0]).id = 'a-player';
+    });
+    const plan: Command[] = [
+      { type: 'OpenStore', companyId: 'a-player', payload: { districtId: 'e' } },
+      { type: 'SetPrice', companyId: 'a-player', payload: { storeId: 'all', price: money(105) } },
+      { type: 'SetWage', companyId: 'a-player', payload: { storeId: 'all', wageMonthly: money(660_000) } },
+      { type: 'SetStaff', companyId: 'a-player', payload: { storeId: 'store-000002', staff: 40 } },
+    ];
+    const s = runDays(
+      plan.reduce((acc, c) => enqueue(acc, c), createGame(early)),
+      early,
+      30 * 4,
+    );
+    expect(s.companyIds[0]).toBe('a-player');
+    expect(must(s.companies['a-player']).status).toBe('bankrupt');
+    expect(checkInvariants(s, early)).toEqual([]);
   });
 });

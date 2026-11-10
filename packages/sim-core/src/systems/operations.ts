@@ -61,6 +61,7 @@ export const operationsSystem: System = (draft, ctx) => {
     store.mtd.demand += demand;
     store.mtd.served += served;
     store.mtd.capacity += capacity;
+    store.mtd.days += 1;
     store.mtd.revenue = add(store.mtd.revenue, revenue);
     store.mtd.cogs = add(store.mtd.cogs, cogs);
     store.mtd.wagesAccrued += (store.staff * store.wageMonthly) / DAYS_PER_MONTH;

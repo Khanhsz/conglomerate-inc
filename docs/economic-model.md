@@ -188,7 +188,7 @@ Quyết định chạy vào ngày đầu mỗi tháng, đọc **cùng dữ liệ
 | balanced | standard | 3.9× | 1.05 | 4% |
 | premium | premium | 4.0× | 1.20 | 6% |
 
-(Giá trị nằm trong `coffee.yaml > aiPersonalities`; bảng chỉ minh họa.)
+(Giá trị nằm trong `coffee.yaml > aiPersonalities`; bảng chỉ minh họa. Các ngưỡng của luật dưới đây nằm trong `coffee.yaml > aiRules`.)
 
 Luật tháng (mỗi cửa hàng):
 0. Trạng thái ban đầu (ngày 0): cửa hàng AI mở ở `targetPrice` làm tròn 5 cent, lương = `wageRatio × marketWageMonthly`, marketing = 0 cho tới lần quyết định đầu tiên ở ngày 30.

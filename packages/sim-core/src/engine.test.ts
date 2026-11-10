@@ -165,7 +165,7 @@ describe('determinism (economic-model §13.8)', () => {
     const c = play(43, 360, script);
     expect(hashState(a)).toBe(hashState(b));
     expect(hashState(a)).not.toBe(hashState(c));
-    expect(a.storeIds).toHaveLength(3);
+    expect(a.storeIds.filter((id) => a.stores[id]?.companyId === 'player')).toHaveLength(2);
   });
 });
 
