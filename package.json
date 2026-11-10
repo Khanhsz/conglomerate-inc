@@ -1,0 +1,28 @@
+{
+  "name": "conglomerate-inc",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:sim": "vitest run --project sim-core",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "balance": "tsx packages/balance/src/cli.ts",
+    "balance:smoke": "tsx packages/balance/src/cli.ts --smoke",
+    "dev": "pnpm --filter @game/web dev"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "eslint": "^10.14.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^4.1.12"
+  }
+}

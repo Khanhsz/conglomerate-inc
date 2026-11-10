@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/sim-core" },
+    { "path": "packages/content" },
+    { "path": "packages/balance" },
+    { "path": "apps/web" },
+    { "path": "tsconfig.tools.json" }
+  ]
+}
