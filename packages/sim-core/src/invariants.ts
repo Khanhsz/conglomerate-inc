@@ -9,7 +9,7 @@ import type { AccountBalances } from './types/ledger';
 import type { GameState } from './types/state';
 
 export type InvariantCode =
-  'content' | 'finite' | 'ids' | 'ledger' | 'balance' | 'cash' | 'range' | 'demand' | 'statements';
+  'content' | 'finite' | 'ids' | 'ledger' | 'loans' | 'balance' | 'cash' | 'range' | 'demand' | 'statements';
 
 export interface InvariantViolation {
   readonly code: InvariantCode;
@@ -139,6 +139,18 @@ export function checkInvariants(state: GameState, content: LoadedContent): Invar
     if (b[ACC.Cash] < 0) out.push({ code: 'cash', message: `${companyId}: Cash = ${b[ACC.Cash]} < 0` });
     if (b[ACC.Overdraft] < 0)
       out.push({ code: 'cash', message: `${companyId}: Overdraft = ${b[ACC.Overdraft]} < 0` });
+
+    let outstanding = 0;
+    for (const loanId of state.loanIds) {
+      const loan = state.loans[loanId];
+      if (loan?.companyId === companyId) outstanding += loan.outstanding;
+    }
+    if (outstanding !== b[ACC.Loans]) {
+      out.push({
+        code: 'loans',
+        message: `${companyId}: Σ dư nợ vay ${outstanding} ≠ số dư Loans ${b[ACC.Loans]}`,
+      });
+    }
 
     const company = state.companies[companyId];
     if (company && !isUnit(company.brandAwareness)) {

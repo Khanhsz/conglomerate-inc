@@ -5,11 +5,13 @@ import type { GameState } from '../types/state';
 import { closeStore } from './closeStore';
 import { isRecord, reject } from './common';
 import { openStore } from './openStore';
+import { repayLoan } from './repayLoan';
 import { setMarketingBudget } from './setMarketingBudget';
 import { setPrice } from './setPrice';
 import { setQualityTier } from './setQualityTier';
 import { setStaff } from './setStaff';
 import { setWage } from './setWage';
+import { takeLoan } from './takeLoan';
 
 const KNOWN_TYPES: ReadonlySet<unknown> = new Set(COMMAND_TYPES);
 
@@ -33,6 +35,10 @@ export function validateCommand(state: GameState, ctx: SimContext, cmd: Command)
       return setMarketingBudget.validate(state, ctx, cmd);
     case 'SetQualityTier':
       return setQualityTier.validate(state, ctx, cmd);
+    case 'TakeLoan':
+      return takeLoan.validate(state, ctx, cmd);
+    case 'RepayLoan':
+      return repayLoan.validate(state, ctx, cmd);
   }
 }
 
@@ -53,6 +59,10 @@ export function applyCommand(draft: GameState, ctx: SimContext, cmd: Command): v
       return setMarketingBudget.apply(draft, ctx, cmd);
     case 'SetQualityTier':
       return setQualityTier.apply(draft, ctx, cmd);
+    case 'TakeLoan':
+      return takeLoan.apply(draft, ctx, cmd);
+    case 'RepayLoan':
+      return repayLoan.apply(draft, ctx, cmd);
   }
 }
 

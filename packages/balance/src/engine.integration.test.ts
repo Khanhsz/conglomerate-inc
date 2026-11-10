@@ -111,3 +111,28 @@ describe('m1-default: 360 days', () => {
     expect(hashState(runDays(s0, content, 60))).toBe(hashState(stepped));
   });
 });
+
+describe('m1-default: 3 years with finance and month close', () => {
+  it('every month: invariants hold, statements chain (opening = previous closing, NI = ΔRE)', () => {
+    let s = createGame(content, { seed: 42 });
+    s = enqueue(s, { type: 'OpenStore', companyId: 'player', payload: { districtId: 'c' } });
+    s = runDays(s, content, 3 * 360, (monthly) => {
+      expect(checkInvariants(monthly, content)).toEqual([]);
+    });
+    for (const id of s.companyIds) {
+      const list = s.statements[id] ?? [];
+      if (s.companies[id]?.status !== 'bankrupt') expect(list).toHaveLength(36);
+      list.forEach((m, i) => {
+        const prev = list[i - 1];
+        expect(m.month).toBe(i);
+        expect(m.cashFlow.openingCash).toBe(prev ? prev.cashFlow.closingCash : 0);
+        expect(m.pnl.netIncome).toBe(
+          m.balanceSheet.retainedEarnings - (prev ? prev.balanceSheet.retainedEarnings : 0),
+        );
+        expect(m.cashFlow.cfo + m.cashFlow.cfi + m.cashFlow.cff).toBe(
+          m.cashFlow.closingCash - m.cashFlow.openingCash,
+        );
+      });
+    }
+  }, 60_000);
+});

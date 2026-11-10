@@ -131,7 +131,48 @@ export type GameEvent =
       readonly kind: 'storeClosed';
       readonly companyId: CompanyId;
       readonly storeId: StoreId;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'distress' | 'bankrupt';
+      readonly companyId: CompanyId;
+      readonly overdraft: Money;
+      readonly overdraftLimit: Money;
+      /** 3 khoản chi lớn nhất tháng (economic-model §8). */
+      readonly topExpenses: readonly ExpenseItem[];
+      /** Tiền ròng (cash − overdraft) dự báo sau 3 tháng theo xu hướng 3 tháng gần nhất. */
+      readonly cashForecast3m: Money;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'cashWarning';
+      readonly companyId: CompanyId;
+      readonly cashForecast13w: Money;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'loanTaken';
+      readonly companyId: CompanyId;
+      readonly loanId: LoanId;
+      readonly principal: Money;
+      readonly annualRate: number;
+      readonly termMonths: number;
+      readonly paymentMonthly: Money;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'loanRepaid';
+      readonly companyId: CompanyId;
+      readonly loanId: LoanId;
+      readonly principal: Money;
+      readonly fee: Money;
     };
+
+export interface ExpenseItem {
+  /** Tên dòng P&L (Wages, Rent, COGS…). */
+  readonly label: string;
+  readonly amount: Money;
+}
 
 export interface GameState {
   readonly schemaVersion: 1;

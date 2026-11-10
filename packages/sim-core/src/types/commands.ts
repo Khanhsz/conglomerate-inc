@@ -1,4 +1,4 @@
-/** Lệnh của người chơi / AI (spec §3, ADR-0001 #6). TakeLoan / RepayLoan thêm ở bước 05. */
+/** Lệnh của người chơi / AI (spec §3, ADR-0001 #6). */
 import type { Money } from '../money';
 import type { CompanyId, DistrictId, QualityTier } from './content';
 
@@ -39,6 +39,16 @@ export type Command =
       readonly type: 'SetQualityTier';
       readonly companyId: CompanyId;
       readonly payload: { readonly tier: QualityTier };
+    }
+  | {
+      readonly type: 'TakeLoan';
+      readonly companyId: CompanyId;
+      readonly payload: { readonly principal: Money; readonly termMonths: number };
+    }
+  | {
+      readonly type: 'RepayLoan';
+      readonly companyId: CompanyId;
+      readonly payload: { readonly loanId: string };
     };
 
 export type CommandType = Command['type'];
@@ -51,6 +61,8 @@ export const COMMAND_TYPES = [
   'SetWage',
   'SetMarketingBudget',
   'SetQualityTier',
+  'TakeLoan',
+  'RepayLoan',
 ] as const satisfies readonly CommandType[];
 
 export type Validation = { readonly ok: true } | { readonly ok: false; readonly reason: string };

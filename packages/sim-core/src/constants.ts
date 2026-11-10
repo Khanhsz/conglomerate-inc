@@ -22,3 +22,13 @@ export const RENT_TERM_DAYS = DAYS_PER_YEAR;
 export const LEASE_TERMINATION_MONTHS = 3;
 /** AI làm tròn giá tới 5 cent (economic-model §9). */
 export const AI_PRICE_TICK = 5;
+
+/** Kỳ hạn vay cho phép, tháng (economic-model §7.1). */
+export const LOAN_TERMS_MONTHS = [12, 24, 36, 60] as const;
+/** 13 tuần theo lịch 360 ngày, tính bằng tháng (cảnh báo sớm, economic-model §8). */
+export const FORECAST_WARNING_MONTHS = 91 / DAYS_PER_MONTH;
+/** Distress / bankrupt: dự báo 3 tháng; xu hướng lấy trung bình 3 tháng gần nhất (economic-model §8). */
+export const FORECAST_DISTRESS_MONTHS = 3;
+export const FORECAST_TREND_MONTHS = 3;
+/** Số lần chốt tháng liên tiếp ở distress thì phá sản. */
+export const DISTRESS_MONTHS_TO_BANKRUPTCY = 2;

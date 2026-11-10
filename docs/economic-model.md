@@ -176,6 +176,9 @@ Tại chốt tháng, cho mỗi công ty:
 - `overdraft > overdraftLimit` → trạng thái `distress` + cảnh báo nêu **3 khoản chi lớn nhất tháng** và dự báo tiền mặt 3 tháng.
 - 2 lần chốt tháng liên tiếp ở `distress` → `bankrupt`. Người chơi: game over (hiện báo cáo nguyên nhân). AI: tất cả cửa hàng đóng (thanh lý: ghi giảm GTCL theo §6.1 nhưng **không** tính phí chấm dứt 3 tháng thuê), công ty rời thị trường. Công ty `bankrupt` bị mọi system bỏ qua từ đó (không tính lãi, không chốt tháng).
 - Cảnh báo sớm (không phải distress): dự báo tiền mặt 13 tuần âm theo xu hướng 3 tháng gần nhất.
+- Định nghĩa dự báo: `tiền ròng = Cash − Overdraft`; `xu hướng` = trung bình 3 tháng gần nhất (đã chốt, gồm tháng này) của `CFO + CFI − trả gốc` (không tính góp vốn và tiền vay mới vì không lặp lại); `dự báo(k tháng) = tiền ròng + k × xu hướng`. 3 tháng cho distress; 13 tuần = 91/30 tháng cho cảnh báo sớm.
+- Hạn mức thấu chi được tính lại (§7.2) ngay trước bước xét distress.
+- Thanh lý khi phá sản ghi vào ngày đầu tháng kế tiếp (sau khi báo cáo tháng đã chốt); công ty `bankrupt` không còn chốt tháng.
 
 ## 9. Đối thủ AI (M1)
 Quyết định chạy vào ngày đầu mỗi tháng, đọc **cùng dữ liệu người chơi thấy** (không gian lận).

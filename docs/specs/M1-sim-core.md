@@ -56,7 +56,7 @@ interface GameState {
             balances: Record<Id, AccountBalances> };  // số dư hiện tại, cập nhật trong post(); snapshot cho UI không kèm entries
   statements: Record<Id, MonthlyStatements[]>;   // theo companyId
   commandQueue: QueuedCommand[];           // { enqueuedDay, command } — không có id: lệnh bị từ chối chỉ để lại event
-  events: GameEvent[];                     // union theo `kind`: commandRejected, storeOpened, storeClosed (bước 05 thêm distress…)
+  events: GameEvent[];                     // union theo `kind`: commandRejected, storeOpened, storeClosed, distress, bankrupt, cashWarning, loanTaken, loanRepaid
   nextIds: { store: number; loan: number };
 }
 
@@ -100,8 +100,8 @@ Doanh thu và giá vốn hằng ngày ghi **một bút toán cho mỗi công ty 
 | `SetWage` | `{ storeId \| 'all', wageMonthly }` | ∈ [0.5, 3] × lương thị trường |
 | `SetMarketingBudget` | `{ monthly }` | ≥ 0, ≤ $1M |
 | `SetQualityTier` | `{ tier }` | tier tồn tại |
-| `TakeLoan` | `{ principal, termMonths }` | economic-model §7.1 |
-| `RepayLoan` | `{ loanId }` | đủ tiền |
+| `TakeLoan` | `{ principal, termMonths }` | economic-model §7.1; công ty chưa phá sản; cần ít nhất một tháng đã chốt |
+| `RepayLoan` | `{ loanId }` | khoản vay của công ty, còn dư nợ; tiền mặt + hạn mức thấu chi còn lại ≥ dư nợ × (1 + phí) |
 
 Command bị từ chối → push `GameEvent { kind: 'commandRejected', reason }`, không thay đổi gì khác.
 Cửa hàng mới mặc định: giá = Pref, lương = lương thị trường, skill = newHireSkill; staff, morale, serviceLevel lấy từ `industry.newStore` (coffee: 4, 0.5, 0.6). Lệnh được chuẩn hóa qua JSON khi `enqueue` và validate lại ngay trước khi apply.
