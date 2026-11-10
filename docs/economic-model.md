@@ -80,6 +80,8 @@ W_j ← W_j + κw × (W_target − W_j)        κw = industry.serviceAdjustRate 
 ```
 `staffQuality_j = morale_j × skill_j` (cả hai ∈ [0,1]).
 
+Thứ tự trong ngày của một cửa hàng (operationsSystem): gia hạn thuê nếu đến hạn → capacity dùng morale **đầu ngày** → served/lost → bút toán doanh thu, giá vốn → cộng dồn lương, thuê → cập nhật W bằng `fill` hôm nay và `staffQuality` **đầu ngày** → cập nhật morale (§4.2) → cập nhật skill (§4.3).
+
 ## 4. Vận hành cửa hàng
 ### 4.1 Công suất
 ```
@@ -97,7 +99,7 @@ morale_j ← morale_j + κm × (morale_target − morale_j)          κm = indus
 Lương = thị trường → morale hướng về 0.5. Lương +20% → ≈ 0.77.
 
 ### 4.3 Kỹ năng
-`skill_j ← min(1, skill_j + industry.skillGainPerDay)` khi staff không đổi; mỗi lần tuyển thêm Δ người: `skill_j ← (skill_j × staff_old + skill0 × Δ) / staff_new`, `skill0 = industry.newHireSkill` (0.4). Giảm staff không đổi skill.
+`skill_j ← min(1, skill_j + industry.skillGainPerDay)` mỗi ngày (kể cả ngày vừa tuyển: phần trộn do tuyển đã áp ngay trong lệnh SetStaff); mỗi lần tuyển thêm Δ người: `skill_j ← (skill_j × staff_old + skill0 × Δ) / staff_new`, `skill0 = industry.newHireSkill` (0.4). Giảm staff không đổi skill.
 
 ### 4.4 Chất lượng
 Tier chọn ở cấp công ty cho M1 (`company.qualityTier`), áp cho mọi cửa hàng. Mỗi tier có `quality` và `unitCostMultiplier`.

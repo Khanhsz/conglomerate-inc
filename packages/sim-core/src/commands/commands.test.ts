@@ -1,25 +1,32 @@
 import fc from 'fast-check';
 import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
-import { createGame, enqueue, step, validateCommand } from '../engine';
+import { createGame, enqueue, validateCommand } from '../engine';
 import { ACC } from '../ledger/accounts';
 import { currentBalances } from '../ledger/balances';
 import { post } from '../ledger/post';
 import { money } from '../money';
+import { ctxAt } from '../test-support/context';
 import { fixtureContent } from '../test-support/fixture';
 import { must } from '../test-support/must';
 import type { Command } from '../types/commands';
 import type { LoadedContent } from '../types/content';
 import type { GameState } from '../types/state';
+import { applyQueuedCommands } from './registry';
 
 const content = fixtureContent();
 const AI_STORE = 'store-000001';
 
+/**
+ * Chỉ chạy pha áp dụng lệnh của tick (rồi tăng ngày), tách khỏi operations/brand… để kiểm đúng tác động của lệnh.
+ * Thứ tự tick đầy đủ được kiểm trong engine.test.ts.
+ */
 function run(state: GameState, cmds: Command[], c: LoadedContent = content): GameState {
-  return step(
-    cmds.reduce((s, cmd) => enqueue(s, cmd), state),
-    c,
-  );
+  const queued = cmds.reduce((s, cmd) => enqueue(s, cmd), state);
+  return produce(queued, (d) => {
+    applyQueuedCommands(d, ctxAt(queued, c));
+    d.clock.day += 1;
+  });
 }
 
 const cash = (s: GameState, companyId: string) => currentBalances(s.ledger, companyId)[ACC.Cash];

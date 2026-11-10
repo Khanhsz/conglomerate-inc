@@ -102,7 +102,7 @@ describe('m1-default: 360 days', () => {
     expect(a.macro.priceIndex).toBeCloseTo(1.03 / (1 + (1.03 ** (1 / 360) - 1)), 9); // 359 lần nhân (ngày 1…359)
     expect(hashState(play(42, false))).toBe(hashState(a));
     expect(hashState(play(43, false))).not.toBe(hashState(a));
-  });
+  }, 60_000); // checkInvariants quét lại toàn sổ mỗi ngày
 
   it('runDays reaches the same state as stepping', () => {
     const s0 = createGame(content);
