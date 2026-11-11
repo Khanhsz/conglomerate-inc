@@ -7,15 +7,11 @@ export const pct = (x: number | null, digits = 1): string =>
 export const int = (n: number): string => Math.round(n).toLocaleString('en-US');
 
 /** Ký hiệu và màu theo thứ tự công ty (người chơi đứng đầu). */
-const STYLES = [
-  { glyph: '◆', color: '#2563eb' },
-  { glyph: '▲', color: '#9333ea' },
-  { glyph: '■', color: '#d97706' },
-  { glyph: '●', color: '#059669' },
-  { glyph: '★', color: '#dc2626' },
-];
+const GLYPHS = ['◆', '▲', '■', '●', '★'];
+const COLOR_TOKENS = 5;
+/** Màu lấy từ token CSS `--company-N` (có bản sáng và tối). */
 export function companyStyle(index: number): { glyph: string; color: string } {
-  return STYLES[index % STYLES.length] ?? { glyph: '●', color: '#555' };
+  return { glyph: GLYPHS[index % GLYPHS.length] ?? '●', color: `var(--company-${index % COLOR_TOKENS})` };
 }
 
 /** Một dòng mô tả event bằng tiếng Việt. */

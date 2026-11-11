@@ -1,13 +1,24 @@
+/* Bảng điều khiển sổ sách: nền giấy xám-xanh nhạt, một màu nhấn xanh dương, mỗi công ty một màu nhận diện. */
 :root {
-  --bg: #f6f7f9;
+  --bg: #f4f6f9;
   --panel: #ffffff;
-  --text: #1f2933;
-  --muted: #6b7280;
-  --line: #e2e5ea;
-  --accent: #2563eb;
-  --bad: #b91c1c;
-  --warn-bg: #fff7e6;
-  --err-bg: #fdecec;
+  --text: #1c2531;
+  --muted: #637083;
+  --line: #dfe4eb;
+  --accent: #2459d6;
+  --on-accent: #ffffff;
+  --bad: #b42318;
+  --good: #067647;
+  --warn: #b54708;
+  --warn-bg: #fff6e5;
+  --err-bg: #fdeceb;
+  --scrim: rgba(16, 24, 40, 0.5);
+  --company-0: #2459d6;
+  --company-1: #8a3ffc;
+  --company-2: #c4660a;
+  --company-3: #0e8a63;
+  --company-4: #d92d20;
+  --outside: #98a2b3;
   font-family:
     system-ui,
     -apple-system,
@@ -17,6 +28,52 @@
   font-size: 14px;
   color: var(--text);
   background: var(--bg);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #11161d;
+    --panel: #19202a;
+    --text: #e6ebf2;
+    --muted: #97a3b4;
+    --line: #2b3441;
+    --accent: #6d97f5;
+    --on-accent: #0b1220;
+    --bad: #f97066;
+    --good: #47cd89;
+    --warn: #fdb022;
+    --warn-bg: #2e2412;
+    --err-bg: #34191a;
+    --scrim: rgba(0, 0, 0, 0.6);
+    --company-0: #6d97f5;
+    --company-1: #b692f6;
+    --company-2: #f38744;
+    --company-3: #3ccb9a;
+    --company-4: #f97066;
+    --outside: #667085;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #11161d;
+  --panel: #19202a;
+  --text: #e6ebf2;
+  --muted: #97a3b4;
+  --line: #2b3441;
+  --accent: #6d97f5;
+  --on-accent: #0b1220;
+  --bad: #f97066;
+  --good: #47cd89;
+  --warn: #fdb022;
+  --warn-bg: #2e2412;
+  --err-bg: #34191a;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --company-0: #6d97f5;
+  --company-1: #b692f6;
+  --company-2: #f38744;
+  --company-3: #3ccb9a;
+  --company-4: #f97066;
+  --outside: #667085;
+  color-scheme: dark;
 }
 * {
   box-sizing: border-box;
@@ -41,7 +98,7 @@ button {
   padding: 4px 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--panel);
   color: var(--text);
   cursor: pointer;
 }
@@ -54,13 +111,13 @@ button:disabled {
 }
 button.primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border-color: var(--accent);
 }
 button[aria-pressed='true'],
 button[aria-selected='true'] {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border-color: var(--accent);
 }
 input,
@@ -69,7 +126,7 @@ select {
   padding: 3px 6px;
   border: 1px solid var(--line);
   border-radius: 4px;
-  background: #fff;
+  background: var(--panel);
 }
 input.num {
   width: 110px;
@@ -101,7 +158,9 @@ input.invalid {
 .app {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 16px 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 24px;
 }
 .topbar {
   display: flex;
@@ -112,7 +171,7 @@ input.invalid {
   border-bottom: 1px solid var(--line);
   margin-bottom: 12px;
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   background: var(--bg);
   z-index: 5;
 }
@@ -125,7 +184,7 @@ input.invalid {
   margin-left: auto;
 }
 .status-distress {
-  color: #b45309;
+  color: var(--warn);
   font-weight: 600;
 }
 .status-bankrupt {
@@ -133,7 +192,7 @@ input.invalid {
   font-weight: 600;
 }
 .status-active {
-  color: #047857;
+  color: var(--good);
 }
 
 .layout {
@@ -291,14 +350,14 @@ table.kv {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(17, 24, 39, 0.5);
+  background: var(--scrim);
   display: grid;
   place-items: center;
   z-index: 10;
   padding: 16px;
 }
 .dialog {
-  background: #fff;
+  background: var(--panel);
   border-radius: 10px;
   padding: 20px;
   max-width: 480px;
@@ -312,4 +371,18 @@ table.kv {
   .speeds {
     margin-left: 0;
   }
+}
+
+/* Dải safe-area phía trên thanh dính (ứng dụng điện thoại). */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--bg);
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

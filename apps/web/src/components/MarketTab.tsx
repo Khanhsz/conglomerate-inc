@@ -9,7 +9,7 @@ export function MarketTab({ snap }: { snap: Snapshot }) {
       value: c.marketShare,
       color: companyStyle(i).color,
     })),
-    { label: 'Không mua', value: snap.outsideShare, color: '#9ca3af' },
+    { label: 'Không mua', value: snap.outsideShare, color: 'var(--outside)' },
   ];
   const rowH = 28;
   const labelW = 120;
@@ -25,7 +25,7 @@ export function MarketTab({ snap }: { snap: Snapshot }) {
               <text x={0} y={rowH / 2 + 4} className="bar-label">
                 {b.label}
               </text>
-              <rect x={labelW} y={6} width={w} height={rowH - 12} fill={b.color} rx={3} />
+              <rect x={labelW} y={6} width={w} height={rowH - 12} style={{ fill: b.color }} rx={3} />
               <text x={labelW + w + 6} y={rowH / 2 + 4} className="bar-value">
                 {pct(b.value)}
               </text>
