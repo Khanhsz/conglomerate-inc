@@ -1,5 +1,5 @@
 /** Định dạng hiển thị. Tiền luôn qua toDisplay của sim-core; UI không làm toán tiền. */
-import { toDisplay, type GameEvent, type Money } from '@game/sim-core';
+import { DEPARTMENT_LABEL, OFFICE_SIZE_LABEL, toDisplay, type GameEvent, type Money } from '@game/sim-core';
 
 export const usd = (m: Money): string => toDisplay(m);
 export const pct = (x: number | null, digits = 1): string =>
@@ -36,5 +36,13 @@ export function eventText(e: GameEvent, names: Readonly<Record<string, string>>,
       return `${who(e.companyId)} vay ${usd(e.principal)} trong ${e.termMonths} tháng, lãi ${pct(e.annualRate, 2)}/năm, trả ${usd(e.paymentMonthly)}/tháng`;
     case 'loanRepaid':
       return `${who(e.companyId)} trả sớm ${e.loanId}: gốc ${usd(e.principal)}, phí ${usd(e.fee)}`;
+    case 'officeLeased':
+      return `${who(e.companyId)} thuê văn phòng ${OFFICE_SIZE_LABEL[e.size]} ở quận ${e.districtId}`;
+    case 'officeReleased':
+      return `${who(e.companyId)} trả văn phòng`;
+    case 'departmentOpened':
+      return `${who(e.companyId)} mở phòng ${DEPARTMENT_LABEL[e.dept]}`;
+    case 'departmentClosed':
+      return `${who(e.companyId)} đóng phòng ${DEPARTMENT_LABEL[e.dept]}`;
   }
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ACC, ACCOUNT_CODES, ACCOUNTS, isAccountCode, zeroBalances } from './accounts';
 
 describe('chart of accounts (economic-model §12)', () => {
-  it('has exactly the 17 accounts of §12', () => {
+  it('has exactly the accounts of §12 (17 in M1 + 7 in M1.6)', () => {
     const table = ACCOUNT_CODES.map((code) => [code, ACCOUNTS[code].name, ACCOUNTS[code].type]);
     expect(table).toEqual([
       [1000, 'Cash', 'asset'],
@@ -16,9 +16,16 @@ describe('chart of accounts (economic-model §12)', () => {
       [5000, 'COGS', 'expense'],
       [6000, 'Wages', 'expense'],
       [6100, 'Rent', 'expense'],
+      [6150, 'OfficeRent', 'expense'],
       [6200, 'Marketing', 'expense'],
       [6300, 'Depreciation', 'expense'],
       [6400, 'Admin', 'expense'],
+      [6410, 'DeptHr', 'expense'],
+      [6420, 'DeptProduct', 'expense'],
+      [6430, 'DeptFinance', 'expense'],
+      [6440, 'DeptMarketing', 'expense'],
+      [6450, 'DeptBoard', 'expense'],
+      [6600, 'ResearchAndDevelopment', 'expense'],
       [6900, 'LossOnDisposal', 'expense'],
       [7000, 'InterestExpense', 'expense'],
       [8000, 'IncomeTax', 'expense'],

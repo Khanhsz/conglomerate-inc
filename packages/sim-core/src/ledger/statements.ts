@@ -1,7 +1,7 @@
 /** Báo cáo tài chính tháng tính từ sổ cái (economic-model §11). */
 import { firstDayOfMonth, lastDayOfMonth } from '../calendar';
 import { add, fromFloatCents, sub, sum, ZERO, type Money } from '../money';
-import type { CompanyId } from '../types/content';
+import { DEPARTMENTS, type CompanyId } from '../types/content';
 import type { AccountBalances, AccountTotals, Ledger } from '../types/ledger';
 import type {
   BalanceSheet,
@@ -11,7 +11,7 @@ import type {
   OperatingStats,
   PnL,
 } from '../types/statements';
-import { ACC, ACCOUNTS, type AccountCode } from './accounts';
+import { ACC, ACCOUNTS, DEPARTMENT_ACCOUNT, type AccountCode } from './accounts';
 import { balancesAt, periodTotals, retainedEarnings } from './balances';
 
 const MONTHS_PER_YEAR_FOR_KPI = 12;
@@ -29,12 +29,15 @@ function buildPnl(flow: AccountTotals): PnL {
   const rent = movement(flow, ACC.Rent);
   const marketing = movement(flow, ACC.Marketing);
   const admin = movement(flow, ACC.Admin);
+  const officeRent = movement(flow, ACC.OfficeRent);
+  const departments = sum(DEPARTMENTS.map((d) => movement(flow, DEPARTMENT_ACCOUNT[d])));
+  const research = movement(flow, ACC.ResearchAndDevelopment);
   const depreciation = movement(flow, ACC.Depreciation);
   const lossOnDisposal = movement(flow, ACC.LossOnDisposal);
   const interest = movement(flow, ACC.InterestExpense);
   const incomeTax = movement(flow, ACC.IncomeTax);
   const grossProfit = sub(revenue, cogs);
-  const ebitda = sub(grossProfit, sum([wages, rent, marketing, admin]));
+  const ebitda = sub(grossProfit, sum([wages, rent, marketing, admin, officeRent, departments, research]));
   const ebit = sub(ebitda, add(depreciation, lossOnDisposal));
   const preTax = sub(ebit, interest);
   const netIncome = sub(preTax, incomeTax);
@@ -46,6 +49,9 @@ function buildPnl(flow: AccountTotals): PnL {
     rent,
     marketing,
     admin,
+    officeRent,
+    departments,
+    research,
     ebitda,
     depreciation,
     lossOnDisposal,
@@ -191,7 +197,11 @@ export function checkStatements(s: MonthlyStatements): string[] {
 
   const p = s.pnl;
   expectEq('pnl.grossProfit', p.grossProfit, p.revenue - p.cogs);
-  expectEq('pnl.ebitda', p.ebitda, p.grossProfit - p.wages - p.rent - p.marketing - p.admin);
+  expectEq(
+    'pnl.ebitda',
+    p.ebitda,
+    p.grossProfit - p.wages - p.rent - p.marketing - p.admin - p.officeRent - p.departments - p.research,
+  );
   expectEq('pnl.ebit', p.ebit, p.ebitda - p.depreciation - p.lossOnDisposal);
   expectEq('pnl.preTax', p.preTax, p.ebit - p.interest);
   expectEq('pnl.netIncome', p.netIncome, p.preTax - p.incomeTax);

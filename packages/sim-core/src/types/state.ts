@@ -4,7 +4,7 @@
  */
 import type { Money } from '../money';
 import type { Command } from './commands';
-import type { CompanyId, DistrictId, Personality, QualityTier } from './content';
+import type { CompanyId, Department, DistrictId, OfficeSize, Personality, QualityTier } from './content';
 import type { Ledger } from './ledger';
 import type { MonthlyStatements } from './statements';
 
@@ -36,6 +36,29 @@ interface CompanyBase {
   marketingAccrued: number;
   tax: { preTaxProfitYTD: Money; taxBookedYTD: Money; lossCarryforward: Money };
   overdraft: { limit: Money; dailyBalanceSum: Money };
+  /** Văn phòng (M1.6, economic-model §15.1); null = chưa thuê. */
+  office: Office | null;
+  /** Phòng ban đang mở (§15.2); đủ mọi key của DEPARTMENTS, null = chưa mở. */
+  departments: { [D in Department]: { readonly openedDay: number } | null };
+  /** Cent float cộng dồn trong tháng, ghi sổ và reset khi chốt tháng (§15). */
+  officeAccrued: OfficeAccrued;
+}
+
+export interface Office {
+  readonly districtId: DistrictId;
+  readonly size: OfficeSize;
+  readonly openedDay: number;
+  /** Cố định theo hợp đồng, index CPI khi gia hạn mỗi 12 tháng (như cửa hàng). */
+  rentMonthly: Money;
+  rentResetDay: number;
+  readonly capex: Money;
+  accumDep: Money;
+}
+
+export interface OfficeAccrued {
+  rent: number;
+  overhead: number;
+  departments: { [D in Department]: number };
 }
 
 export interface PlayerCompany extends CompanyBase {
@@ -186,6 +209,24 @@ export type GameEvent =
       readonly annualRate: number;
       readonly termMonths: number;
       readonly paymentMonthly: Money;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'officeLeased';
+      readonly companyId: CompanyId;
+      readonly districtId: DistrictId;
+      readonly size: OfficeSize;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'officeReleased';
+      readonly companyId: CompanyId;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'departmentOpened' | 'departmentClosed';
+      readonly companyId: CompanyId;
+      readonly dept: Department;
     }
   | {
       readonly day: number;

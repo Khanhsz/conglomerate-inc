@@ -308,7 +308,7 @@ Spec: `docs/specs/M1.6-office-departments.md`. Nguyên tắc chung cho §15–§
 |---|---|---|---|---|
 | small | 2 | $40,000 | 0.6 | $1,500 |
 | medium | 4 | $80,000 | 1.0 | $3,000 |
-| large | 6 | $150,000 | 1.6 | $6,000 |
+| large | 5 (đủ mọi phòng) | $150,000 | 1.6 | $6,000 |
 
 ### 15.2 Phòng ban
 - `dept` ∈ {`hr`, `product`, `finance`, `marketing`, `board`}. Mỗi phòng chiếm 1 slot văn phòng.

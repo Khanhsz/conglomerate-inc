@@ -3,7 +3,7 @@
  * ràng buộc chéo giữa industry và scenario nằm ở load.ts.
  * Output phải gán được vào IndustryContent / ScenarioContent của sim-core (kiểm tra ở load.ts lúc biên dịch).
  */
-import { MAX_STAFF_PER_STORE, money, PERSONALITIES, QUALITY_TIERS } from '@game/sim-core';
+import { DEPARTMENTS, MAX_STAFF_PER_STORE, money, PERSONALITIES, QUALITY_TIERS } from '@game/sim-core';
 import { z } from 'zod';
 
 const MIX_TOLERANCE = 1e-9;
@@ -26,6 +26,14 @@ const positive = z.number().positive();
 const id = z.string().min(1);
 
 const qualityTierDef = z.strictObject({ quality: unit, unitCostMultiplier: positive });
+
+const officeSizeDef = z.strictObject({
+  slots: z.number().int().min(1).max(DEPARTMENTS.length),
+  fitOut: moneyCents,
+  rentMultiplier: nonNegative,
+  overheadMonthly: moneyCents,
+});
+const departmentDef = z.strictObject({ openingCost: moneyCents, fixedMonthly: moneyCents });
 
 const segmentDef = z.strictObject({
   visitsPerPersonPerDay: nonNegative,
@@ -92,6 +100,16 @@ export const industrySchema = z
       discount: aiPersonalityDef,
       balanced: aiPersonalityDef,
       premium: aiPersonalityDef,
+    }),
+    office: z.strictObject({
+      sizes: z.strictObject({ small: officeSizeDef, medium: officeSizeDef, large: officeSizeDef }),
+    }),
+    departments: z.strictObject({
+      hr: departmentDef,
+      product: departmentDef,
+      finance: departmentDef,
+      marketing: departmentDef,
+      board: departmentDef,
     }),
   })
   .superRefine((ind, ctx) => {

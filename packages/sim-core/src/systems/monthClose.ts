@@ -15,7 +15,10 @@ import {
   STORE_HISTORY_MONTHS,
 } from '../constants';
 import { monthOf } from '../calendar';
-import { ACC } from '../ledger/accounts';
+import { disposeOffice } from '../commands/office';
+import { ACC, DEPARTMENT_ACCOUNT } from '../ledger/accounts';
+import { emptyOfficeAccrued, noDepartments } from '../office';
+import { DEPARTMENTS } from '../types/content';
 import { currentBalances } from '../ledger/balances';
 import { pay } from '../ledger/payments';
 import { post } from '../ledger/post';
@@ -129,7 +132,24 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
     ],
   });
 
-  // M2: khấu hao từng cửa hàng đang mở.
+  // M1b (M1.6, §15): văn phòng và phòng ban. Không có văn phòng thì mọi khoản = 0 và không ghi bút toán nào.
+  const officeCosts = company.officeAccrued;
+  pay(ledger, {
+    companyId,
+    day,
+    memo: memo('văn phòng và phòng ban'),
+    debits: [
+      { account: ACC.OfficeRent, amount: fromFloatCents(officeCosts.rent) },
+      { account: ACC.Admin, amount: fromFloatCents(officeCosts.overhead) },
+      ...DEPARTMENTS.map((d) => ({
+        account: DEPARTMENT_ACCOUNT[d],
+        amount: fromFloatCents(officeCosts.departments[d]),
+      })),
+    ],
+  });
+  company.officeAccrued = emptyOfficeAccrued();
+
+  // M2: khấu hao từng cửa hàng đang mở (và văn phòng, M1.6).
   let depreciation = ZERO;
   for (const s of openStores) {
     const d = depreciationForMonth(
@@ -139,6 +159,17 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
       industry.usefulLifeMonths,
     );
     s.accumDep = add(s.accumDep, d);
+    depreciation = add(depreciation, d);
+  }
+  if (company.office) {
+    const o = company.office;
+    const d = depreciationForMonth(
+      o.capex,
+      o.accumDep,
+      month - monthOf(o.openedDay) + 1,
+      industry.usefulLifeMonths,
+    );
+    o.accumDep = add(o.accumDep, d);
     depreciation = add(depreciation, d);
   }
   if (depreciation > 0) {
@@ -296,4 +327,12 @@ export const monthCloseSystem: System = (draft, ctx) => {
   for (const companyId of draft.companyIds) toLiquidate.push(...closeCompany(draft, ctx, companyId));
   // Thanh lý ghi vào ngày đầu tháng mới, sau khi mọi công ty đã chốt tháng này (sổ ghi theo thứ tự ngày).
   for (const store of toLiquidate) liquidate(draft, store, draft.clock.day);
+  // Văn phòng của công ty vừa phá sản: thanh lý như cửa hàng (không phí chấm dứt), đóng mọi phòng.
+  for (const companyId of draft.companyIds) {
+    const company = draft.companies[companyId];
+    if (company?.status !== 'bankrupt' || !company.office) continue;
+    disposeOffice(draft.ledger, companyId, company.office, draft.clock.day, 'Thanh lý văn phòng khi phá sản');
+    company.office = null;
+    company.departments = noDepartments();
+  }
 };

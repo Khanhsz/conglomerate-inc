@@ -1,6 +1,6 @@
 /** Lệnh của người chơi / AI (spec §3, ADR-0001 #6). */
 import type { Money } from '../money';
-import type { CompanyId, DistrictId, QualityTier } from './content';
+import type { CompanyId, Department, DistrictId, OfficeSize, QualityTier } from './content';
 
 type StoreRef = string;
 
@@ -49,6 +49,26 @@ export type Command =
       readonly type: 'RepayLoan';
       readonly companyId: CompanyId;
       readonly payload: { readonly loanId: string };
+    }
+  | {
+      readonly type: 'LeaseOffice';
+      readonly companyId: CompanyId;
+      readonly payload: { readonly districtId: DistrictId; readonly size: OfficeSize };
+    }
+  | {
+      readonly type: 'ReleaseOffice';
+      readonly companyId: CompanyId;
+      readonly payload: Readonly<Record<string, never>>;
+    }
+  | {
+      readonly type: 'OpenDepartment';
+      readonly companyId: CompanyId;
+      readonly payload: { readonly dept: Department };
+    }
+  | {
+      readonly type: 'CloseDepartment';
+      readonly companyId: CompanyId;
+      readonly payload: { readonly dept: Department };
     };
 
 export type CommandType = Command['type'];
@@ -63,6 +83,10 @@ export const COMMAND_TYPES = [
   'SetQualityTier',
   'TakeLoan',
   'RepayLoan',
+  'LeaseOffice',
+  'ReleaseOffice',
+  'OpenDepartment',
+  'CloseDepartment',
 ] as const satisfies readonly CommandType[];
 
 export type Validation = { readonly ok: true } | { readonly ok: false; readonly reason: string };

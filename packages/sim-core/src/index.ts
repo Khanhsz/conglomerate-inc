@@ -10,6 +10,7 @@ export * from './ledger/payments';
 export * from './ledger/post';
 export * from './ledger/statements';
 export * from './money';
+export * from './office';
 export * from './rng';
 export { selectors, type MarketShares, type StoreRow } from './selectors';
 export {
@@ -23,6 +24,7 @@ export {
   type WhatIfChange,
   type WhatIfResult,
 } from './selectors/inspect';
+export { officeView, type DepartmentStatus, type LeaseOption, type OfficeView } from './selectors/office';
 export { storeCapex } from './commands/openStore';
 export { aiPolicy, aiTargetPrice, decideMonthly, targetPrice, type AiPolicy } from './systems/ai';
 export { annuityPayment, loanQuote, type LoanQuote } from './systems/loans';

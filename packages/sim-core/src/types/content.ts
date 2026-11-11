@@ -11,6 +11,31 @@ export type QualityTier = (typeof QUALITY_TIERS)[number];
 export const PERSONALITIES = ['discount', 'balanced', 'premium'] as const;
 export type Personality = (typeof PERSONALITIES)[number];
 
+/** Quy mô văn phòng (economic-model §15.1). */
+export const OFFICE_SIZES = ['small', 'medium', 'large'] as const;
+export type OfficeSize = (typeof OFFICE_SIZES)[number];
+
+/** Phòng ban; mỗi phòng chiếm 1 slot văn phòng (economic-model §15.2). Thứ tự này là thứ tự duyệt và hiển thị. */
+export const DEPARTMENTS = ['hr', 'product', 'finance', 'marketing', 'board'] as const;
+export type Department = (typeof DEPARTMENTS)[number];
+
+export interface OfficeSizeDef {
+  readonly slots: number;
+  /** Capex sửa sang, trước CPI. */
+  readonly fitOut: Money;
+  /** Thuê văn phòng = district.rentMonthly × rentMultiplier × priceIndex. */
+  readonly rentMultiplier: number;
+  /** Overhead văn phòng mỗi tháng, trước CPI (ghi vào Admin). */
+  readonly overheadMonthly: Money;
+}
+
+export interface DepartmentDef {
+  /** Phí mở một lần, trước CPI. */
+  readonly openingCost: Money;
+  /** Chi phí cố định mỗi tháng, trước CPI. */
+  readonly fixedMonthly: Money;
+}
+
 export type SegmentId = string;
 export type DistrictId = string;
 export type CompanyId = string;
@@ -95,6 +120,9 @@ export interface IndustryContent {
   readonly segments: { readonly [id: SegmentId]: SegmentDef };
   readonly aiRules: AiRules;
   readonly aiPersonalities: { readonly [P in Personality]: AiPersonalityDef };
+  /** M1.6 (economic-model §15). */
+  readonly office: { readonly sizes: { readonly [S in OfficeSize]: OfficeSizeDef } };
+  readonly departments: { readonly [D in Department]: DepartmentDef };
 }
 
 export interface MacroParams {

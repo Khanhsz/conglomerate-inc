@@ -5,7 +5,7 @@ import { ALERT_KINDS, type AlertKind } from './sim/alerts';
 import type { FromWorker, ToWorker } from './sim/protocol';
 import type { Snapshot } from './sim/snapshot';
 
-export type Tab = 'stores' | 'finance' | 'market';
+export type Tab = 'stores' | 'office' | 'finance' | 'market';
 
 export interface Notice {
   readonly id: number;

@@ -4,6 +4,7 @@ import type { SimContext, System } from '../types/context';
 import type { GameState } from '../types/state';
 import { closeStore } from './closeStore';
 import { isRecord, reject } from './common';
+import { closeDepartment, leaseOffice, openDepartment, releaseOffice } from './office';
 import { openStore } from './openStore';
 import { repayLoan } from './repayLoan';
 import { setMarketingBudget } from './setMarketingBudget';
@@ -39,6 +40,14 @@ export function validateCommand(state: GameState, ctx: SimContext, cmd: Command)
       return takeLoan.validate(state, ctx, cmd);
     case 'RepayLoan':
       return repayLoan.validate(state, ctx, cmd);
+    case 'LeaseOffice':
+      return leaseOffice.validate(state, ctx, cmd);
+    case 'ReleaseOffice':
+      return releaseOffice.validate(state, ctx, cmd);
+    case 'OpenDepartment':
+      return openDepartment.validate(state, ctx, cmd);
+    case 'CloseDepartment':
+      return closeDepartment.validate(state, ctx, cmd);
   }
 }
 
@@ -63,6 +72,14 @@ export function applyCommand(draft: GameState, ctx: SimContext, cmd: Command): v
       return takeLoan.apply(draft, ctx, cmd);
     case 'RepayLoan':
       return repayLoan.apply(draft, ctx, cmd);
+    case 'LeaseOffice':
+      return leaseOffice.apply(draft, ctx, cmd);
+    case 'ReleaseOffice':
+      return releaseOffice.apply(draft, ctx, cmd);
+    case 'OpenDepartment':
+      return openDepartment.apply(draft, ctx, cmd);
+    case 'CloseDepartment':
+      return closeDepartment.apply(draft, ctx, cmd);
   }
 }
 

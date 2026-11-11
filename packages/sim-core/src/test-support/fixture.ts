@@ -74,6 +74,20 @@ const industry: IndustryContent = {
     balanced: { qualityTier: 'standard', markup: 3.9, wageRatio: 1.05, marketingShareOfRevenue: 0.04 },
     premium: { qualityTier: 'premium', markup: 4.0, wageRatio: 1.2, marketingShareOfRevenue: 0.06 },
   },
+  office: {
+    sizes: {
+      small: { slots: 2, fitOut: money(4_000_000), rentMultiplier: 0.6, overheadMonthly: money(150_000) },
+      medium: { slots: 4, fitOut: money(8_000_000), rentMultiplier: 1, overheadMonthly: money(300_000) },
+      large: { slots: 5, fitOut: money(15_000_000), rentMultiplier: 1.6, overheadMonthly: money(600_000) },
+    },
+  },
+  departments: {
+    hr: { openingCost: money(1_000_000), fixedMonthly: money(300_000) },
+    product: { openingCost: money(2_000_000), fixedMonthly: money(400_000) },
+    finance: { openingCost: money(1_000_000), fixedMonthly: money(300_000) },
+    marketing: { openingCost: money(1_500_000), fixedMonthly: money(350_000) },
+    board: { openingCost: money(2_000_000), fixedMonthly: money(200_000) },
+  },
 };
 
 const scenario: ScenarioContent = {

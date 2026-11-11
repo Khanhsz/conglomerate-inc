@@ -78,3 +78,17 @@ aiPersonalities:
   discount: { qualityTier: basic,    markup: 3.7, wageRatio: 0.95, marketingShareOfRevenue: 0.02 }
   balanced: { qualityTier: standard, markup: 3.9, wageRatio: 1.05, marketingShareOfRevenue: 0.04 }
   premium:  { qualityTier: premium,  markup: 4.0, wageRatio: 1.20, marketingShareOfRevenue: 0.06 }
+
+# M1.6 — văn phòng và phòng ban (economic-model §15). Giá trị đề xuất khởi đầu, hiệu chỉnh ở vòng 2 (#59).
+office:
+  sizes:
+    small:  { slots: 2, fitOut: 4000000,  rentMultiplier: 0.6, overheadMonthly: 150000 }   # $40k, $1.5k/tháng
+    medium: { slots: 4, fitOut: 8000000,  rentMultiplier: 1.0, overheadMonthly: 300000 }   # $80k, $3k/tháng
+    large:  { slots: 5, fitOut: 15000000, rentMultiplier: 1.6, overheadMonthly: 600000 }   # $150k, $6k/tháng
+
+departments:                   # openingCost một lần, fixedMonthly mỗi tháng (trước CPI)
+  hr:        { openingCost: 1000000, fixedMonthly: 300000 }   # $10k, $3k
+  product:   { openingCost: 2000000, fixedMonthly: 400000 }   # $20k, $4k
+  finance:   { openingCost: 1000000, fixedMonthly: 300000 }   # $10k, $3k
+  marketing: { openingCost: 1500000, fixedMonthly: 350000 }   # $15k, $3.5k
+  board:     { openingCost: 2000000, fixedMonthly: 200000 }   # $20k, $2k (chưa gồm lương C-level)

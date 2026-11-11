@@ -10,6 +10,12 @@ export interface PnL {
   readonly rent: Money;
   readonly marketing: Money;
   readonly admin: Money;
+  /** Thuê văn phòng (M1.6, economic-model §15.1). */
+  readonly officeRent: Money;
+  /** Phí mở và chi phí cố định các phòng ban (M1.6, §15.2), gộp 6410–6450. */
+  readonly departments: Money;
+  /** R&D sản phẩm (M1.6, §17.5). */
+  readonly research: Money;
   readonly ebitda: Money;
   readonly depreciation: Money;
   readonly lossOnDisposal: Money;

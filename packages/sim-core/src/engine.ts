@@ -11,12 +11,14 @@ import { ACC } from './ledger/accounts';
 import { createLedger, post } from './ledger/post';
 import { mul, ZERO } from './money';
 import { createRngFactory } from './rng';
+import { emptyOfficeAccrued, noDepartments } from './office';
 import { aiSystem, aiTargetPrice } from './systems/ai';
 import { brandSystem } from './systems/brand';
 import { demandSystem } from './systems/demand';
 import { financeDailySystem } from './systems/finance';
 import { macroSystem } from './systems/macro';
 import { monthCloseSystem } from './systems/monthClose';
+import { officeSystem } from './systems/office';
 import { operationsSystem } from './systems/operations';
 import type { Command, Validation } from './types/commands';
 import type { CompanyDef, LoadedContent } from './types/content';
@@ -50,6 +52,9 @@ function newCompany(def: CompanyDef, content: LoadedContent): Company {
     marketingAccrued: 0,
     tax: { preTaxProfitYTD: ZERO, taxBookedYTD: ZERO, lossCarryforward: ZERO },
     overdraft: { limit: scenario.finance.overdraftFloor, dailyBalanceSum: ZERO },
+    office: null,
+    departments: noDepartments(),
+    officeAccrued: emptyOfficeAccrued(),
   };
   return def.kind === 'ai'
     ? {
@@ -173,6 +178,7 @@ export function step(state: GameState, content: LoadedContent): GameState {
     brandSystem(draft, ctx);
     demandSystem(draft, ctx);
     operationsSystem(draft, ctx);
+    officeSystem(draft, ctx);
     financeDailySystem(draft, ctx);
     draft.clock.day += 1;
     if (draft.clock.day % DAYS_PER_MONTH === 0) monthCloseSystem(draft, ctx);

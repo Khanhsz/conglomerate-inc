@@ -10,6 +10,7 @@ import {
   monthOf,
   MONTHS_PER_YEAR,
   mul,
+  officeView,
   selectors,
   storeCapex,
   type CompanyStatus,
@@ -20,6 +21,7 @@ import {
   type MonthlyStatements,
   type QualityTier,
   type StoreRow,
+  type OfficeView,
 } from '@game/sim-core';
 import { computeAlerts, type Alert } from './alerts';
 import { buildInspection, type InspectionView } from './inspection';
@@ -104,6 +106,8 @@ export interface Snapshot {
   readonly alerts: readonly Alert[];
   /** Chi tiết cửa hàng đang xem (chỉ cửa hàng của người chơi). */
   readonly inspection: InspectionView | null;
+  /** Văn phòng và phòng ban của người chơi (economic-model §15). */
+  readonly office: OfficeView;
   /** Lệnh của người chơi đã vào hàng đợi, áp dụng ở đầu ngày kế tiếp. */
   readonly pending: PendingView;
 }
@@ -137,6 +141,8 @@ export function buildSnapshot(
   const month = monthOf(day);
   const balances = currentBalances(state.ledger, pid);
   const pending = pendingChanges(state);
+  const office = officeView(state, content, pid);
+  if (!office) throw new Error(`missing player company ${pid}`);
   const shares = selectors.marketShares(state, content);
 
   const openStores = state.storeIds.flatMap((id) => {
@@ -237,6 +243,7 @@ export function buildSnapshot(
         ? null
         : buildInspection(state, content, inspectedStoreId, pending.stores[inspectedStoreId]),
     pending,
+    office,
   };
 }
 
