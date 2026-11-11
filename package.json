@@ -15,7 +15,8 @@
     "balance": "tsx packages/balance/src/cli.ts",
     "balance:smoke": "tsx packages/balance/src/cli.ts --smoke",
     "dev": "pnpm --filter @game/web dev",
-    "e2e": "pnpm --filter @game/web build && playwright test -c apps/web/playwright.config.ts"
+    "e2e": "pnpm --filter @game/web build && playwright test -c apps/web/playwright.config.ts",
+    "bench": "tsx packages/balance/src/bench.ts"
   },
   "devDependencies": {
     "@playwright/test": "~1.63.0",
