@@ -31,17 +31,17 @@ interface UiState {
   /** Ước tính khi đang kéo thanh trượt (null = không kéo). */
   readonly preview: WhatIfResult | null;
   readonly pauseOn: readonly AlertKind[];
-  send(message: ToWorker): void;
-  receive(message: FromWorker): void;
-  openMap(): void;
-  openHq(tab?: HqTab): void;
-  openStore(storeId: string, tab?: StoreTab): void;
-  selectDistrict(id: string): void;
-  inspect(storeId: string | null): void;
-  requestPreview(storeId: string, change: WhatIfChange): void;
-  clearPreview(): void;
-  togglePause(kind: AlertKind): void;
-  dismissNotice(id: number): void;
+  readonly send: (message: ToWorker) => void;
+  readonly receive: (message: FromWorker) => void;
+  readonly openMap: () => void;
+  readonly openHq: (tab?: HqTab) => void;
+  readonly openStore: (storeId: string, tab?: StoreTab) => void;
+  readonly selectDistrict: (id: string) => void;
+  readonly inspect: (storeId: string | null) => void;
+  readonly requestPreview: (storeId: string, change: WhatIfChange) => void;
+  readonly clearPreview: () => void;
+  readonly togglePause: (kind: AlertKind) => void;
+  readonly dismissNotice: (id: number) => void;
 }
 
 let nextNotice = 1;

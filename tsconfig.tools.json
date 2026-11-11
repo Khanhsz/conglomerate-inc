@@ -4,7 +4,23 @@
     "rootDir": ".",
     "outDir": "dist/tools",
     "tsBuildInfoFile": "dist/tools/.tsbuildinfo",
-    "types": ["node"]
+    "types": ["node"],
+    // e2e: callback của page.evaluate chạy trong trình duyệt.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "include": ["vitest.config.ts", "tests", "apps/web/playwright.config.ts", "apps/web/e2e"]
+  "include": [
+    "vitest.config.ts",
+    "tests",
+    "apps/web/playwright.config.ts",
+    "apps/web/e2e",
+    "apps/web/scripts",
+    // snapshot-bench nhập các module sim của web; worker.ts cần lib WebWorker nên ở tsconfig.worker.json.
+    "apps/web/src/sim/protocol.ts",
+    "apps/web/src/sim/snapshot.ts",
+    "apps/web/src/sim/alerts.ts",
+    "apps/web/src/sim/inspection.ts",
+    "apps/web/src/sim/limits.ts",
+    "apps/web/src/sim/pending.ts",
+    "apps/web/src/sim/mom.ts"
+  ]
 }

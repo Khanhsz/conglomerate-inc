@@ -9,7 +9,8 @@ const scenarioYaml = read('../scenarios/m1-default.yaml');
 
 /** Sửa một bản sao YAML qua object JS rồi stringify lại. */
 function edit(yamlText: string, mutate: (doc: Record<string, unknown>) => void): string {
-  const doc: Record<string, unknown> = parse(yamlText);
+  const doc: unknown = parse(yamlText);
+  if (!isRecord(doc)) throw new Error('YAML root is not an object');
   mutate(doc);
   return stringify(doc);
 }

@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { untyped as untypedJson } from '../test-support/untyped';
 import { stableStringify } from '../hash';
 import { money } from '../money';
 import type { JournalLine, NewJournalEntry } from '../types/ledger';
@@ -16,8 +17,8 @@ const entry = (lines: JournalLine[], day = 0, companyId = 'player'): NewJournalE
   lines,
 });
 
-/** Dữ liệu không qua kiểu (giả lập input sai); JSON.parse trả any nên không cần ép kiểu. */
-const untyped = (v: unknown): NewJournalEntry => JSON.parse(JSON.stringify(v));
+/** Dữ liệu không qua kiểu (giả lập input sai). */
+const untyped = (v: unknown): NewJournalEntry => untypedJson<NewJournalEntry>(JSON.stringify(v));
 
 describe('post', () => {
   it('assigns increasing ids and updates current balances', () => {

@@ -234,7 +234,7 @@ export function checkStatements(s: MonthlyStatements): string[] {
   const c = s.cashFlow;
   expectEq('cashFlow.netIncome', c.netIncome, p.netIncome);
   expectEq('cashFlow.cfo', c.cfo, c.netIncome + c.depreciation + c.lossOnDisposal + c.changeInTaxPayable);
-  expectEq('cashFlow.cfi', c.cfi, -c.capex);
+  expectEq('cashFlow.cfi', c.cfi, 0 - c.capex);
   expectEq('cashFlow.cff', c.cff, c.equityIssued + c.borrowings - c.principalRepaid + c.changeInOverdraft);
   expectEq('cashFlow.netChange', c.netChange, c.cfo + c.cfi + c.cff);
   expectEq('CFO + CFI + CFF − ΔCash', c.netChange - (c.closingCash - c.openingCash), 0);

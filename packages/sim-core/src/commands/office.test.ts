@@ -6,6 +6,7 @@ import { currentBalances } from '../ledger/balances';
 import { money, mul } from '../money';
 import { fixtureContent } from '../test-support/fixture';
 import { must } from '../test-support/must';
+import { untyped } from '../test-support/untyped';
 import type { Command } from '../types/commands';
 import type { Department, OfficeSize } from '../types/content';
 import type { GameState } from '../types/state';
@@ -62,7 +63,7 @@ describe('LeaseOffice (economic-model §15.1)', () => {
 
   it('rejects a second office, unknown sizes/districts and unaffordable capex', () => {
     expect(reason(s1, lease('medium'))).toMatch(/đã có văn phòng/);
-    const huge: Command = JSON.parse(
+    const huge: Command = untyped(
       '{"type":"LeaseOffice","companyId":"player","payload":{"districtId":"w","size":"huge"}}',
     );
     expect(reason(s0, huge)).toMatch(/không tồn tại/);

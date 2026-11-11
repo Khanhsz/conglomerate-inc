@@ -168,6 +168,8 @@ export function createGame(content: LoadedContent, opts: { readonly seed?: numbe
  * serializable và không giữ tham chiếu tới object của người gọi.
  */
 export function enqueue(state: GameState, cmd: Command): GameState {
+  // #53: ngoại lệ có chủ đích; bản sao JSON của một Command đã có kiểu (validate ở applyQueuedCommands).
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const command: Command = JSON.parse(JSON.stringify(cmd) ?? 'null');
   return produce(state, (draft) => {
     draft.commandQueue.push({ enqueuedDay: state.clock.day, command });

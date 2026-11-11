@@ -1,6 +1,7 @@
 import fc from 'fast-check';
 import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
+import { untyped as untypedJson } from '../test-support/untyped';
 import { createGame, enqueue, validateCommand } from '../engine';
 import { ACC } from '../ledger/accounts';
 import { currentBalances } from '../ledger/balances';
@@ -53,7 +54,7 @@ function expectRejected(state: GameState, cmd: Command, reason: RegExp, c: Loade
 }
 
 /** Lệnh dựng từ JSON (giả lập dữ liệu không qua kiểu từ UI/worker). */
-const untyped = (json: string): Command => JSON.parse(json);
+const untyped = (json: string): Command => untypedJson<Command>(json);
 
 describe('OpenStore', () => {
   it('opens a store with content defaults and pays capex from cash', () => {

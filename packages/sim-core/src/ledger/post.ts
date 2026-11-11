@@ -19,6 +19,9 @@ function fail(entry: NewJournalEntry, reason: string): never {
   );
 }
 
+/** Kiểm lúc chạy cho input không qua kiểu; không phải type guard nên không thu hẹp về any[] (#53). */
+const isArrayValue = (v: unknown): boolean => Array.isArray(v);
+
 function validate(ledger: Ledger, entry: NewJournalEntry): void {
   if (typeof entry.companyId !== 'string' || entry.companyId === '')
     fail(entry, 'companyId must be a non-empty string');
@@ -26,11 +29,12 @@ function validate(ledger: Ledger, entry: NewJournalEntry): void {
   const last = ledger.entries[ledger.entries.length - 1];
   if (last && entry.day < last.day)
     fail(entry, `day ${entry.day} is before the last entry (day ${last.day})`);
-  if (!Array.isArray(entry.lines) || entry.lines.length < 2) fail(entry, 'needs at least two lines');
+  const lines = entry.lines;
+  if (!isArrayValue(lines) || lines.length < 2) fail(entry, 'needs at least two lines');
 
   let debits = 0;
   let credits = 0;
-  entry.lines.forEach((line, i) => {
+  lines.forEach((line, i) => {
     if (!isAccountCode(line.account)) fail(entry, `line ${i}: unknown account ${String(line.account)}`);
     const { debit, credit } = line;
     if (!Number.isSafeInteger(debit) || !Number.isSafeInteger(credit) || debit < 0 || credit < 0) {

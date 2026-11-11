@@ -58,7 +58,7 @@ describe('stableStringify', () => {
     expect(stableStringify('a"b\n')).toBe(JSON.stringify('a"b\n'));
     expect(stableStringify(-0)).toBe('0');
     expect(stableStringify(1.5e-7)).toBe(JSON.stringify(1.5e-7));
-    const bare: object = Object.create(null);
+    const bare = { __proto__: null };
     expect(stableStringify(bare)).toBe('{}');
   });
 

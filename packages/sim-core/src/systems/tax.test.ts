@@ -32,11 +32,11 @@ describe('accrueMonthlyTax (economic-model §6.2)', () => {
 
   it('a loss year is carried forward and offsets next year, then is used up', () => {
     // Năm 1: −500,000 → lossCarryforward = 500,000
-    const year1 = [1_000_000, -1_500_000, ...Array(10).fill(0)];
+    const year1 = [1_000_000, -1_500_000, ...Array<number>(10).fill(0)];
     const after1 = run(year1);
     expect(after1.tax).toEqual({ preTaxProfitYTD: 0, taxBookedYTD: 0, lossCarryforward: 500_000 });
     // Năm 2: tháng 12 lãi 800,000 → chịu thuế 800,000 − 500,000 = 300,000 → 60,000
-    const year2 = run([800_000, ...Array(11).fill(0)], after1.tax);
+    const year2 = run([800_000, ...Array<number>(11).fill(0)], after1.tax);
     expect(year2.expenses[0]).toBe(60_000);
     expect(year2.expenses.slice(1).every((e) => e === 0)).toBe(true);
     // Cuối năm 2: lãi cả năm 800,000 ≥ 500,000 → lossCarryforward về 0
@@ -49,7 +49,7 @@ describe('accrueMonthlyTax (economic-model §6.2)', () => {
       taxBookedYTD: money(0),
       lossCarryforward: money(1_000_000),
     };
-    const { tax, expenses } = run([300_000, ...Array(11).fill(0)], start);
+    const { tax, expenses } = run([300_000, ...Array<number>(11).fill(0)], start);
     expect(expenses[0]).toBe(0); // 300,000 < 1,000,000 lỗ chuyển sang
     expect(tax.lossCarryforward).toBe(700_000);
   });

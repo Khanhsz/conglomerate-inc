@@ -153,8 +153,8 @@ describe('tax reversal at month close (economic-model §6.2)', () => {
     const spend: Command = { type: 'CloseStore', companyId: 'ai-1', payload: { storeId: 'store-000001' } };
     const s = runDays(enqueue(m0, spend), big, 30);
     const m1 = must(s.statements['ai-1']?.[1]);
-    expect(m1.pnl.preTax).toBeLessThan(-must(m0.statements['ai-1']?.[0]).pnl.preTax); // lỗ YTD
-    expect(m1.pnl.incomeTax).toBe(-tax0);
+    expect(m1.pnl.preTax).toBeLessThan(0 - must(m0.statements['ai-1']?.[0]).pnl.preTax); // lỗ YTD
+    expect(m1.pnl.incomeTax).toBe(0 - tax0);
     expect(currentBalances(s.ledger, 'ai-1')[ACC.TaxPayable]).toBe(0);
     expect(must(s.companies['ai-1']).tax.taxBookedYTD).toBe(0);
   });

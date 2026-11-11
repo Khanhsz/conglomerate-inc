@@ -8,6 +8,7 @@ import { storePnl } from '../selectors/finance';
 import { hrView } from '../selectors/hr';
 import { fixtureContent } from '../test-support/fixture';
 import { must } from '../test-support/must';
+import { untyped } from '../test-support/untyped';
 import type { Command } from '../types/commands';
 import { POLICY_LEVELS, type PolicyLevel } from '../types/content';
 import type { GameState, HrPolicy } from '../types/state';
@@ -46,9 +47,7 @@ describe('SetHrPolicy validation (economic-model §16)', () => {
     expect(reason(noHr, policy({ trainingLevel: 1 }))).toMatch(/cần mở phòng Nhân sự/);
     expect(reason(base, policy({ wageRatio: 3.5 }))).toMatch(/lương chuẩn/);
     expect(reason(base, policy({ bonusRate: 0.25 }))).toMatch(/thưởng/);
-    const bad: Command = JSON.parse(
-      '{"type":"SetHrPolicy","companyId":"player","payload":{"trainingLevel":4}}',
-    );
+    const bad: Command = untyped('{"type":"SetHrPolicy","companyId":"player","payload":{"trainingLevel":4}}');
     expect(reason(base, bad)).toMatch(/mức đào tạo/);
     expect(
       reason(base, policy({ wageRatio: null, trainingLevel: 3, benefitsLevel: 0, bonusRate: 0.2 })),

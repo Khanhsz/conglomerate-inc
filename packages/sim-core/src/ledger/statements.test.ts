@@ -318,7 +318,7 @@ function apply(l: Ledger, step: Step, day: number): void {
     case 'taxSettle': {
       const tp = b[ACC.TaxPayable];
       if (tp > 0) payOne(ACC.TaxPayable, tp);
-      else if (tp < 0) p([dr(ACC.Cash, -tp), cr(ACC.TaxPayable, -tp)]);
+      else if (tp < 0) p([dr(ACC.Cash, 0 - tp), cr(ACC.TaxPayable, 0 - tp)]);
       return;
     }
   }

@@ -4,7 +4,7 @@
  */
 import { loadContent } from '@game/content';
 import { createGame, DAYS_PER_YEAR, step } from '@game/sim-core';
-import { parse, stringify } from 'yaml';
+import { parseDocument } from 'yaml';
 import { readDefaultYaml } from './content';
 
 const TARGET_MS = 1500;
@@ -13,16 +13,18 @@ const STORES_PER_COMPANY = 15;
 /** m1-default với mỗi công ty 15 cửa hàng ban đầu, đủ tiền, AI không mở thêm (giữ đúng 60 cửa hàng). */
 export function benchContent() {
   const yaml = readDefaultYaml();
-  const industry = parse(yaml.industry);
-  industry.aiRules.expansion.minMonthlyRoi = 1e9;
-  const scenario = parse(yaml.scenario);
-  const districtIds: string[] = scenario.city.districts.map((d: { id: string }) => d.id);
+  // Sửa YAML qua Document (có kiểu) thay cho object `any` của parse (#53).
+  const base = loadContent(yaml.industry, yaml.scenario).scenario;
+  const industry = parseDocument(yaml.industry);
+  industry.setIn(['aiRules', 'expansion', 'minMonthlyRoi'], 1e9);
+  const scenario = parseDocument(yaml.scenario);
+  const districtIds = base.city.districts.map((d) => d.id);
   const twice = [...districtIds, ...districtIds].slice(0, STORES_PER_COMPANY);
-  for (const company of scenario.companies) {
-    company.startingCash = 1_000_000_000; // $10M
-    company.initialStores = twice;
-  }
-  return loadContent(stringify(industry), stringify(scenario));
+  base.companies.forEach((_, i) => {
+    scenario.setIn(['companies', i, 'startingCash'], 1_000_000_000); // $10M
+    scenario.setIn(['companies', i, 'initialStores'], scenario.createNode(twice));
+  });
+  return loadContent(industry.toString(), scenario.toString());
 }
 
 function main(): void {

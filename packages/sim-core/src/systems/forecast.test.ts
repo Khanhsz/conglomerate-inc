@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { money } from '../money';
+import { untyped } from '../test-support/untyped';
 import type { CashFlow, MonthlyStatements, PnL } from '../types/statements';
 import { cashTrend, forecastNetCash, topExpenses } from './forecast';
 
@@ -23,12 +24,12 @@ const pnl = (over: Partial<Record<keyof PnL, number>>): PnL => {
   ];
   const out: Record<string, number> = {};
   for (const k of keys) out[k] = over[k] ?? 0;
-  return JSON.parse(JSON.stringify(out));
+  return untyped<PnL>(JSON.stringify(out));
 };
 
 const month = (cfo: number, cfi: number, principalRepaid: number, borrowings = 0): MonthlyStatements => {
   const cf: Partial<Record<keyof CashFlow, number>> = { cfo, cfi, principalRepaid, borrowings };
-  return JSON.parse(JSON.stringify({ cashFlow: cf }));
+  return untyped<MonthlyStatements>(JSON.stringify({ cashFlow: cf }));
 };
 
 describe('topExpenses (economic-model §8)', () => {

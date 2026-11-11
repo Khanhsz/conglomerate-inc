@@ -14,7 +14,7 @@ import {
 } from '@game/sim-core';
 import { describe, expect, it } from 'vitest';
 import { loadContent } from '@game/content';
-import { parse, stringify } from 'yaml';
+import { parseDocument } from 'yaml';
 import { loadDefaultContent, readDefaultYaml } from './content';
 
 const content = loadDefaultContent();
@@ -63,10 +63,10 @@ describe('m1-default: initial state', () => {
   // phép đối chiếu kiểm công thức, không phụ thuộc vòng hiệu chỉnh nào.
   it('expected demand on day 0 matches the independent back-of-envelope script', () => {
     const yaml = readDefaultYaml();
-    const industry = parse(yaml.industry);
+    const industry = parseDocument(yaml.industry);
     const original: Record<string, number> = { students: 1.4, office: 2.0, premium: 2.4, other: 2.8 };
-    for (const [id, u0] of Object.entries(original)) industry.segments[id].outsideUtility = u0;
-    const reference = loadContent(stringify(industry), yaml.scenario);
+    for (const [id, u0] of Object.entries(original)) industry.setIn(['segments', id, 'outsideUtility'], u0);
+    const reference = loadContent(industry.toString(), yaml.scenario);
     const snap = expectedDemand(createGame(reference), reference);
     expect(snap.potential).toBeCloseTo(8949.55, 6);
     expect(snap.captured).toBeCloseTo(4007.3798446855603, 6);

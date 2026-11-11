@@ -67,7 +67,8 @@ describe('sliderLimits (A5): slider ends are exactly what validateCommand accept
 });
 
 describe('computeAlerts (A4)', () => {
-  const setDays = (s: GameState, days: { demand: number; served: number; capacity: number }[]) =>
+  type Day = { demand: number; served: number; capacity: number };
+  const setDays = (s: GameState, days: Day[]) =>
     produce(s, (d) => {
       const st = d.stores[PLAYER_STORE];
       if (st) st.recentDays = days.map((x, i) => ({ day: 100 + i, ...x }));
@@ -75,16 +76,16 @@ describe('computeAlerts (A4)', () => {
 
   it('overloaded when customers were turned away on ≥ 3 of the last 7 days', () => {
     const busy = setDays(opened, [
-      ...Array(4).fill({ demand: 400, served: 400, capacity: 450 }),
-      ...Array(3).fill({ demand: 600, served: 450, capacity: 450 }),
+      ...Array<Day>(4).fill({ demand: 400, served: 400, capacity: 450 }),
+      ...Array<Day>(3).fill({ demand: 600, served: 450, capacity: 450 }),
     ]);
     expect(computeAlerts(busy).map((a) => a.kind)).toContain('overloaded');
-    const ok = setDays(opened, Array(7).fill({ demand: 400, served: 400, capacity: 450 }));
+    const ok = setDays(opened, Array<Day>(7).fill({ demand: 400, served: 400, capacity: 450 }));
     expect(computeAlerts(ok).map((a) => a.kind)).not.toContain('overloaded');
   });
 
   it('underused when utilization stayed below 50% for the whole week', () => {
-    const quiet = setDays(opened, Array(7).fill({ demand: 150, served: 150, capacity: 450 }));
+    const quiet = setDays(opened, Array<Day>(7).fill({ demand: 150, served: 150, capacity: 450 }));
     const alert = computeAlerts(quiet).find((a) => a.kind === 'underused');
     expect(alert?.storeId).toBe(PLAYER_STORE);
   });
