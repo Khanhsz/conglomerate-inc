@@ -1,7 +1,15 @@
-// Bước 06: bots, runner, report.
-export const NOT_IMPLEMENTED_MESSAGE = 'not implemented';
-
-export function describeRun(args: readonly string[]): string {
-  const mode = args.includes('--smoke') ? 'balance:smoke' : 'balance';
-  return `${mode}: ${NOT_IMPLEMENTED_MESSAGE}`;
-}
+export { parseArgs, type Args } from './args';
+export { BOT_NAMES, BOTS, SENSIBLE_EXPANSION, type Bot, type BotName } from './bots/index';
+export { loadDefaultContent } from './content';
+export {
+  calibration,
+  formatReport,
+  median,
+  summarize,
+  toCsv,
+  type Calibration,
+  type Row,
+  type RunResult,
+  type Summary,
+} from './report';
+export { runOne } from './runner';
