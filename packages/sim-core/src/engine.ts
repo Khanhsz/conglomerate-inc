@@ -5,7 +5,7 @@ import {
   applyQueuedCommands,
   validateCommand as validateWithContext,
 } from './commands/registry';
-import { DAYS_PER_MONTH } from './constants';
+import { DAYS_PER_MONTH, EVENTS_KEEP } from './constants';
 import { formatId } from './ids';
 import { ACC } from './ledger/accounts';
 import { createLedger, post } from './ledger/post';
@@ -122,6 +122,7 @@ export function createGame(content: LoadedContent, opts: { readonly seed?: numbe
     statements: {},
     commandQueue: [],
     events: [],
+    eventSeq: 0,
     nextIds: { store: 1, loan: 1 },
   };
   const defs = [...scenario.companies].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
@@ -157,6 +158,7 @@ export function createGame(content: LoadedContent, opts: { readonly seed?: numbe
         }
       }
     }
+    draft.eventSeq = draft.events.length;
   });
   return freeze(state, true);
 }
@@ -184,6 +186,7 @@ export function step(state: GameState, content: LoadedContent): GameState {
 
 /** Thứ tự system của một ngày (spec §4), ghi trực tiếp lên `draft`. Dùng chung cho step và test tương đương. */
 export function runSystems(draft: GameState, ctx: SimContext): void {
+  const eventsBefore = draft.events.length;
   if (ctx.day % DAYS_PER_MONTH === 0 && ctx.day > 0) {
     aiSystem(draft, ctx);
     monthlyPolicySystem(draft, ctx);
@@ -197,6 +200,9 @@ export function runSystems(draft: GameState, ctx: SimContext): void {
   financeDailySystem(draft, ctx);
   draft.clock.day += 1;
   if (draft.clock.day % DAYS_PER_MONTH === 0) monthCloseSystem(draft, ctx);
+  // #54: đếm event mới rồi chỉ giữ EVENTS_KEEP event gần nhất.
+  draft.eventSeq += draft.events.length - eventsBefore;
+  if (draft.events.length > EVENTS_KEEP) draft.events.splice(0, draft.events.length - EVENTS_KEEP);
 }
 
 /** Chạy n ngày; gọi `onMonth` ngay sau mỗi lần chốt tháng. */

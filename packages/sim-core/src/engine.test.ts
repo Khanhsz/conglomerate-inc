@@ -13,7 +13,7 @@ import type { GameState } from './types/state';
 
 const content = fixtureContent();
 const RUNS = Number(process.env['FC_RUNS'] ?? 100);
-const withoutEvents = (s: GameState): string => hashState({ ...s, events: [] });
+const withoutEvents = (s: GameState): string => hashState({ ...s, events: [], eventSeq: 0 });
 
 describe('createGame', () => {
   const s = createGame(content);
@@ -214,6 +214,7 @@ describe('rejected commands (spec §3)', () => {
         const out = step(enqueue(base, bad), content);
         expect(withoutEvents(out)).toBe(withoutEvents(next));
         expect(out.events).toHaveLength(next.events.length + 1);
+        expect(out.eventSeq).toBe(next.eventSeq + 1);
         const last = out.events[out.events.length - 1];
         expect(last).toMatchObject({
           kind: 'commandRejected',

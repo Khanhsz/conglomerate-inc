@@ -22,7 +22,7 @@ import { DEPARTMENTS } from '../types/content';
 import { currentBalances } from '../ledger/balances';
 import { pay } from '../ledger/payments';
 import { post } from '../ledger/post';
-import { buildMonthlyStatements } from '../ledger/statements';
+import { buildMonthlyStatements, monthPnl } from '../ledger/statements';
 import { add, fromFloatCents, money, type Money, mul, pct, sub, sum, ZERO } from '../money';
 import { storeContribution } from '../store';
 import type { CompanyId } from '../types/content';
@@ -283,7 +283,7 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
     storeCount: openStores.length,
     avgUtilization: utilization(stores),
   };
-  const preTax = buildMonthlyStatements(ledger, companyId, month, ops).pnl.preTax;
+  const preTax = monthPnl(ledger, companyId, month).preTax;
   const { expense, next } = accrueMonthlyTax(
     company.tax,
     preTax,

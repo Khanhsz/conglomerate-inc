@@ -1,6 +1,7 @@
 import fc from 'fast-check';
 import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
+import { EVENTS_KEEP } from './constants';
 import { createGame, enqueue, makeContext, runSystems, step } from './engine';
 import { stableStringify } from './hash';
 import { hashState } from './invariants';
@@ -102,4 +103,18 @@ describe('tick without immer (ADR-0002)', () => {
     copy.events.push({ day: -1, kind: 'officeReleased', companyId: 'player' });
     expect(stableStringify(state)).toBe(before);
   });
+});
+
+describe('events window (#54)', () => {
+  it('keeps at most EVENTS_KEEP events while eventSeq counts every event', () => {
+    let state = createGame(content);
+    const initial = state.eventSeq;
+    expect(initial).toBe(state.events.length);
+    // Mỗi ngày một lệnh bị từ chối = một event.
+    const bad: Command = { type: 'CloseStore', companyId: 'player', payload: { storeId: 'store-999999' } };
+    for (let d = 0; d < EVENTS_KEEP + 20; d++) state = step(enqueue(state, bad), content);
+    expect(state.events.length).toBeLessThanOrEqual(EVENTS_KEEP);
+    expect(state.eventSeq).toBeGreaterThanOrEqual(initial + EVENTS_KEEP + 20);
+    expect(state.events[state.events.length - 1]?.kind).toBe('commandRejected');
+  }, 60_000);
 });

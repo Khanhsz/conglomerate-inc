@@ -306,6 +306,9 @@ export interface GameState {
   ledger: Ledger;
   statements: Record<CompanyId, MonthlyStatements[]>;
   commandQueue: QueuedCommand[];
+  /** Chỉ `EVENTS_KEEP` event gần nhất (#54). */
   events: GameEvent[];
+  /** Tổng số event đã phát sinh từ đầu game; event cuối của `events` có số thứ tự `eventSeq`. */
+  eventSeq: number;
   nextIds: { store: number; loan: number };
 }

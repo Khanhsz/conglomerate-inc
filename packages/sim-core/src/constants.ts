@@ -36,3 +36,5 @@ export const DISTRESS_MONTHS_TO_BANKRUPTCY = 2;
 /** Lịch sử giữ trong state cho mỗi cửa hàng (mảng vòng, không phình): 14 ngày, 12 tháng. */
 export const STORE_RECENT_DAYS = 14;
 export const STORE_HISTORY_MONTHS = 12;
+/** Số event gần nhất giữ trong state (#54); `eventSeq` đếm tổng số event đã phát sinh. */
+export const EVENTS_KEEP = 500;

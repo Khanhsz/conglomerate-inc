@@ -285,8 +285,10 @@ export function buildSnapshot(
 /** Một bước sim vừa sinh event distress/bankrupt của người chơi → UI nên tạm dừng (spec §7). */
 export function shouldPause(prev: GameState, next: GameState): boolean {
   const pid = playerId(next);
+  // Event mới = phần cuối của next.events theo eventSeq (events trong state chỉ giữ một cửa sổ, #54).
+  const fresh = Math.min(next.events.length, next.eventSeq - prev.eventSeq);
   return next.events
-    .slice(prev.events.length)
+    .slice(next.events.length - fresh)
     .some((e) => (e.kind === 'distress' || e.kind === 'bankrupt') && e.companyId === pid);
 }
 

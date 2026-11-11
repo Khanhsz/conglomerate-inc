@@ -146,6 +146,11 @@ function buildKpis(pnl: PnL, bs: BalanceSheet, ops: OperatingStats): Kpis {
   };
 }
 
+/** Chỉ P&L của tháng (không dựng cân đối / lưu chuyển tiền): dùng cho thuế ở chốt tháng (#54). */
+export function monthPnl(ledger: Ledger, companyId: CompanyId, month: number): PnL {
+  return buildPnl(periodTotals(ledger, companyId, firstDayOfMonth(month), lastDayOfMonth(month)));
+}
+
 export function buildMonthlyStatements(
   ledger: Ledger,
   companyId: CompanyId,
