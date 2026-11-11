@@ -1,0 +1,81 @@
+/* M1.7: sơ đồ mặt bằng SVG. */
+/* M1.7 U3: sơ đồ mặt bằng */
+.plan {
+  width: 100%;
+  max-height: 220px;
+  display: block;
+  background: var(--bg);
+  border-radius: 8px;
+}
+.plan-wall {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 2.5;
+}
+.plan-lot {
+  fill: none;
+  stroke: var(--line);
+  stroke-dasharray: 6 4;
+}
+.plan-hall {
+  fill: var(--line);
+  opacity: 0.5;
+}
+.plan-door {
+  fill: var(--accent);
+}
+.plan-room rect:first-child {
+  fill: var(--panel);
+  stroke: var(--line);
+}
+.plan-room.free rect:first-child {
+  stroke-dasharray: 5 4;
+  fill: none;
+}
+.plan-room.active rect:first-child {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.plan-room-label {
+  font-size: 10px;
+  fill: var(--muted);
+}
+.plan-room.active .plan-room-label {
+  fill: var(--accent);
+  font-weight: 700;
+}
+.plan-desk {
+  fill: var(--bg);
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+.plan-person {
+  fill: var(--company-0);
+}
+.plan-staff {
+  fill: var(--good);
+}
+.plan-seat {
+  fill: none;
+  stroke: var(--line);
+}
+.plan-queue {
+  fill: var(--bad);
+  opacity: 0.8;
+}
+.plan-counter {
+  fill: var(--muted);
+  opacity: 0.6;
+}
+.plan-extra {
+  fill: var(--warn);
+  opacity: 0.7;
+}
+.plan-label {
+  font-size: 10px;
+  fill: var(--muted);
+}
+.plan-amenity {
+  font-size: 10px;
+  fill: var(--accent);
+}

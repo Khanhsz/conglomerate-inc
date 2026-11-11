@@ -2,16 +2,11 @@ import { money, type UtilityPart } from '@game/sim-core';
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
 import { int, pct, usd } from '../format';
+import { segmentName } from '../labels';
 import { DayChart, PriceCurve } from './Charts';
 import { Stepper } from './Parts';
 import { Slider } from './Slider';
 
-const SEGMENT_LABEL: Record<string, string> = {
-  office: 'dân văn phòng',
-  students: 'sinh viên',
-  premium: 'khách cao cấp',
-  other: 'khách khác',
-};
 const PART_LABEL: Record<UtilityPart, string> = {
   quality: 'chất lượng',
   price: 'giá',
@@ -20,7 +15,6 @@ const PART_LABEL: Record<UtilityPart, string> = {
   service: 'phục vụ',
   atmosphere: 'không gian',
 };
-const segmentName = (id: string) => SEGMENT_LABEL[id] ?? id;
 
 /** Panel chi tiết cửa hàng: thanh kéo có ước tính trực tiếp, đường cong giá, 14 ngày, vì sao cầu như vậy. */
 export function StoreDetail({ snap }: { snap: Snapshot }) {

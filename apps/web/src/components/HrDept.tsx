@@ -1,16 +1,11 @@
-import { type HrPolicy, type PolicyLevel, type StaffStatus } from '@game/sim-core';
+import { type HrPolicy, type StaffStatus } from '@game/sim-core';
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
 import { pct, usd } from '../format';
+import { LEVEL_NAME } from '../labels';
 import { DeptLocked } from './DeptLocked';
 import { Slider } from './Slider';
 
-const LEVEL_NAME: { readonly [L in PolicyLevel]: string } = {
-  0: 'Không',
-  1: 'Cơ bản',
-  2: 'Tốt',
-  3: 'Cao cấp',
-};
 const STATUS: { readonly [S in StaffStatus]: readonly [string, string] } = {
   ok: ['Ổn', 'ok'],
   lowMorale: ['Tinh thần thấp', 'warn'],

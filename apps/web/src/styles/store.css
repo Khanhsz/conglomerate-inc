@@ -1,0 +1,52 @@
+/* M1.7: khách hàng và tiện ích cửa hàng. */
+/* M1.7 U4: khách hàng */
+.customers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+.reviews-overall {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: baseline;
+}
+.reviews-overall > strong {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.reviews-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.reviews-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* M1.7 U5: tiện ích cửa hàng */
+.amenities {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.amenity p {
+  margin: 0;
+}
+.amenity.on {
+  border-color: var(--good);
+  box-shadow: inset 0 0 0 1px var(--good);
+}
+.stars {
+  color: var(--muted);
+}
+.stars .half {
+  background: linear-gradient(90deg, var(--warn) 50%, var(--muted) 50%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

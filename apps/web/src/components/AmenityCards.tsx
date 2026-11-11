@@ -1,13 +1,7 @@
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
 import { usd } from '../format';
-
-const SEGMENT: Readonly<Record<string, string>> = {
-  students: 'sinh viên',
-  office: 'dân văn phòng',
-  premium: 'khách cao cấp',
-  other: 'khách khác',
-};
+import { segmentName } from '../labels';
 
 /** Tiện ích cửa hàng (M1.7 U5, economic-model §21): bật / tắt, mỗi lần bật trả phí lắp đặt. */
 export function AmenityCards({ snap, storeId }: { snap: Snapshot; storeId: string }) {
@@ -25,9 +19,7 @@ export function AmenityCards({ snap, storeId }: { snap: Snapshot; storeId: strin
         {view.amenities.map((a) => (
           <article key={a.id} className={`card amenity ${a.on ? 'on' : ''}`} data-testid={`amenity-${a.id}`}>
             <h3>{a.name}</h3>
-            <p className="small">
-              Thu hút: {a.appealsTo.map((s) => SEGMENT[s] ?? s).join(', ') || 'mọi nhóm một chút'}
-            </p>
+            <p className="small">Thu hút: {a.appealsTo.map(segmentName).join(', ') || 'mọi nhóm một chút'}</p>
             <p className="small muted">
               Lắp đặt {usd(a.setupCost)} · {usd(a.monthlyCost)}/tháng
             </p>

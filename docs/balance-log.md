@@ -61,3 +61,16 @@ Mỗi vòng chỉnh tham số ghi một mục. Không chỉnh công thức ở �
   - biên AI balanced năm 3 chỉ ~1%;
   - AI discount không sống được;
   - không chiến lược nào của người chơi thắng việc đứng yên.
+
+### Ghi chú hiệu năng — 2026-11-11 (tối ưu code base, không đổi tham số)
+
+- Không đổi công thức hay tham số. Ledger và báo cáo giữ nguyên từng cent: hash hồi quy M1 không đổi, tick mới cho cùng `hashState` với bản immer sau 720 ngày.
+- Thời gian chạy:
+  | Lệnh | Trước | Sau |
+  |---|---|---|
+  | `pnpm bench` (3 năm × 60 cửa hàng × 4 công ty, tốt nhất 3 lần) | 5.4 s | 0.61–0.70 s |
+  | `pnpm test` | 21 s | ~16 s |
+  | `pnpm balance:smoke` (10 seed × 2 năm, 4 worker) | 42 s | ~21 s |
+  | `priceCurve` (25 điểm) | 1.72 ms | 0.11 ms |
+  | `buildSnapshot`, màn hình cửa hàng | 3.4 ms | 0.61 ms |
+- Nguồn cải thiện: ADR-0002 (tick không qua immer), giới hạn event (#54), đường cong giá tính LSE một lần mỗi ô, worker gửi snapshot tối đa ~10 lần/giây.
