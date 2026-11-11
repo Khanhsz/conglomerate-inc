@@ -1,0 +1,316 @@
+/**
+ * Công cụ giải thích cho người chơi (M1.5 nhóm A). Chỉ đọc state, không đổi công thức kinh tế:
+ * - inspectStore: vì sao cầu của cửa hàng như vậy (theo phân khúc, quận nguồn, so với đối thủ mạnh nhất);
+ * - whatIf / priceCurve: ước tính kỳ vọng nếu đổi giá / nhân viên / lương, đối thủ giữ nguyên, chưa tính nhiễu.
+ */
+import { AI_PRICE_TICK, DAYS_PER_MONTH, PRICE_BAND } from '../constants';
+import { money, mul, sub, sum, type Money } from '../money';
+import {
+  demandCandidates,
+  distanceKm,
+  expectedDemand,
+  logitShares,
+  storeUtility,
+  utilityParts,
+  type DemandCandidate,
+  type UtilityParts,
+} from '../systems/demand';
+import { moraleTarget, productivity } from '../systems/operations';
+import type { LoadedContent, SegmentDef } from '../types/content';
+import type { GameState, Store } from '../types/state';
+
+export type UtilityPart = 'quality' | 'price' | 'brand' | 'distance' | 'service';
+const PARTS: readonly UtilityPart[] = ['quality', 'price', 'brand', 'distance', 'service'];
+
+export interface UtilityGap {
+  readonly part: UtilityPart;
+  /** Utility của mình − của đối thủ ở thành phần này (âm = đang thua). */
+  readonly gap: number;
+  /** Số khách/ngày thêm được trong ô này nếu xóa được khoảng chênh. */
+  readonly customers: number;
+}
+
+export interface StoreInspection {
+  readonly storeId: string;
+  readonly districtId: string;
+  readonly expectedDemand: number;
+  readonly capacityToday: number;
+  readonly lostToday: number;
+  readonly bySegment: readonly {
+    readonly segmentId: string;
+    readonly demand: number;
+    /** Tổng lượt mua tiềm năng của phân khúc trong tầm với của cửa hàng. */
+    readonly reachableVisits: number;
+    /** demand / reachableVisits. */
+    readonly share: number;
+  }[];
+  readonly byOrigin: readonly { readonly districtId: string; readonly demand: number }[];
+  /** Đối thủ (công ty khác) chia nhiều khách nhất trong các ô có cửa hàng này, tối đa 3. */
+  readonly rivals: readonly {
+    readonly storeId: string;
+    readonly companyId: string;
+    readonly districtId: string;
+    /** Khách/ngày của đối thủ trong các ô chung. */
+    readonly overlap: number;
+  }[];
+  /** So sánh ở ô (quận nguồn × phân khúc) mang lại nhiều khách nhất. */
+  readonly focus: {
+    readonly originId: string;
+    readonly segmentId: string;
+    readonly visits: number;
+    readonly own: UtilityParts;
+    readonly rival: {
+      readonly storeId: string;
+      readonly companyId: string;
+      readonly parts: UtilityParts;
+    } | null;
+    /** Chỉ các thành phần đang thua, nhiều khách nhất trước. */
+    readonly gaps: readonly UtilityGap[];
+  } | null;
+}
+
+function getStore(state: GameState, storeId: string): Store {
+  const store = state.stores[storeId];
+  if (!store) throw new Error(`unknown store ${storeId}`);
+  return store;
+}
+
+interface Cell {
+  readonly originId: string;
+  readonly segmentId: string;
+  readonly segment: SegmentDef;
+  readonly visits: number;
+  readonly reachable: readonly { readonly c: DemandCandidate; readonly km: number; readonly u: number }[];
+  readonly shares: readonly number[];
+}
+
+export function inspectStore(state: GameState, content: LoadedContent, storeId: string): StoreInspection {
+  const store = getStore(state, storeId);
+  const { industry, scenario } = content;
+  const { city } = scenario;
+  const incomeIndex = state.macro.incomeIndex;
+  const candidates = demandCandidates(state, content);
+  const me = candidates.find((c) => c.id === storeId);
+
+  const bySegment = new Map<string, { demand: number; reachableVisits: number }>();
+  const byOrigin = new Map<string, number>();
+  const overlap = new Map<string, number>();
+  let total = 0;
+  let best: { cell: Cell; demand: number } | null = null;
+
+  if (me) {
+    for (const origin of city.districts) {
+      for (const segmentId of Object.keys(industry.segments).sort()) {
+        const segment = industry.segments[segmentId];
+        if (!segment) continue;
+        const visits = origin.pop * (origin.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
+        if (visits === 0) continue;
+        const reachable = candidates.flatMap((c) => {
+          const km = distanceKm(city, origin, c.district);
+          return km > segment.maxTravelKm
+            ? []
+            : [{ c, km, u: storeUtility(segment, incomeIndex, { ...c.x, distanceKm: km }) }];
+        });
+        const mine = reachable.findIndex((r) => r.c.id === storeId);
+        if (mine < 0) continue;
+        const { shares } = logitShares(
+          segment.outsideUtility,
+          reachable.map((r) => r.u),
+        );
+        const demand = visits * (shares[mine] ?? 0);
+        total += demand;
+        const seg = bySegment.get(segmentId) ?? { demand: 0, reachableVisits: 0 };
+        bySegment.set(segmentId, {
+          demand: seg.demand + demand,
+          reachableVisits: seg.reachableVisits + visits,
+        });
+        byOrigin.set(origin.id, (byOrigin.get(origin.id) ?? 0) + demand);
+        reachable.forEach((r, i) => {
+          if (r.c.companyId !== me.companyId)
+            overlap.set(r.c.id, (overlap.get(r.c.id) ?? 0) + visits * (shares[i] ?? 0));
+        });
+        if (!best || demand > best.demand) {
+          best = { cell: { originId: origin.id, segmentId, segment, visits, reachable, shares }, demand };
+        }
+      }
+    }
+  }
+
+  const rivals = [...overlap.entries()]
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+    .slice(0, 3)
+    .flatMap(([id, value]) => {
+      const s = state.stores[id];
+      return s ? [{ storeId: id, companyId: s.companyId, districtId: s.districtId, overlap: value }] : [];
+    });
+
+  return {
+    storeId,
+    districtId: store.districtId,
+    expectedDemand: total,
+    capacityToday: store.today.capacity,
+    lostToday: store.today.lost,
+    bySegment: [...bySegment.entries()]
+      .sort((a, b) => b[1].demand - a[1].demand)
+      .map(([segmentId, v]) => ({
+        segmentId,
+        ...v,
+        share: v.reachableVisits > 0 ? v.demand / v.reachableVisits : 0,
+      })),
+    byOrigin: [...byOrigin.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([districtId, demand]) => ({ districtId, demand })),
+    rivals,
+    focus: me && best ? compareInCell(best.cell, me, incomeIndex) : null,
+  };
+}
+
+/** So utility với đối thủ (công ty khác) mạnh nhất trong ô; quy mỗi khoảng chênh âm ra số khách/ngày. */
+function compareInCell(
+  cell: Cell,
+  me: DemandCandidate,
+  incomeIndex: number,
+): NonNullable<StoreInspection['focus']> {
+  const mine = cell.reachable.findIndex((r) => r.c.id === me.id);
+  const own = cell.reachable[mine];
+  if (!own) throw new Error('store not in its own focus cell');
+  const ownParts = utilityParts(cell.segment, incomeIndex, { ...me.x, distanceKm: own.km });
+  let rival: (typeof cell.reachable)[number] | undefined;
+  for (const r of cell.reachable) if (r.c.companyId !== me.companyId && (!rival || r.u > rival.u)) rival = r;
+  if (!rival)
+    return {
+      originId: cell.originId,
+      segmentId: cell.segmentId,
+      visits: cell.visits,
+      own: ownParts,
+      rival: null,
+      gaps: [],
+    };
+
+  const rivalParts = utilityParts(cell.segment, incomeIndex, { ...rival.c.x, distanceKm: rival.km });
+  const before = cell.shares[mine] ?? 0;
+  const gaps: UtilityGap[] = [];
+  for (const part of PARTS) {
+    const gap = ownParts[part] - rivalParts[part];
+    if (gap >= 0) continue;
+    const utilities = cell.reachable.map((r, i) => (i === mine ? r.u - gap : r.u));
+    const after = logitShares(cell.segment.outsideUtility, utilities).shares[mine] ?? 0;
+    gaps.push({ part, gap, customers: cell.visits * (after - before) });
+  }
+  gaps.sort((a, b) => b.customers - a.customers);
+  return {
+    originId: cell.originId,
+    segmentId: cell.segmentId,
+    visits: cell.visits,
+    own: ownParts,
+    rival: { storeId: rival.c.id, companyId: rival.c.companyId, parts: rivalParts },
+    gaps,
+  };
+}
+
+export interface WhatIfChange {
+  readonly price?: Money;
+  readonly staff?: number;
+  readonly wageMonthly?: Money;
+}
+
+export interface WhatIfResult {
+  readonly price: Money;
+  readonly staff: number;
+  readonly wageMonthly: Money;
+  readonly expectedDemand: number;
+  /** Công suất với morale hiện tại. */
+  readonly capacity: number;
+  readonly served: number;
+  readonly revenuePerDay: Money;
+  readonly cogsPerDay: Money;
+  readonly wagesPerDay: Money;
+  readonly rentPerDay: Money;
+  /** Doanh thu − giá vốn − lương − thuê, mỗi ngày. */
+  readonly contributionPerDay: Money;
+  /** Morale mà lương này hướng tới (economic-model §4.2). */
+  readonly moraleTarget: number;
+}
+
+/** Ước tính kỳ vọng mỗi ngày nếu đổi giá / nhân viên / lương của một cửa hàng; đối thủ giữ nguyên. */
+export function whatIf(
+  state: GameState,
+  content: LoadedContent,
+  storeId: string,
+  change: WhatIfChange,
+): WhatIfResult {
+  const store = getStore(state, storeId);
+  const company = state.companies[store.companyId];
+  if (!company) throw new Error(`unknown company ${store.companyId}`);
+  const { industry } = content;
+  const price = change.price ?? store.price;
+  const staff = change.staff ?? store.staff;
+  const wageMonthly = change.wageMonthly ?? store.wageMonthly;
+
+  // Bản sao nông: chỉ thay giá của cửa hàng này (state gốc không bị chạm).
+  const modified: GameState = { ...state, stores: { ...state.stores, [storeId]: { ...store, price } } };
+  const demand = expectedDemand(modified, content).byStore[storeId] ?? 0;
+  const capacity = staff * industry.customersPerStaffPerDay * productivity(store.morale);
+  const served = Math.min(demand, capacity);
+  const priceIndex = state.macro.priceIndex;
+
+  const revenuePerDay = mul(price, served);
+  const cogsPerDay = mul(
+    industry.unitCost,
+    served * industry.qualityTiers[company.qualityTier].unitCostMultiplier * priceIndex,
+  );
+  const wagesPerDay = mul(wageMonthly, staff / DAYS_PER_MONTH);
+  const rentPerDay = mul(store.rentMonthly, 1 / DAYS_PER_MONTH);
+  return {
+    price,
+    staff,
+    wageMonthly,
+    expectedDemand: demand,
+    capacity,
+    served,
+    revenuePerDay,
+    cogsPerDay,
+    wagesPerDay,
+    rentPerDay,
+    contributionPerDay: sub(revenuePerDay, sum([cogsPerDay, wagesPerDay, rentPerDay])),
+    moraleTarget: moraleTarget(
+      wageMonthly / (state.macro.marketWageMonthly * priceIndex),
+      industry.moraleWageSensitivity,
+    ),
+  };
+}
+
+export interface PricePoint {
+  readonly price: Money;
+  readonly expectedDemand: number;
+  readonly served: number;
+  readonly contributionPerDay: Money;
+}
+
+/** `points` mức giá giãn đều theo log trong dải hợp lệ (0.3–5 × Pref, bước 5 cent), kèm ước tính. */
+export function priceCurve(
+  state: GameState,
+  content: LoadedContent,
+  storeId: string,
+  points = 25,
+): PricePoint[] {
+  const pref = content.industry.referencePrice * state.macro.priceIndex;
+  const lo = Math.ceil((PRICE_BAND.min * pref) / AI_PRICE_TICK) * AI_PRICE_TICK;
+  const hi = Math.floor((PRICE_BAND.max * pref) / AI_PRICE_TICK) * AI_PRICE_TICK;
+  const out: PricePoint[] = [];
+  let last = -1;
+  for (let i = 0; i < points; i++) {
+    const raw = lo * (hi / lo) ** (i / (points - 1));
+    const price = Math.min(hi, Math.max(lo, Math.round(raw / AI_PRICE_TICK) * AI_PRICE_TICK));
+    if (price <= last) continue;
+    last = price;
+    const r = whatIf(state, content, storeId, { price: money(price) });
+    out.push({
+      price: r.price,
+      expectedDemand: r.expectedDemand,
+      served: r.served,
+      contributionPerDay: r.contributionPerDay,
+    });
+  }
+  return out;
+}

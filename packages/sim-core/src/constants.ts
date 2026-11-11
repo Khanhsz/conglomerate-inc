@@ -32,3 +32,7 @@ export const FORECAST_DISTRESS_MONTHS = 3;
 export const FORECAST_TREND_MONTHS = 3;
 /** Số lần chốt tháng liên tiếp ở distress thì phá sản. */
 export const DISTRESS_MONTHS_TO_BANKRUPTCY = 2;
+
+/** Lịch sử giữ trong state cho mỗi cửa hàng (mảng vòng, không phình): 14 ngày, 12 tháng. */
+export const STORE_RECENT_DAYS = 14;
+export const STORE_HISTORY_MONTHS = 12;

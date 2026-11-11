@@ -12,6 +12,7 @@ import {
   DISTRESS_MONTHS_TO_BANKRUPTCY,
   FORECAST_DISTRESS_MONTHS,
   FORECAST_WARNING_MONTHS,
+  STORE_HISTORY_MONTHS,
 } from '../constants';
 import { monthOf } from '../calendar';
 import { ACC } from '../ledger/accounts';
@@ -268,6 +269,11 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
       s.negContributionMonths = contribution < 0 ? s.negContributionMonths + 1 : 0;
     }
     s.lastMonth = lastMonth;
+    if (s.status === 'open' || lastMonth.days > 0) {
+      s.history.push(lastMonth);
+      if (s.history.length > STORE_HISTORY_MONTHS)
+        s.history.splice(0, s.history.length - STORE_HISTORY_MONTHS);
+    }
     s.mtd = emptyMonthToDate();
   }
   company.marketingAccrued = 0;

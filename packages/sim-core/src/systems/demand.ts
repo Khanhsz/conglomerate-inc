@@ -33,6 +33,30 @@ export function storeUtility(segment: SegmentDef, incomeIndex: number, x: Utilit
   );
 }
 
+/** Từng thành phần của utility (có dấu), để giải thích cho người chơi; tổng = storeUtility. */
+export interface UtilityParts {
+  readonly quality: number;
+  readonly price: number;
+  readonly brand: number;
+  readonly distance: number;
+  readonly service: number;
+  readonly total: number;
+}
+
+export function utilityParts(segment: SegmentDef, incomeIndex: number, x: UtilityInputs): UtilityParts {
+  const { q, p, b, d, w } = segment.betas;
+  const eta = segment.incomeElasticityOfPriceSensitivity;
+  const priceBeta = eta === 0 ? p : p / incomeIndex ** eta;
+  return {
+    quality: q * x.quality,
+    price: -priceBeta * Math.log(x.price / x.refPrice),
+    brand: b * x.awareness,
+    distance: -d * x.distanceKm,
+    service: w * x.serviceLevel,
+    total: storeUtility(segment, incomeIndex, x),
+  };
+}
+
 /** Thị phần logit có lựa chọn ngoài, tính bằng log-sum-exp (trừ max trước khi exp) để không tràn số. */
 export function logitShares(
   outsideUtility: number,
@@ -56,20 +80,20 @@ export interface DemandSnapshot {
   readonly captured: number;
 }
 
-interface Candidate {
+/** Một cửa hàng đang mở trong tập lựa chọn, kèm các thuộc tính utility (trừ khoảng cách). */
+export interface DemandCandidate {
   readonly id: StoreId;
+  readonly companyId: string;
   readonly district: DistrictDef;
   readonly x: Omit<UtilityInputs, 'distanceKm'>;
 }
 
-/** Cầu kỳ vọng (trước nhiễu) của mọi cửa hàng đang mở (economic-model §3.3). Chỉ đọc state. */
-export function expectedDemand(state: GameState, content: LoadedContent): DemandSnapshot {
+/** Cửa hàng đang mở của công ty chưa phá sản, theo thứ tự storeIds. */
+export function demandCandidates(state: GameState, content: LoadedContent): DemandCandidate[] {
   const { industry, scenario } = content;
-  const { city } = scenario;
   const refPrice = industry.referencePrice * state.macro.priceIndex;
-  const districts = new Map(city.districts.map((d) => [d.id, d]));
-
-  const candidates: Candidate[] = [];
+  const districts = new Map(scenario.city.districts.map((d) => [d.id, d]));
+  const candidates: DemandCandidate[] = [];
   for (const id of state.storeIds) {
     const store = state.stores[id];
     if (!store || store.status !== 'open') continue;
@@ -78,6 +102,7 @@ export function expectedDemand(state: GameState, content: LoadedContent): Demand
     if (!company || company.status === 'bankrupt' || !district) continue;
     candidates.push({
       id,
+      companyId: company.id,
       district,
       x: {
         quality: industry.qualityTiers[company.qualityTier].quality,
@@ -88,6 +113,14 @@ export function expectedDemand(state: GameState, content: LoadedContent): Demand
       },
     });
   }
+  return candidates;
+}
+
+/** Cầu kỳ vọng (trước nhiễu) của mọi cửa hàng đang mở (economic-model §3.3). Chỉ đọc state. */
+export function expectedDemand(state: GameState, content: LoadedContent): DemandSnapshot {
+  const { industry, scenario } = content;
+  const { city } = scenario;
+  const candidates = demandCandidates(state, content);
 
   const byStore: Record<StoreId, number> = {};
   for (const c of candidates) byStore[c.id] = 0;
@@ -102,7 +135,7 @@ export function expectedDemand(state: GameState, content: LoadedContent): Demand
       const visits = origin.pop * (origin.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
       potential += visits;
       if (visits === 0) continue;
-      const reachable: Candidate[] = [];
+      const reachable: DemandCandidate[] = [];
       const utilities: number[] = [];
       for (const c of candidates) {
         const km = distanceKm(city, origin, c.district);

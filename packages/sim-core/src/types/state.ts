@@ -82,6 +82,13 @@ export interface StoreLastMonth {
   readonly rent: Money;
 }
 
+export interface StoreDayRecord {
+  readonly day: number;
+  readonly demand: number;
+  readonly served: number;
+  readonly capacity: number;
+}
+
 export interface Store {
   readonly id: StoreId;
   readonly companyId: CompanyId;
@@ -107,6 +114,10 @@ export interface Store {
   /** Kết quả tháng trước, cho AI (economic-model §9) và UI. */
   lastMonth: StoreLastMonth;
   negContributionMonths: number;
+  /** 14 ngày gần nhất (mới nhất ở cuối), cho biểu đồ vận hành. */
+  recentDays: StoreDayRecord[];
+  /** 12 tháng gần nhất (mới nhất ở cuối). */
+  history: StoreLastMonth[];
 }
 
 /** Khoản vay kỳ hạn (economic-model §7.1). Dùng từ bước 05. */

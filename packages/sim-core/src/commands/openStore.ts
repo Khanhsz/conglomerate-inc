@@ -74,6 +74,8 @@ export const openStore = {
       mtd: emptyMonthToDate(),
       lastMonth: emptyLastMonth(),
       negContributionMonths: 0,
+      recentDays: [],
+      history: [],
     };
     draft.storeIds.push(id); // id tăng dần và đệm 0 → mảng vẫn đã sort
     draft.events.push({

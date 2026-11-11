@@ -2,7 +2,7 @@
  * Vận hành cửa hàng hằng ngày (economic-model §3.4–§4, §6): công suất, khách phục vụ, doanh thu và giá vốn
  * (bút toán D1/D2), cộng dồn lương/thuê/marketing, gia hạn thuê, rồi cập nhật cuối ngày serviceLevel, morale, skill.
  */
-import { DAYS_PER_MONTH, RENT_TERM_DAYS } from '../constants';
+import { DAYS_PER_MONTH, RENT_TERM_DAYS, STORE_RECENT_DAYS } from '../constants';
 import { ACC } from '../ledger/accounts';
 import { pay } from '../ledger/payments';
 import { post } from '../ledger/post';
@@ -75,6 +75,10 @@ export const operationsSystem: System = (draft, ctx) => {
     const target = moraleTarget(store.wageMonthly / marketWage, industry.moraleWageSensitivity);
     store.morale += industry.moraleAdjustRate * (target - store.morale);
     store.skill = Math.min(1, skill0 + industry.skillGainPerDay);
+
+    store.recentDays.push({ day: ctx.day, demand, served, capacity });
+    if (store.recentDays.length > STORE_RECENT_DAYS)
+      store.recentDays.splice(0, store.recentDays.length - STORE_RECENT_DAYS);
   }
 
   for (const companyId of draft.companyIds) {
