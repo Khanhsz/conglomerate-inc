@@ -96,6 +96,22 @@ const industry: IndustryContent = {
     benefitsMorale: [0, 0.05, 0.09, 0.12],
     bonusRateMax: 0.2,
   },
+  marketingChannels: {
+    social: {
+      name: 'Mạng xã hội',
+      scope: 'city',
+      segmentWeight: { students: 1, office: 0.5 },
+      alpha: 0.012,
+      halfSaturationDaily: money(8_000),
+    },
+    flyers: {
+      name: 'Tờ rơi',
+      scope: 'district',
+      segmentWeight: { students: 1 },
+      alpha: 0.015,
+      halfSaturationDaily: money(1_000),
+    },
+  },
   storeAmenities: {
     wifi: {
       name: 'Wi-Fi miễn phí',

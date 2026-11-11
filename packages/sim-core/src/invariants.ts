@@ -153,10 +153,21 @@ export function checkInvariants(state: GameState, content: LoadedContent): Invar
     }
 
     const company = state.companies[companyId];
-    if (company && !isUnit(company.brandAwareness)) {
-      out.push({
-        code: 'range',
-        message: `${companyId}: brandAwareness = ${company.brandAwareness} ngoài [0, 1]`,
+    if (company) {
+      const bad = company.awareness.find((a) => !isUnit(a));
+      if (bad !== undefined) {
+        out.push({ code: 'range', message: `${companyId}: awareness có ô = ${bad} ngoài [0, 1]` });
+      }
+      // §18.3: tổng phần đóng góp của các kênh không vượt nhận biết của ô.
+      company.awareness.forEach((a, i) => {
+        let attributed = 0;
+        for (const c of company.channelAwareness) attributed += c.cells[i] ?? 0;
+        if (attributed < 0 || attributed > a + 1e-9) {
+          out.push({
+            code: 'range',
+            message: `${companyId}: phần đóng góp của kênh ở ô ${i} = ${attributed} ngoài [0, A = ${a}]`,
+          });
+        }
       });
     }
   }

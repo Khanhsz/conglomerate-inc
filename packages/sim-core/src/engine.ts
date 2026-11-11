@@ -6,6 +6,7 @@ import {
   validateCommand as validateWithContext,
 } from './commands/registry';
 import { DAYS_PER_MONTH, EVENTS_KEEP } from './constants';
+import { uniformAwareness } from './awareness';
 import { formatId } from './ids';
 import { ACC } from './ledger/accounts';
 import { createLedger, post } from './ledger/post';
@@ -50,9 +51,11 @@ function newCompany(def: CompanyDef, content: LoadedContent): Company {
     name: def.name,
     status: 'active' as const,
     distressMonths: 0,
-    brandAwareness: industry.brand.initialAwareness,
+    awareness: uniformAwareness(content, industry.brand.initialAwareness),
     marketingBudgetMonthly: ZERO,
     marketingAccrued: 0,
+    channelBudgets: [],
+    channelAwareness: [],
     tax: { preTaxProfitYTD: ZERO, taxBookedYTD: ZERO, lossCarryforward: ZERO },
     overdraft: { limit: scenario.finance.overdraftFloor, dailyBalanceSum: ZERO },
     office: null,

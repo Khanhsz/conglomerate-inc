@@ -15,6 +15,9 @@ function copyCompany(c: Company): Company {
     officeAccrued: { ...c.officeAccrued, departments: { ...c.officeAccrued.departments } },
     creditLine: { ...c.creditLine },
     hrPolicy: { ...c.hrPolicy },
+    awareness: c.awareness.slice(),
+    channelBudgets: c.channelBudgets.slice(),
+    channelAwareness: c.channelAwareness.map((x) => ({ channel: x.channel, cells: x.cells.slice() })),
   };
 }
 

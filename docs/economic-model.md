@@ -130,7 +130,7 @@ Thêm hiệu ứng truyền miệng nhỏ: `A ← A + γ × Σ_j served_j / city
 | Giá vốn | mỗi ngày | `round(served_j × industry.unitCost × tierMult × priceIndex)` | Nợ COGS / Có Cash |
 | Lương | cộng dồn mỗi ngày, ghi sổ cuối tháng | mỗi ngày `wagesAccrued_j += staff_j × wageMonthly / 30`; cuối tháng ghi `round(wagesAccrued_j)` | Nợ Wages / Có Cash |
 | Thuê mặt bằng | cộng dồn mỗi ngày, ghi sổ cuối tháng | mỗi ngày cửa hàng mở `rentAccrued_j += store.rentMonthly / 30`; cuối tháng ghi `round(rentAccrued_j)`. `rentMonthly` cố định theo hợp đồng lúc mở, index khi gia hạn mỗi 12 tháng | Nợ Rent / Có Cash |
-| Marketing | cộng dồn mỗi ngày, ghi sổ cuối tháng | mỗi ngày `marketingAccrued += company.marketingBudgetMonthly / 30`; cuối tháng ghi `round(marketingAccrued)` | Nợ Marketing / Có Cash |
+| Marketing | cộng dồn mỗi ngày, ghi sổ cuối tháng | mỗi ngày `marketingAccrued += company.marketingBudgetMonthly / 30`, cộng thêm `monthly / 30` của từng dòng ngân sách kênh (§18.2); cuối tháng ghi `round(marketingAccrued)` | Nợ Marketing / Có Cash |
 | Quản trị chung | cuối tháng | `round(overheadBaseMonthly × priceIndex × nStores^γo)`, `nStores` = số cửa hàng đang mở lúc chốt | Nợ Admin / Có Cash |
 | Khấu hao | cuối tháng | `floor(capex / usefulLifeMonths)` mỗi cửa hàng, tính từ tháng mở (tròn tháng); tháng thứ `usefulLifeMonths` lấy phần còn lại để AccumDep = capex, sau đó dừng | Nợ Depreciation / Có AccumDep |
 | Mở cửa hàng | khi lệnh | `capex = district.fitOutCost × priceIndex` | Nợ PP&E / Có Cash |
@@ -451,6 +451,8 @@ A_{c,e,s} ← A + (1 − A) × lift_{e,s} − δ × A + γ × Σ_j served_j / ci
 - Kênh city tác động như nhau lên mọi quận: tiếp cận toàn thành phố, giống M1.
 - Chỉ có `general` thì `lift_{e,s} = lift` M1 và `A_{c,e,s} = A_c` ở mọi ô, **đúng bằng M1**. Thứ tự phép tính giữ nguyên.
 - Chi phí cộng dồn mọi kênh vào Marketing (6200) như §6.
+- Thứ tự áp: `general` trước, rồi các kênh theo id tăng dần; kênh không có ngân sách không tham gia phép nhân.
+- Đóng phòng Marketing (hoặc trả văn phòng) thì bỏ mọi ngân sách kênh; ngân sách `general` giữ nguyên. Nhận biết đã có không mất ngay mà suy giảm theo `δ`.
 - Đề xuất các kênh:
 
 | ch | scope | trọng số students/office/premium/other | alpha | halfSat/ngày |
@@ -460,10 +462,17 @@ A_{c,e,s} ← A + (1 − A) × lift_{e,s} − δ × A + γ × Σ_j served_j / ci
 | flyers | district | 1 / 0.5 / 0.2 / 1 | 0.015 | $10 |
 | events | district | 0.8 / 0.6 / 1 / 0.6 | 0.025 | $40 |
 
-### 18.3 Hiệu quả (selector, không đổi state)
-- Theo dõi `liftCum_{c,ch,e,s}`: phần nhận biết tăng thêm do kênh trong 30 ngày gần nhất. Phần chung của nhiều kênh chia theo tỷ lệ `lift_ch`.
-- **Khách tăng thêm** của kênh = `expectedDemand(A) − expectedDemand(A − liftCum_ch)` trên các cửa hàng của công ty.
-- **ROI** = `extra × (giá TB − giá vốn TB) × 30 / chi kênh 30 ngày`.
+### 18.3 Hiệu quả theo kênh
+- **Phần đóng góp của kênh** `C_{c,ch,e,s}` (lưu trong state, cập nhật cùng lúc với `A`):
+  ```
+  C_ch ← C_ch × (1 − δ) + (1 − A) × lift_{e,s} × lift_{ch,e,s} / Σ_k lift_{k,e,s}
+  ```
+  - Phần tăng do marketing trong ngày, `(1 − A) × lift_{e,s}`, chia cho các kênh theo tỷ lệ `lift_ch` (kể cả `general`).
+  - Phần đã có suy giảm cùng tốc độ `δ` với nhận biết. Nhờ vậy `Σ_ch C_ch + phần tự nhiên = A` ở mọi ô, mọi ngày; phần tự nhiên gồm nhận biết ban đầu và truyền miệng.
+  - Khi `A` bị kẹp ở 1, mọi `C_ch` của ô co theo cùng tỷ lệ.
+  - Đây là cách hiểu của "phần nhận biết do kênh mang lại": số đang còn, không phải cửa sổ 30 ngày (#60).
+- **Khách tăng thêm** của kênh = `expectedDemand(A) − expectedDemand(A − C_ch)` trên các cửa hàng của công ty (selector, không đổi state).
+- **ROI** = `extra × (giá TB − giá vốn) × 30 / ngân sách tháng hiện tại của kênh`; giá TB bình quân theo cầu kỳ vọng của các cửa hàng. Kênh không có ngân sách thì không có ROI.
 
 ## 19. Phòng Tài chính và Ban điều hành
 ### 19.1 Tài chính

@@ -7,6 +7,7 @@ import { isRecord, reject } from './common';
 import { refinanceLoan, setCreditLine } from './finance';
 import { clearOverride, setHrPolicy } from './hr';
 import { closeDepartment, leaseOffice, openDepartment, releaseOffice } from './office';
+import { setChannelBudget } from './marketing';
 import { openStore } from './openStore';
 import { repayLoan } from './repayLoan';
 import { setMarketingBudget } from './setMarketingBudget';
@@ -61,6 +62,8 @@ export function validateCommand(state: GameState, ctx: SimContext, cmd: Command)
       return clearOverride.validate(state, ctx, cmd);
     case 'SetStoreAmenity':
       return setStoreAmenity.validate(state, ctx, cmd);
+    case 'SetChannelBudget':
+      return setChannelBudget.validate(state, ctx, cmd);
   }
 }
 
@@ -103,6 +106,8 @@ export function applyCommand(draft: GameState, ctx: SimContext, cmd: Command): v
       return clearOverride.apply(draft, ctx, cmd);
     case 'SetStoreAmenity':
       return setStoreAmenity.apply(draft, ctx, cmd);
+    case 'SetChannelBudget':
+      return setChannelBudget.apply(draft, ctx, cmd);
   }
 }
 

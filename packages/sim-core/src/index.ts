@@ -81,3 +81,13 @@ export * from './types/context';
 export * from './types/ledger';
 export * from './types/state';
 export * from './types/statements';
+export {
+  awarenessCellCount,
+  channelIdsOf,
+  GENERAL_CHANNEL,
+  meanAwareness,
+  segmentIdsOf,
+  uniformAwareness,
+} from './awareness';
+export { CITY_TARGET } from './commands/marketing';
+export { marketingEffect, type ChannelEffect, type MarketingEffect } from './selectors/marketing';

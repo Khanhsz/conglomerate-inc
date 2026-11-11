@@ -67,6 +67,7 @@ export function disposeOffice(
 function closeOne(draft: GameState, ctx: SimContext, company: Company, dept: Department): void {
   company.departments[dept] = null;
   if (dept === 'hr') company.hrPolicy = defaultHrPolicy();
+  if (dept === 'marketing') company.channelBudgets = [];
   if (dept === 'finance' && company.creditLine.limit > 0) {
     company.creditLine.limit = ZERO;
     company.overdraft.limit = defaultOverdraftLimit(draft, ctx, company.id);

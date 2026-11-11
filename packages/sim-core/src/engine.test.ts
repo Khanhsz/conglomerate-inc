@@ -44,7 +44,10 @@ describe('createGame', () => {
     expect(ai.qualityTier).toBe('standard');
     for (const c of [player, ai]) {
       expect(c.status).toBe('active');
-      expect(c.brandAwareness).toBe(0.05);
+      // 2 quận × 2 phân khúc, mọi ô bằng initialAwareness (§18.1)
+      expect(c.awareness).toEqual([0.05, 0.05, 0.05, 0.05]);
+      expect(c.channelBudgets).toEqual([]);
+      expect(c.channelAwareness).toEqual([]);
       expect(c.marketingBudgetMonthly).toBe(0);
       expect(c.overdraft.limit).toBe(2_000_000);
     }
@@ -314,9 +317,9 @@ describe('checkInvariants', () => {
 
   it('flags out-of-range store and company values', () => {
     expect(codes(produce(s, (d) => void (must(d.stores['store-000001']).morale = 2)))).toContain('range');
-    expect(
-      codes(produce(s, (d) => void (must(d.companies['player']).brandAwareness = Number.NaN))),
-    ).toContain('finite');
+    expect(codes(produce(s, (d) => void (must(d.companies['player']).awareness[0] = Number.NaN)))).toContain(
+      'finite',
+    );
   });
 
   it('flags unbalanced or tampered ledgers', () => {

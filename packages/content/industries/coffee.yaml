@@ -133,3 +133,32 @@ storeAmenities:
     utility: 0.25
     segmentWeight: { students: 0.5, office: 0.4, premium: 1.0, other: 0.7 }
     reviewWeight: 2
+
+# M1.6 phase 5 — kênh marketing ngoài `general` (economic-model §18.2). Đề xuất ban đầu, hiệu chỉnh ở phase 8.
+# scope city: một ngân sách cho cả thành phố; scope district: ngân sách riêng từng quận.
+# lift = alpha × segmentWeight × (1 − exp(−chi/ngày ÷ (halfSaturationDaily × CPI))).
+marketingChannels:
+  social:
+    name: "Mạng xã hội"
+    scope: city
+    segmentWeight: { students: 1.0, office: 0.6, premium: 0.4, other: 0.5 }
+    alpha: 0.012
+    halfSaturationDaily: 8000     # $80/ngày
+  outdoor:
+    name: "Biển quảng cáo"
+    scope: district
+    segmentWeight: { students: 0.6, office: 1.0, premium: 0.8, other: 0.8 }
+    alpha: 0.02
+    halfSaturationDaily: 2500     # $25/ngày mỗi quận
+  flyers:
+    name: "Tờ rơi"
+    scope: district
+    segmentWeight: { students: 1.0, office: 0.5, premium: 0.2, other: 1.0 }
+    alpha: 0.015
+    halfSaturationDaily: 1000     # $10/ngày mỗi quận
+  events:
+    name: "Sự kiện tại quận"
+    scope: district
+    segmentWeight: { students: 0.8, office: 0.6, premium: 1.0, other: 0.6 }
+    alpha: 0.025
+    halfSaturationDaily: 4000     # $40/ngày mỗi quận

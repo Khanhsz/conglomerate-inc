@@ -99,6 +99,12 @@ export type Command =
       readonly type: 'SetStoreAmenity';
       readonly companyId: CompanyId;
       readonly payload: { readonly storeId: StoreRef; readonly amenity: string; readonly on: boolean };
+    }
+  | {
+      /** Ngân sách tháng của một kênh ngoài `general` (§18.2); target = 'city' hoặc id quận. Cần phòng Marketing. */
+      readonly type: 'SetChannelBudget';
+      readonly companyId: CompanyId;
+      readonly payload: { readonly channel: string; readonly target: string; readonly monthly: Money };
     };
 
 export type CommandType = Command['type'];
@@ -122,6 +128,7 @@ export const COMMAND_TYPES = [
   'SetHrPolicy',
   'ClearOverride',
   'SetStoreAmenity',
+  'SetChannelBudget',
 ] as const satisfies readonly CommandType[];
 
 export type Validation = { readonly ok: true } | { readonly ok: false; readonly reason: string };

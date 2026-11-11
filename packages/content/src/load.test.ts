@@ -207,6 +207,32 @@ describe('loadContent — validation errors point to the field', () => {
     expectIssue(issuesOf(industryYaml, bad), 'scenario', 'city.districts[0].mix.tourists', /tourists/);
   });
 
+  it('marketing channels: default pack has the four M1.6 channels with valid scopes', () => {
+    const { industry } = loadContent(industryYaml, scenarioYaml);
+    expect(Object.keys(industry.marketingChannels).sort()).toEqual(['events', 'flyers', 'outdoor', 'social']);
+    expect(industry.marketingChannels['social']?.scope).toBe('city');
+    expect(industry.marketingChannels['flyers']?.scope).toBe('district');
+  });
+
+  it('marketing channels: unknown segment, the reserved id "general" and a bad scope are rejected', () => {
+    const badSegment = edit(industryYaml, (d) => {
+      at(d, 'marketingChannels', 'social', 'segmentWeight')['tourists'] = 1;
+    });
+    expectIssue(
+      issuesOf(badSegment, scenarioYaml),
+      'industry',
+      'marketingChannels.social.segmentWeight.tourists',
+    );
+    const reserved = edit(industryYaml, (d) => {
+      at(d, 'marketingChannels')['general'] = at(d, 'marketingChannels', 'social');
+    });
+    expectIssue(issuesOf(reserved, scenarioYaml), 'industry', 'marketingChannels.general');
+    const badScope = edit(industryYaml, (d) => {
+      at(d, 'marketingChannels', 'social')['scope'] = 'country';
+    });
+    expectIssue(issuesOf(badScope, scenarioYaml), 'industry', 'marketingChannels.social.scope');
+  });
+
   it('initial stores must reference existing districts', () => {
     const bad = edit(scenarioYaml, (d) => {
       at(d, 'companies', 1, 'initialStores')[0] = 'downtown';

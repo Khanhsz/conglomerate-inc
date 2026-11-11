@@ -3,6 +3,7 @@
  * - inspectStore: vì sao cầu của cửa hàng như vậy (theo phân khúc, quận nguồn, so với đối thủ mạnh nhất);
  * - whatIf / priceCurve: ước tính kỳ vọng nếu đổi giá / nhân viên / lương, đối thủ giữ nguyên, chưa tính nhiễu.
  */
+import { segmentIdsOf } from '../awareness';
 import { AI_PRICE_TICK, DAYS_PER_MONTH, PRICE_BAND } from '../constants';
 import { money, mul, sub, sum, type Money } from '../money';
 import {
@@ -76,6 +77,8 @@ function getStore(state: GameState, storeId: string): Store {
 }
 
 interface Cell {
+  /** Chỉ số ô nhận biết (e × S + s, §18.1). */
+  readonly index: number;
   readonly originId: string;
   readonly segmentId: string;
   readonly segment: SegmentDef;
@@ -98,18 +101,24 @@ export function inspectStore(state: GameState, content: LoadedContent, storeId: 
   let total = 0;
   let best: { cell: Cell; demand: number } | null = null;
 
+  const segmentIds = segmentIdsOf(content);
+  const S = segmentIds.length;
   if (me) {
-    for (const origin of city.districts) {
-      for (const segmentId of Object.keys(industry.segments).sort()) {
-        const segment = industry.segments[segmentId];
-        if (!segment) continue;
+    for (let e = 0; e < city.districts.length; e++) {
+      const origin = city.districts[e];
+      if (!origin) continue;
+      for (let s = 0; s < S; s++) {
+        const segmentId = segmentIds[s];
+        const segment = segmentId === undefined ? undefined : industry.segments[segmentId];
+        if (segmentId === undefined || !segment) continue;
+        const index = e * S + s;
         const visits = origin.pop * (origin.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
         if (visits === 0) continue;
         const reachable = candidates.flatMap((c) => {
           const km = distanceKm(city, origin, c.district);
           return km > segment.maxTravelKm
             ? []
-            : [{ c, km, u: candidateUtility(segmentId, segment, incomeIndex, c, km) }];
+            : [{ c, km, u: candidateUtility(segmentId, segment, incomeIndex, c, km, index) }];
         });
         const mine = reachable.findIndex((r) => r.c.id === storeId);
         if (mine < 0) continue;
@@ -130,7 +139,10 @@ export function inspectStore(state: GameState, content: LoadedContent, storeId: 
             overlap.set(r.c.id, (overlap.get(r.c.id) ?? 0) + visits * (shares[i] ?? 0));
         });
         if (!best || demand > best.demand) {
-          best = { cell: { originId: origin.id, segmentId, segment, visits, reachable, shares }, demand };
+          best = {
+            cell: { index, originId: origin.id, segmentId, segment, visits, reachable, shares },
+            demand,
+          };
         }
       }
     }
@@ -177,7 +189,7 @@ function compareInCell(
   const ownParts = utilityParts(
     cell.segment,
     incomeIndex,
-    { ...me.x, distanceKm: own.km },
+    { ...me.x, awareness: me.awareness[cell.index] ?? 0, distanceKm: own.km },
     me.amenity[cell.segmentId],
   );
   let rival: (typeof cell.reachable)[number] | undefined;
@@ -195,7 +207,7 @@ function compareInCell(
   const rivalParts = utilityParts(
     cell.segment,
     incomeIndex,
-    { ...rival.c.x, distanceKm: rival.km },
+    { ...rival.c.x, awareness: rival.c.awareness[cell.index] ?? 0, distanceKm: rival.km },
     rival.c.amenity[cell.segmentId],
   );
   const before = cell.shares[mine] ?? 0;
@@ -365,10 +377,16 @@ export function ownDemandAtPrices(
   const me = candidates.find((c) => c.id === storeId);
   const out = prices.map(() => 0);
   if (!me) return out;
-  for (const origin of city.districts) {
-    for (const segmentId of Object.keys(industry.segments).sort()) {
-      const segment = industry.segments[segmentId];
-      if (!segment) continue;
+  const segmentIds = segmentIdsOf(content);
+  const S = segmentIds.length;
+  for (let e = 0; e < city.districts.length; e++) {
+    const origin = city.districts[e];
+    if (!origin) continue;
+    for (let s = 0; s < S; s++) {
+      const segmentId = segmentIds[s];
+      const segment = segmentId === undefined ? undefined : industry.segments[segmentId];
+      if (segmentId === undefined || !segment) continue;
+      const index = e * S + s;
       const visits = origin.pop * (origin.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
       if (visits === 0) continue;
       const ownKm = distanceKm(city, origin, me.district);
@@ -377,7 +395,8 @@ export function ownDemandAtPrices(
       for (const c of candidates) {
         if (c.id === storeId) continue;
         const km = distanceKm(city, origin, c.district);
-        if (km <= segment.maxTravelKm) others.push(candidateUtility(segmentId, segment, incomeIndex, c, km));
+        if (km <= segment.maxTravelKm)
+          others.push(candidateUtility(segmentId, segment, incomeIndex, c, km, index));
       }
       let max = -Infinity;
       for (const u of others) if (u > max) max = u;
@@ -391,6 +410,7 @@ export function ownDemandAtPrices(
         incomeIndex,
         { ...me, x: { ...me.x, price: me.x.refPrice } },
         ownKm,
+        index,
       );
       const eta = segment.incomeElasticityOfPriceSensitivity;
       const priceBeta = eta === 0 ? segment.betas.p : segment.betas.p / incomeIndex ** eta;

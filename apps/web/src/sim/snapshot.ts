@@ -29,6 +29,7 @@ import {
   type HrView,
   type OfficeView,
   type StorePnl,
+  meanAwareness,
 } from '@game/sim-core';
 import { computeAlerts, type Alert } from './alerts';
 import { buildInspection, type InspectionView } from './inspection';
@@ -215,7 +216,7 @@ export function buildSnapshot(
         name: c.name,
         kind: c.kind,
         status: c.status,
-        brandAwareness: c.brandAwareness,
+        brandAwareness: meanAwareness(content, c.awareness),
         storeCount: own.length,
         avgPrice: own.length > 0 ? fromFloatCents(priceSum / own.length) : null,
         marketShare: shares.byCompany[id] ?? 0,

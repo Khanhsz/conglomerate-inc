@@ -77,6 +77,20 @@ export interface QualityTierDef {
   readonly unitCostMultiplier: number;
 }
 
+export type ChannelScope = 'city' | 'district';
+
+/** Kênh marketing ngoài `general` (economic-model §18.2). */
+export interface MarketingChannelDef {
+  readonly name: string;
+  /** `city`: một ngân sách cho cả thành phố; `district`: ngân sách riêng từng quận. */
+  readonly scope: ChannelScope;
+  /** Trọng số theo phân khúc ∈ [0, 1]; phân khúc không khai = 0. */
+  readonly segmentWeight: { readonly [segment: SegmentId]: number };
+  readonly alpha: number;
+  /** Chi mỗi ngày (trước CPI) để đạt 63% hiệu quả tối đa. */
+  readonly halfSaturationDaily: Money;
+}
+
 export interface BrandParams {
   readonly alpha: number;
   readonly halfSaturationDaily: Money;
@@ -158,6 +172,8 @@ export interface IndustryContent {
   readonly hrPolicies: HrPolicyParams;
   /** Theo id; duyệt bằng key đã sort. */
   readonly storeAmenities: { readonly [id: string]: StoreAmenityDef };
+  /** Kênh marketing ngoài `general` (M1.6, §18.2); rỗng = chỉ có `general` như M1. */
+  readonly marketingChannels: { readonly [id: string]: MarketingChannelDef };
 }
 
 export interface MacroParams {

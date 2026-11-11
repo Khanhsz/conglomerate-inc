@@ -53,6 +53,15 @@ const storeAmenityDef = z.strictObject({
   reviewWeight: positive,
 });
 
+/** Kênh marketing ngoài `general` (economic-model §18.2). */
+const marketingChannelDef = z.strictObject({
+  name: z.string().min(1),
+  scope: z.enum(['city', 'district']),
+  segmentWeight: z.record(id, unit),
+  alpha: unit,
+  halfSaturationDaily: moneyCents.refine((v) => v > 0, 'phải > 0'),
+});
+
 const hrPolicies = z.strictObject({
   trainingCostPerStaffMonthly: moneyLevels,
   trainingMult: numberLevels(positive, 1),
@@ -140,6 +149,7 @@ export const industrySchema = z
     }),
     hrPolicies,
     storeAmenities: z.record(id, storeAmenityDef),
+    marketingChannels: z.record(id, marketingChannelDef),
   })
   .superRefine((ind, ctx) => {
     const min = ind.minStaffPerStore;
@@ -156,6 +166,24 @@ export const industrySchema = z
           ctx.addIssue({
             code: 'custom',
             path: ['storeAmenities', amenityId, 'segmentWeight', s],
+            message: `phân khúc "${s}" không tồn tại`,
+          });
+        }
+      }
+    }
+    for (const [channelId, ch] of Object.entries(ind.marketingChannels)) {
+      if (channelId === 'general') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['marketingChannels', channelId],
+          message: '"general" là kênh M1 (tham số ở brand), không khai lại ở đây',
+        });
+      }
+      for (const s of Object.keys(ch.segmentWeight)) {
+        if (!(s in ind.segments)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['marketingChannels', channelId, 'segmentWeight', s],
             message: `phân khúc "${s}" không tồn tại`,
           });
         }

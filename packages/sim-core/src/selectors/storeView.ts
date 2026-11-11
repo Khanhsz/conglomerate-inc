@@ -1,6 +1,7 @@
 /**
  * Màn hình cửa hàng (M1.7, spec M1.7 §3): đánh giá sao theo tiêu chí và thị phần khu vực. Hàm thuần, không đổi kinh tế.
  */
+import { segmentIdsOf } from '../awareness';
 import { candidateUtility, demandCandidates, distanceKm, logitShares } from '../systems/demand';
 import type { CompanyId, LoadedContent } from '../types/content';
 import type { GameState, StoreId } from '../types/state';
@@ -74,15 +75,18 @@ export interface AreaShare {
 export function areaShares(state: GameState, content: LoadedContent, storeId: StoreId): AreaShare[] | null {
   const store = state.stores[storeId];
   const { industry, scenario } = content;
-  const origin = scenario.city.districts.find((d) => d.id === store?.districtId);
+  const e = scenario.city.districts.findIndex((d) => d.id === store?.districtId);
+  const origin = scenario.city.districts[e];
   if (!store || !origin) return null;
+  const segmentIds = segmentIdsOf(content);
   const candidates = demandCandidates(state, content);
   const byCompany = new Map<CompanyId, number>();
   let outside = 0;
   let total = 0;
-  for (const segmentId of Object.keys(industry.segments).sort()) {
-    const segment = industry.segments[segmentId];
-    if (!segment) continue;
+  for (let s = 0; s < segmentIds.length; s++) {
+    const segmentId = segmentIds[s];
+    const segment = segmentId === undefined ? undefined : industry.segments[segmentId];
+    if (segmentId === undefined || !segment) continue;
     const visits = origin.pop * (origin.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
     if (visits === 0) continue;
     const reach = candidates.filter(
@@ -95,6 +99,7 @@ export function areaShares(state: GameState, content: LoadedContent, storeId: St
         state.macro.incomeIndex,
         c,
         distanceKm(scenario.city, origin, c.district),
+        e * segmentIds.length + s,
       ),
     );
     const { outside: o, shares } = logitShares(segment.outsideUtility, utilities);

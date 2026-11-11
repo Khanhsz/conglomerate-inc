@@ -12,7 +12,12 @@ import { brandLift, brandSystem } from './brand';
 const content = fixtureContent();
 const base = createGame(content);
 const runBrand = (s: GameState, c = content) => produce(s, (d) => brandSystem(d, ctxAt(s, c)));
-const awareness = (s: GameState, id = 'player') => must(s.companies[id]).brandAwareness;
+/** Chỉ kênh `general`: mọi ô phải bằng nhau (§18.2); trả về giá trị chung đó. */
+const awareness = (s: GameState, id = 'player') => {
+  const cells = must(s.companies[id]).awareness;
+  expect(new Set(cells).size).toBe(1);
+  return must(cells[0]);
+};
 const withBudget = (s: GameState, monthly: number, id = 'player') =>
   produce(s, (d) => {
     must(d.companies[id]).marketingBudgetMonthly = money(monthly);
@@ -56,7 +61,7 @@ describe('brandSystem (economic-model §5)', () => {
 
   it('stays in [0, 1] and skips bankrupt companies', () => {
     const s0 = produce(withBudget(base, 100_000_000), (d) => {
-      must(d.companies['player']).brandAwareness = 0.9999;
+      must(d.companies['player']).awareness.fill(0.9999);
       must(d.stores['store-000001']).today.served = 1e9;
     });
     const s = runBrand(s0);

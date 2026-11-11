@@ -1,4 +1,5 @@
 /** Cầu multinomial logit (economic-model §2–§3). */
+import { segmentIdsOf } from '../awareness';
 import type { CityDef, DistrictDef, LoadedContent, SegmentDef, SegmentId } from '../types/content';
 import type { System } from '../types/context';
 import type { GameState, StoreId } from '../types/state';
@@ -88,12 +89,14 @@ export interface DemandSnapshot {
   readonly captured: number;
 }
 
-/** Một cửa hàng đang mở trong tập lựa chọn, kèm các thuộc tính utility (trừ khoảng cách). */
+/** Một cửa hàng đang mở trong tập lựa chọn, kèm các thuộc tính utility (trừ khoảng cách và nhận biết). */
 export interface DemandCandidate {
   readonly id: StoreId;
   readonly companyId: string;
   readonly district: DistrictDef;
-  readonly x: Omit<UtilityInputs, 'distanceKm'>;
+  readonly x: Omit<UtilityInputs, 'distanceKm' | 'awareness'>;
+  /** A_{c,e,s} của công ty (§18.1): ô (e, s) ở `e × S + s`. */
+  readonly awareness: readonly number[];
   /** Utility cộng thêm theo phân khúc từ tiện ích đang bật (M1.7, §21); rỗng khi không bật gì. */
   readonly amenity: Readonly<Record<SegmentId, number>>;
 }
@@ -114,15 +117,23 @@ export function amenityUtility(
   return out;
 }
 
-/** Utility của một ứng viên cho phân khúc s ở khoảng cách km: §3.1 + tiện ích (§21). Không có tiện ích thì đúng bằng §3.1. */
+/**
+ * Utility của một ứng viên cho khách ở ô `cell` (quận e, phân khúc s) cách km: §3.1 với A_{c,e,s} (§18.1)
+ * + tiện ích (§21). Không có tiện ích thì đúng bằng §3.1.
+ */
 export function candidateUtility(
   segmentId: SegmentId,
   segment: SegmentDef,
   incomeIndex: number,
   c: DemandCandidate,
   km: number,
+  cell: number,
 ): number {
-  const u = storeUtility(segment, incomeIndex, { ...c.x, distanceKm: km });
+  const u = storeUtility(segment, incomeIndex, {
+    ...c.x,
+    awareness: c.awareness[cell] ?? 0,
+    distanceKm: km,
+  });
   const bonus = c.amenity[segmentId];
   return bonus === undefined ? u : u + bonus;
 }
@@ -147,9 +158,9 @@ export function demandCandidates(state: GameState, content: LoadedContent): Dema
         quality: industry.qualityTiers[company.qualityTier].quality,
         price: store.price,
         refPrice,
-        awareness: company.brandAwareness,
         serviceLevel: store.serviceLevel,
       },
+      awareness: company.awareness,
       amenity: store.amenities.length > 0 ? amenityUtility(content, store.amenities) : {},
     });
   }
@@ -166,12 +177,16 @@ export function expectedDemand(state: GameState, content: LoadedContent): Demand
   for (const c of candidates) byStore[c.id] = 0;
   let potential = 0;
   let captured = 0;
-  const segmentIds = Object.keys(industry.segments).sort();
+  const segmentIds = segmentIdsOf(content);
+  const S = segmentIds.length;
 
-  for (const origin of city.districts) {
-    for (const segmentId of segmentIds) {
-      const segment = industry.segments[segmentId];
-      if (!segment) continue;
+  for (let e = 0; e < city.districts.length; e++) {
+    const origin = city.districts[e];
+    if (!origin) continue;
+    for (let s = 0; s < S; s++) {
+      const segmentId = segmentIds[s];
+      const segment = segmentId === undefined ? undefined : industry.segments[segmentId];
+      if (segmentId === undefined || !segment) continue;
       const visits = origin.pop * (origin.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
       potential += visits;
       if (visits === 0) continue;
@@ -181,7 +196,7 @@ export function expectedDemand(state: GameState, content: LoadedContent): Demand
         const km = distanceKm(city, origin, c.district);
         if (km > segment.maxTravelKm) continue;
         reachable.push(c);
-        utilities.push(candidateUtility(segmentId, segment, state.macro.incomeIndex, c, km));
+        utilities.push(candidateUtility(segmentId, segment, state.macro.incomeIndex, c, km, e * S + s));
       }
       const { shares } = logitShares(segment.outsideUtility, utilities);
       reachable.forEach((c, i) => {

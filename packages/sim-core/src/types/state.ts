@@ -38,10 +38,18 @@ interface CompanyBase {
   status: CompanyStatus;
   distressMonths: number;
   qualityTier: QualityTier;
-  brandAwareness: number;
+  /**
+   * Nhận biết A_{c,e,s} (economic-model §18.1): mảng phẳng, ô (e, s) ở `e × S + s`, quận theo thứ tự scenario,
+   * phân khúc theo id tăng dần. Chỉ dùng kênh `general` thì mọi ô bằng nhau (= A_c của M1).
+   */
+  awareness: number[];
   marketingBudgetMonthly: Money;
-  /** Cent dạng float, cộng dồn mỗi ngày, ghi sổ và reset khi chốt tháng (economic-model §6). */
+  /** Cent dạng float, cộng dồn mỗi ngày (mọi kênh), ghi sổ và reset khi chốt tháng (economic-model §6). */
   marketingAccrued: number;
+  /** Ngân sách kênh ngoài `general` (§18.2), sắp theo kênh rồi mục tiêu (`city` hoặc quận theo scenario). */
+  channelBudgets: ChannelBudget[];
+  /** Phần nhận biết hiện có do từng kênh đóng góp (§18.3), cùng thứ tự ô với `awareness`; `general` đứng đầu. */
+  channelAwareness: ChannelAwareness[];
   tax: { preTaxProfitYTD: Money; taxBookedYTD: Money; lossCarryforward: Money };
   overdraft: { limit: Money; dailyBalanceSum: Money };
   /** Văn phòng (M1.6, economic-model §15.1); null = chưa thuê. */
@@ -54,6 +62,18 @@ interface CompanyBase {
   creditLine: { limit: Money; commitmentFeeAccrued: number };
   /** Chính sách phòng Nhân sự (§16); mặc định { null, 0, 0, 0 } = như M1. */
   hrPolicy: HrPolicy;
+}
+
+export interface ChannelBudget {
+  readonly channel: string;
+  /** `city` với kênh toàn thành phố, id quận với kênh theo quận. */
+  readonly target: string;
+  readonly monthly: Money;
+}
+
+export interface ChannelAwareness {
+  readonly channel: string;
+  cells: number[];
 }
 
 export interface HrPolicy {

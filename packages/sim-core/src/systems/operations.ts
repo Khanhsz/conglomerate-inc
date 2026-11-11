@@ -31,6 +31,8 @@ export const operationsSystem: System = (draft, ctx) => {
     const company = draft.companies[companyId];
     if (!company || company.status === 'bankrupt') continue;
     company.marketingAccrued += company.marketingBudgetMonthly / DAYS_PER_MONTH;
+    // Kênh ngoài `general` (§18.2) cộng dồn riêng để không đổi phép tính M1 khi không dùng kênh nào.
+    for (const b of company.channelBudgets) company.marketingAccrued += b.monthly / DAYS_PER_MONTH;
   }
 
   for (const id of draft.storeIds) {
