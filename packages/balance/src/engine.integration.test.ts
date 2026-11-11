@@ -13,7 +13,9 @@ import {
   type GameState,
 } from '@game/sim-core';
 import { describe, expect, it } from 'vitest';
-import { loadDefaultContent } from './content';
+import { loadContent } from '@game/content';
+import { parse, stringify } from 'yaml';
+import { loadDefaultContent, readDefaultYaml } from './content';
 
 const content = loadDefaultContent();
 
@@ -57,11 +59,18 @@ describe('m1-default: initial state', () => {
 
   // Số tham chiếu từ một script độc lập (cùng công thức economic-model §3, viết riêng ở kickoff),
   // chạy với đúng điều kiện ngày 0: giá đã làm tròn, A = 0.05, W = 0.6, priceIndex = 1.
+  // Script dùng outsideUtility ban đầu (trước hiệu chỉnh) nên test nạp lại content với đúng các giá trị đó;
+  // phép đối chiếu kiểm công thức, không phụ thuộc vòng hiệu chỉnh nào.
   it('expected demand on day 0 matches the independent back-of-envelope script', () => {
-    const snap = expectedDemand(s, content);
+    const yaml = readDefaultYaml();
+    const industry = parse(yaml.industry);
+    const original: Record<string, number> = { students: 1.4, office: 2.0, premium: 2.4, other: 2.8 };
+    for (const [id, u0] of Object.entries(original)) industry.segments[id].outsideUtility = u0;
+    const reference = loadContent(stringify(industry), yaml.scenario);
+    const snap = expectedDemand(createGame(reference), reference);
     expect(snap.potential).toBeCloseTo(8949.55, 6);
     expect(snap.captured).toBeCloseTo(4007.3798446855603, 6);
-    const reference: Record<string, number> = {
+    const expected: Record<string, number> = {
       'store-000001': 337.498583,
       'store-000002': 314.089982,
       'store-000003': 470.54321,
@@ -72,8 +81,8 @@ describe('m1-default: initial state', () => {
       'store-000008': 502.418349,
       'store-000009': 460.693722,
     };
-    for (const [id, value] of Object.entries(reference)) expect(snap.byStore[id]).toBeCloseTo(value, 5);
-    const shares = selectors.marketShares(s, content);
+    for (const [id, value] of Object.entries(expected)) expect(snap.byStore[id]).toBeCloseTo(value, 5);
+    const shares = selectors.marketShares(createGame(reference), reference);
     expect(shares.industryShare).toBeCloseTo(0.44777445175294406, 9);
     expect(shares.byCompany['player']).toBe(0);
   });

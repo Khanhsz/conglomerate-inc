@@ -39,25 +39,25 @@ segments:
   students:
     visitsPerPersonPerDay: 0.045
     maxTravelKm: 4
-    outsideUtility: 1.4
+    outsideUtility: 2.4
     incomeElasticityOfPriceSensitivity: 0
     betas: { q: 1.0, p: 2.5, b: 1.0, d: 0.9, w: 0.8 }
   office:
     visitsPerPersonPerDay: 0.065
     maxTravelKm: 2.5
-    outsideUtility: 2.0
+    outsideUtility: 3.0
     incomeElasticityOfPriceSensitivity: 0
     betas: { q: 1.5, p: 1.5, b: 1.5, d: 1.2, w: 1.2 }
   premium:
     visitsPerPersonPerDay: 0.055
     maxTravelKm: 6
-    outsideUtility: 2.4
+    outsideUtility: 3.4
     incomeElasticityOfPriceSensitivity: 0
     betas: { q: 3.0, p: 1.1, b: 2.0, d: 0.6, w: 1.5 }
   other:
     visitsPerPersonPerDay: 0.012
     maxTravelKm: 3
-    outsideUtility: 2.8
+    outsideUtility: 3.8
     incomeElasticityOfPriceSensitivity: 0
     betas: { q: 1.0, p: 2.0, b: 1.0, d: 1.0, w: 0.5 }
 
@@ -72,7 +72,7 @@ aiRules:
   closeAfterNegativeMonths: 3  # đóng cửa hàng lỗ đóng góp 3 tháng liền
   expansion:
     minMonthlyRoi: 0.02        # lãi đóng góp 3 tháng / capex > 2%/tháng
-    cashMultiple: 1.5          # cash ≥ 1.5 × capex của cửa hàng mới
+    cashMultiple: 3            # cash ≥ 3 × capex của cửa hàng mới (vòng 1: 1.5 → 3)
 
 aiPersonalities:
   discount: { qualityTier: basic,    markup: 3.7, wageRatio: 0.95, marketingShareOfRevenue: 0.02 }
