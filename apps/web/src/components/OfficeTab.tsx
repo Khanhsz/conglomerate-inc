@@ -85,7 +85,7 @@ function OfficeDetail({ snap }: { snap: Snapshot }) {
           Văn phòng {OFFICE_SIZE_LABEL[size]} · quận {office.districtId.toUpperCase()}
         </h3>
         <span className="muted" data-testid="office-slots">
-          {office.slotsUsed}/{office.slots} phòng · chi phí cố định {usd(view.monthlyCost)}/tháng
+          {office.slotsUsed}/{office.slots} phòng đang dùng
         </span>
       </header>
       <dl className="kv office-costs">
