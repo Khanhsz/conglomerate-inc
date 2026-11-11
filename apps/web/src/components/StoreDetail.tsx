@@ -3,6 +3,7 @@ import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
 import { int, pct, usd } from '../format';
 import { DayChart, PriceCurve } from './Charts';
+import { Stepper } from './Parts';
 import { Slider } from './Slider';
 
 const SEGMENT_LABEL: Record<string, string> = {
@@ -71,14 +72,12 @@ export function StoreDetail({ snap }: { snap: Snapshot }) {
               })
             }
           />
-          <Slider
-            id="slider-staff"
+          <Stepper
+            id="stepper-staff"
             label="Nhân viên"
             value={staff}
             {...snap.limits.staff}
             format={(v) => `${v} người`}
-            onPreview={(v) => preview$({ staff: v })}
-            onRelease={clearPreview}
             onCommit={(v) =>
               command({
                 type: 'command',

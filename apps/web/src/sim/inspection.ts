@@ -13,6 +13,7 @@ import {
   type WhatIfChange,
   type WhatIfResult,
   storeContribution,
+  sub,
   sum,
 } from '@game/sim-core';
 import { playerId } from './snapshot';
@@ -28,6 +29,8 @@ export interface InspectionView {
     readonly contribution: Money;
     readonly wagesTotal: Money;
   })[];
+  /** Lãi đóng góp tháng gần nhất trừ tháng trước đó (null khi chưa đủ 2 tháng). */
+  readonly contributionDelta: Money | null;
   readonly morale: number;
   readonly skill: number;
 }
@@ -41,7 +44,11 @@ export function buildInspection(
 ): InspectionView | null {
   const store = state.stores[storeId];
   if (!store || store.companyId !== playerId(state) || store.status !== 'open') return null;
+  const h = store.history;
+  const prev = h[h.length - 2];
+  const last = h[h.length - 1];
   return {
+    contributionDelta: prev && last ? sub(storeContribution(last), storeContribution(prev)) : null,
     storeId,
     report: inspectStore(state, content, storeId),
     current: whatIf(state, content, storeId, pending),

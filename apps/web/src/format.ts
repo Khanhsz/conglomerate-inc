@@ -2,6 +2,8 @@
 import { DEPARTMENT_LABEL, OFFICE_SIZE_LABEL, toDisplay, type GameEvent, type Money } from '@game/sim-core';
 
 export const usd = (m: Money): string => toDisplay(m);
+/** Chênh lệch có dấu: +$1.00 / −$1.00. */
+export const signedUsd = (m: Money): string => (m > 0 ? `+${toDisplay(m)}` : toDisplay(m));
 export const pct = (x: number | null, digits = 1): string =>
   x === null ? '—' : `${(x * 100).toFixed(digits)}%`;
 export const int = (n: number): string => Math.round(n).toLocaleString('en-US');

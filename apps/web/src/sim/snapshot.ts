@@ -66,6 +66,9 @@ export interface FinanceView {
   readonly storePnl: StorePnl | null;
   /** 24 tháng gần nhất, cũ → mới. */
   readonly trend: readonly TrendPoint[];
+  /** Tháng gần nhất và chênh lệch so với tháng trước đó (null khi chưa đủ 2 tháng). */
+  readonly revenueDelta: Money | null;
+  readonly netIncomeDelta: Money | null;
 }
 
 export interface TrendPoint {
@@ -292,10 +295,13 @@ function financeView(state: GameState, content: LoadedContent, pid: string): Fin
   if (!advice) throw new Error(`missing player company ${pid}`);
   const history = state.statements[pid] ?? [];
   const last = history[history.length - 1];
+  const prev = history[history.length - 2];
   return {
     open: state.companies[pid]?.departments.finance !== null,
     advice,
     storePnl: last ? storePnl(state, pid, last.month) : null,
+    revenueDelta: last && prev ? sub(last.pnl.revenue, prev.pnl.revenue) : null,
+    netIncomeDelta: last && prev ? sub(last.pnl.netIncome, prev.pnl.netIncome) : null,
     trend: history.slice(-TREND_MONTHS).map((m) => ({
       month: m.month,
       revenue: m.pnl.revenue,

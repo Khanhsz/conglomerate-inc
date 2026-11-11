@@ -2,11 +2,13 @@ import { DEPARTMENT_LABEL, money, OFFICE_SIZE_LABEL, QUALITY_TIERS, type Quality
 import type { Snapshot } from '../sim/snapshot';
 import { HQ_TABS, useUi, type HqTab } from '../store';
 import { CUBIC_TRACK, fromCubicPosition, toCubicPosition } from '../ui/sliderScale';
-import { usd } from '../format';
+import { pct, signedUsd, usd } from '../format';
 import { FinanceTab } from './FinanceTab';
 import { HrDept } from './HrDept';
 import { MarketTab } from './MarketTab';
 import { OfficeTab } from './OfficeTab';
+import { hqAdvice } from './advisors';
+import { AdvisorStrip, KpiPair, type Kpi, type Role } from './Parts';
 import { ScreenShell } from './ScreenShell';
 import { Slider } from './Slider';
 
@@ -39,7 +41,9 @@ export function HqScreen({ snap, tab }: { snap: Snapshot; tab: HqTab }) {
       tabTestPrefix="tab-"
       onTab={openHq}
       onClose={openMap}
+      advisor={<HqAdvisor snap={snap} tab={tab} />}
     >
+      <HqKpis snap={snap} tab={tab} />
       {tab === 'office' && <OfficeTab snap={snap} />}
       {tab === 'finance' && <FinanceTab snap={snap} />}
       {tab === 'hr' && <HrDept snap={snap} />}
@@ -113,4 +117,65 @@ function MarketingHq({ snap }: { snap: Snapshot }) {
       <MarketTab snap={snap} />
     </section>
   );
+}
+
+const ROLE: { readonly [T in HqTab]: Role } = {
+  office: 'office',
+  finance: 'finance',
+  hr: 'hr',
+  product: 'product',
+  marketing: 'marketing',
+  board: 'board',
+};
+
+function HqAdvisor({ snap, tab }: { snap: Snapshot; tab: HqTab }) {
+  const a = hqAdvice(snap, tab);
+  return (
+    <AdvisorStrip role={ROLE[tab]} tone={a.tone}>
+      {a.text}
+    </AdvisorStrip>
+  );
+}
+
+/** Hai số lớn đầu mỗi tab (KPI + chênh lệch tháng trước + biểu đồ nhỏ). */
+function HqKpis({ snap, tab }: { snap: Snapshot; tab: HqTab }) {
+  const fin = snap.finance;
+  const last = fin.trend[fin.trend.length - 1];
+  const tone = (m: number) => (m >= 0 ? ('good' as const) : ('bad' as const));
+  let items: readonly Kpi[] = [];
+  if (tab === 'finance' && last) {
+    items = [
+      {
+        label: 'Doanh thu tháng',
+        value: usd(last.revenue),
+        delta:
+          fin.revenueDelta === null
+            ? null
+            : { text: signedUsd(fin.revenueDelta), tone: tone(fin.revenueDelta) },
+        series: fin.trend.map((t) => t.revenue),
+        testId: 'kpi-revenue',
+      },
+      {
+        label: 'Lợi nhuận ròng',
+        value: usd(last.netIncome),
+        delta:
+          fin.netIncomeDelta === null
+            ? null
+            : { text: signedUsd(fin.netIncomeDelta), tone: tone(fin.netIncomeDelta) },
+        series: fin.trend.map((t) => t.netIncome),
+      },
+    ];
+  } else if (tab === 'hr') {
+    const t = snap.hr.view.totals;
+    items = [
+      { label: 'Nhân viên', value: String(t.staff) },
+      { label: 'Tinh thần trung bình', value: t.avgMorale === null ? '—' : pct(t.avgMorale, 0) },
+    ];
+  } else if (tab === 'office' && snap.office.office) {
+    items = [
+      { label: 'Chi phí cố định / tháng', value: usd(snap.office.monthlyCost) },
+      { label: 'Phòng ban', value: `${snap.office.office.slotsUsed}/${snap.office.office.slots}` },
+    ];
+  }
+  return items.length > 0 ? <KpiPair items={items} /> : null;
 }

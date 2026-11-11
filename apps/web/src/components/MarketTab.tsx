@@ -1,38 +1,13 @@
 import type { Snapshot } from '../sim/snapshot';
 import { companyStyle, pct, usd } from '../format';
+import { Donut } from './Parts';
 
-/** Thị phần (cầu kỳ vọng, gồm lựa chọn "không mua") dạng thanh ngang SVG + bảng đối thủ. */
+/** Thị phần (cầu kỳ vọng, gồm lựa chọn "không mua") dạng donut + bảng đối thủ. */
 export function MarketTab({ snap }: { snap: Snapshot }) {
-  const bars = [
-    ...snap.companies.map((c, i) => ({
-      label: c.kind === 'player' ? 'Bạn' : c.name,
-      value: c.marketShare,
-      color: companyStyle(i).color,
-    })),
-    { label: 'Không mua', value: snap.outsideShare, color: 'var(--outside)' },
-  ];
-  const rowH = 28;
-  const labelW = 120;
-  const width = 520;
   return (
     <section>
       <h3>Thị phần trên tổng lượt mua tiềm năng</h3>
-      <svg className="bars" viewBox={`0 0 ${width} ${bars.length * rowH}`} role="img" aria-label="Thị phần">
-        {bars.map((b, i) => {
-          const w = Math.max(0, b.value) * (width - labelW - 60);
-          return (
-            <g key={b.label} transform={`translate(0, ${i * rowH})`}>
-              <text x={0} y={rowH / 2 + 4} className="bar-label">
-                {b.label}
-              </text>
-              <rect x={labelW} y={6} width={w} height={rowH - 12} style={{ fill: b.color }} rx={3} />
-              <text x={labelW + w + 6} y={rowH / 2 + 4} className="bar-value">
-                {pct(b.value)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+      <CityShareDonut snap={snap} />
       <h3>Đối thủ</h3>
       <div className="table-wrap">
         <table className="kv">
@@ -62,5 +37,22 @@ export function MarketTab({ snap }: { snap: Snapshot }) {
         </table>
       </div>
     </section>
+  );
+}
+
+/** Donut thị phần thành phố: mỗi công ty + "không mua" (cầu kỳ vọng). */
+export function CityShareDonut({ snap }: { snap: Snapshot }) {
+  return (
+    <Donut
+      testId="city-share"
+      slices={[
+        ...snap.companies.map((c, i) => ({
+          label: c.kind === 'player' ? 'Bạn' : c.name,
+          value: c.marketShare,
+          color: companyStyle(i).color,
+        })),
+        { label: 'Không mua', value: snap.outsideShare, color: 'var(--outside)' },
+      ]}
+    />
   );
 }

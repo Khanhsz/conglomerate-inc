@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import type { Snapshot } from '../sim/snapshot';
 import { STORE_TABS, useUi, type StoreTab } from '../store';
-import { int, pct, usd } from '../format';
+import { int, pct, signedUsd, usd } from '../format';
+import { storeAdvice } from './advisors';
+import { AdvisorStrip, KpiPair } from './Parts';
 import { ScreenShell } from './ScreenShell';
 import { StoreDetail } from './StoreDetail';
 
@@ -39,7 +41,9 @@ export function StoreScreen({ snap, storeId, tab }: { snap: Snapshot; storeId: s
       tabTestPrefix="store-tab-"
       onTab={(t) => openStore(storeId, t)}
       onClose={close}
+      advisor={<StoreAdvisor snap={snap} storeId={storeId} />}
     >
+      {tab === 'ops' && <StoreKpis snap={snap} storeId={storeId} />}
       {tab === 'ops' && <StoreDetail snap={snap} />}
       {tab === 'product' && (
         <section className="hq-section">
@@ -136,5 +140,55 @@ function StoreFinance({ snap, storeId }: { snap: Snapshot; storeId: string }) {
         )}
       </div>
     </section>
+  );
+}
+
+function StoreAdvisor({ snap, storeId }: { snap: Snapshot; storeId: string }) {
+  const a = storeAdvice(snap, storeId);
+  return (
+    <AdvisorStrip role="store" tone={a.tone}>
+      {a.text}
+    </AdvisorStrip>
+  );
+}
+
+/** Khách/ngày 7 ngày gần nhất so với 7 ngày trước đó; lãi đóng góp tháng gần nhất so với tháng trước. */
+function StoreKpis({ snap, storeId }: { snap: Snapshot; storeId: string }) {
+  const view = snap.inspection;
+  if (!view || view.storeId !== storeId) return null;
+  const days = view.recentDays;
+  const avg = (xs: readonly { served: number }[]) =>
+    xs.length > 0 ? xs.reduce((a, d) => a + d.served, 0) / xs.length : null;
+  const week = avg(days.slice(-7));
+  const before = days.length >= 14 ? avg(days.slice(-14, -7)) : null;
+  const lastMonth = view.history[view.history.length - 1];
+  const diff = week !== null && before !== null ? week - before : null;
+  return (
+    <KpiPair
+      items={[
+        {
+          label: 'Khách / ngày (7 ngày)',
+          value: week === null ? '—' : int(week),
+          delta:
+            diff === null
+              ? null
+              : { text: `${diff >= 0 ? '+' : ''}${int(diff)}`, tone: diff >= 0 ? 'good' : 'bad' },
+          series: days.map((d) => d.served),
+          testId: 'kpi-customers',
+        },
+        {
+          label: 'Lãi đóng góp tháng trước',
+          value: lastMonth ? usd(lastMonth.contribution) : '—',
+          delta:
+            view.contributionDelta === null
+              ? null
+              : {
+                  text: signedUsd(view.contributionDelta),
+                  tone: view.contributionDelta >= 0 ? 'good' : 'bad',
+                },
+          series: view.history.map((m) => m.contribution),
+        },
+      ]}
+    />
   );
 }

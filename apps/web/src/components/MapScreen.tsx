@@ -5,6 +5,7 @@ import { int, pct, usd } from '../format';
 import { AlertsPanel } from './AlertsPanel';
 import { CityMap } from './CityMap';
 import { EventsPanel } from './EventsPanel';
+import { CityShareDonut } from './MarketTab';
 
 /** Trang chủ (M1.7): bản đồ, lối vào Trụ sở, danh sách cửa hàng, cảnh báo và sự kiện. */
 export function MapScreen({ snap }: { snap: Snapshot }) {
@@ -57,6 +58,10 @@ export function MapScreen({ snap }: { snap: Snapshot }) {
               })}
             </ul>
           )}
+        </section>
+        <section className="panel">
+          <h2>Thị phần thành phố</h2>
+          <CityShareDonut snap={snap} />
         </section>
         <AlertsPanel snap={snap} />
       </div>
