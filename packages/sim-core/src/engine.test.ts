@@ -159,10 +159,11 @@ function play(
 }
 
 describe('determinism (economic-model §13.8)', () => {
-  it('360 days, same seed and commands → identical hashState; another seed → different', () => {
-    const a = play(42, 360, script);
-    const b = play(42, 360, script);
-    const c = play(43, 360, script);
+  it('2 years, same seed and commands → identical hashState; another seed → different', () => {
+    // Spec §8: 2 năm, seed 42.
+    const a = play(42, 720, script);
+    const b = play(42, 720, script);
+    const c = play(43, 720, script);
     expect(hashState(a)).toBe(hashState(b));
     expect(hashState(a)).not.toBe(hashState(c));
     expect(a.storeIds.filter((id) => a.stores[id]?.companyId === 'player')).toHaveLength(2);

@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
 import { createGame, enqueue, runDays } from '../engine';
@@ -155,6 +156,42 @@ describe('tax reversal at month close (economic-model §6.2)', () => {
   });
 });
 
+describe('tax refund while in overdraft (review: economist #1)', () => {
+  /** Người chơi tiêu hết tiền và rút 2,000,000 thấu chi, rồi có `reversal` thuế hoàn nhập (TaxPayable âm). */
+  const setup = (reversal: number) =>
+    produce(month0, (d) => {
+      pay(d.ledger, {
+        companyId: 'player',
+        day: 30,
+        memo: 'x',
+        debits: [{ account: ACC.Rent, amount: money(27_000_000) }],
+      });
+      post(d.ledger, {
+        day: 30,
+        companyId: 'player',
+        memo: 'tax reversal',
+        lines: [
+          { account: ACC.TaxPayable, debit: money(reversal), credit: ZERO },
+          { account: ACC.IncomeTax, debit: ZERO, credit: money(reversal) },
+        ],
+      });
+      settleQuarterTax(d.ledger, 'player', 30);
+    });
+
+  it('repays the overdraft first, so distress is not judged on a gross overdraft', () => {
+    const b = currentBalances(setup(500_000).ledger, 'player');
+    expect(b[ACC.Overdraft]).toBe(1_500_000);
+    expect(b[ACC.Cash]).toBe(0);
+    expect(b[ACC.TaxPayable]).toBe(0);
+  });
+
+  it('puts only the remainder into cash when the refund exceeds the overdraft', () => {
+    const b = currentBalances(setup(3_000_000).ledger, 'player');
+    expect(b[ACC.Overdraft]).toBe(0);
+    expect(b[ACC.Cash]).toBe(1_000_000);
+  });
+});
+
 describe('depreciationForMonth (economic-model §6)', () => {
   it('floor(capex / life) per month, remainder in the last month, then stops', () => {
     const capex = money(12_000_007);
@@ -256,5 +293,27 @@ describe('bankruptcy of an earlier company in companyIds order', () => {
     expect(s.companyIds[0]).toBe('a-player');
     expect(must(s.companies['a-player']).status).toBe('bankrupt');
     expect(checkInvariants(s, early)).toEqual([]);
+  });
+});
+
+describe('depreciationForMonth (property)', () => {
+  it('for any capex and useful life, depreciation sums exactly to capex and then stops', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 1_000_000_000 }),
+        fc.integer({ min: 1, max: 120 }),
+        (capex, life) => {
+          let acc = 0;
+          for (let n = 1; n <= life + 3; n++) {
+            const d = depreciationForMonth(money(capex), money(acc), n, life);
+            expect(d).toBeGreaterThanOrEqual(0);
+            if (n > life) expect(d).toBe(0);
+            acc += d;
+          }
+          expect(acc).toBe(capex);
+        },
+      ),
+      { numRuns: Number(process.env['FC_RUNS'] ?? 100) },
+    );
   });
 });

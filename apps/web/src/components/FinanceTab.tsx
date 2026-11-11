@@ -228,7 +228,7 @@ export function FinanceTab({ snap }: { snap: Snapshot }) {
                       })
                     }
                   >
-                    Trả sớm (+1%)
+                    Trả sớm (+{pct(snap.rules.earlyRepaymentFee, 0)})
                   </button>
                 </td>
               </tr>

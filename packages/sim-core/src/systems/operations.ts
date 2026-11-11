@@ -6,7 +6,7 @@ import { DAYS_PER_MONTH, RENT_TERM_DAYS } from '../constants';
 import { ACC } from '../ledger/accounts';
 import { pay } from '../ledger/payments';
 import { post } from '../ledger/post';
-import { add, fromFloatCents, mul, ZERO, type Money } from '../money';
+import { add, type Money, mul, ZERO } from '../money';
 import type { System } from '../types/context';
 
 /** productivity = 0.7 + 0.6 × morale ∈ [0.7, 1.3] (economic-model §4.1). */
@@ -52,10 +52,9 @@ export const operationsSystem: System = (draft, ctx) => {
     const capacity = store.staff * industry.customersPerStaffPerDay * productivity(morale0);
     const demand = store.today.demand;
     const served = Math.min(demand, capacity);
-    const unitCost =
-      industry.unitCost * industry.qualityTiers[company.qualityTier].unitCostMultiplier * priceIndex;
-    const revenue = fromFloatCents(served * store.price);
-    const cogs = fromFloatCents(served * unitCost);
+    const costFactor = industry.qualityTiers[company.qualityTier].unitCostMultiplier * priceIndex;
+    const revenue = mul(store.price, served);
+    const cogs = mul(industry.unitCost, served * costFactor);
 
     store.today = { demand, served, lost: demand - served, capacity };
     store.mtd.demand += demand;

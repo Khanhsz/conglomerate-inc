@@ -1,15 +1,15 @@
 /** Vay kỳ hạn (economic-model §7.1): báo giá theo leverage và trả góp đều. */
 import { ACC } from '../ledger/accounts';
 import { currentBalances } from '../ledger/balances';
-import { fromFloatCents, type Money } from '../money';
+import { fromFloatCents, type Money, mul } from '../money';
 import type { LoadedContent } from '../types/content';
 import type { GameState, Loan } from '../types/state';
 
 /** payment = round(P·r / (1 − (1 + r)^−n)), r = rate / 12 (lãi đơn theo tháng, có chủ đích). */
 export function annuityPayment(principal: Money, annualRate: number, termMonths: number): Money {
   const r = annualRate / 12;
-  if (r === 0) return fromFloatCents(principal / termMonths);
-  return fromFloatCents((principal * r) / (1 - (1 + r) ** -termMonths));
+  if (r === 0) return mul(principal, 1 / termMonths);
+  return mul(principal, r / (1 - (1 + r) ** -termMonths));
 }
 
 export type LoanQuote =
@@ -46,7 +46,7 @@ export function loanQuote(
 
 /** Kỳ trả góp: lãi = round(dư nợ × r); gốc = payment − lãi; kỳ cuối trả hết dư nợ. */
 export function installment(loan: Loan): { interest: Money; principal: Money } {
-  const interest = fromFloatCents((loan.outstanding * loan.annualRate) / 12);
+  const interest = mul(loan.outstanding, loan.annualRate / 12);
   const last = loan.paymentsMade + 1 >= loan.termMonths;
   const scheduled = Math.max(0, loan.paymentMonthly - interest);
   const principal = last ? loan.outstanding : fromFloatCents(Math.min(loan.outstanding, scheduled));

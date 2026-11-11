@@ -8,14 +8,15 @@ import {
   AI_PRICE_TICK,
   MAX_MARKETING_BUDGET_MONTHLY,
   MAX_STAFF_PER_STORE,
+  MAX_STORES_PER_DISTRICT,
   PRICE_BAND,
   WAGE_BAND,
 } from '../constants';
-import { marketWage, refPrice, spendingPower } from '../commands/common';
+import { marketWage, refPrice } from '../commands/common';
 import { storeCapex } from '../commands/openStore';
 import { ACC } from '../ledger/accounts';
 import { currentBalances } from '../ledger/balances';
-import { fromFloatCents, money, roundHalfAwayFromZero, type Money } from '../money';
+import { fromFloatCents, money, roundHalfAwayFromZero, ZERO, type Money } from '../money';
 import type { Rng } from '../rng';
 import type { Command } from '../types/commands';
 import type { DistrictDef, ExpansionRule, LoadedContent, Personality, QualityTier } from '../types/content';
@@ -101,7 +102,9 @@ function nextStaff(content: LoadedContent, store: Store): number {
 /** Tổng tiềm năng mỗi ngày của quận: Σ_s N_{d,s} × f_s. */
 function districtPotential(content: LoadedContent, district: DistrictDef): number {
   let total = 0;
-  for (const [segmentId, segment] of Object.entries(content.industry.segments)) {
+  for (const segmentId of Object.keys(content.industry.segments).sort()) {
+    const segment = content.industry.segments[segmentId];
+    if (!segment) continue;
     total += district.pop * (district.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
   }
   return total;
@@ -130,7 +133,7 @@ function chooseDistrict(
   let best: DistrictDef[] = [];
   let bestScore = -Infinity;
   for (const d of content.scenario.city.districts) {
-    if ((ownCount[d.id] ?? 0) >= 3) continue;
+    if ((ownCount[d.id] ?? 0) >= MAX_STORES_PER_DISTRICT) continue;
     if (cash < policy.expansion.cashMultiple * storeCapex(state, d)) continue;
     const score = districtPotential(content, d) / (1 + (openCount[d.id] ?? 0));
     if (score > bestScore) {
@@ -194,20 +197,25 @@ export function decideMonthly(
     commands.push({ type: 'SetWage', companyId, payload: { storeId: 'all', wageMonthly: wage } });
   }
 
+  const closing = commands.filter((c) => c.type === 'CloseStore').length;
+  const remaining = openStores.length - closing;
   const lastRevenue = (state.statements[companyId] ?? []).at(-1)?.pnl.revenue ?? 0;
-  const marketing = fromFloatCents(
-    Math.min(MAX_MARKETING_BUDGET_MONTHLY, policy.marketingShareOfRevenue * lastRevenue),
-  );
+  // Luật 3c; không còn cửa hàng nào sau lần quyết định này thì không chi marketing.
+  const marketing =
+    remaining === 0
+      ? ZERO
+      : fromFloatCents(Math.min(MAX_MARKETING_BUDGET_MONTHLY, policy.marketingShareOfRevenue * lastRevenue));
   if (marketing !== company.marketingBudgetMonthly) {
     commands.push({ type: 'SetMarketingBudget', companyId, payload: { monthly: marketing } });
   }
 
-  if (company.status === 'active') {
-    const closing = commands.filter((c) => c.type === 'CloseStore').length;
-    const keep = openStores.length - closing;
+  // Luật 4. Không mở rộng trong tháng vừa đóng cửa hàng (tránh vòng đóng rồi mở lại);
+  // bootstrap (#48) chỉ khi công ty không có cửa hàng nào từ trước lần quyết định này.
+  if (company.status === 'active' && closing === 0) {
     const cash = currentBalances(state.ledger, companyId)[ACC.Cash];
-    const grow = keep === 0 || monthlyRoi(state, companyId, openStores) > policy.expansion.minMonthlyRoi;
-    if (grow && cash <= spendingPower(state, companyId)) {
+    const grow =
+      openStores.length === 0 || monthlyRoi(state, companyId, openStores) > policy.expansion.minMonthlyRoi;
+    if (grow) {
       const district = chooseDistrict(state, content, companyId, cash, policy, rng);
       if (district) commands.push({ type: 'OpenStore', companyId, payload: { districtId: district.id } });
     }

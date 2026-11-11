@@ -160,6 +160,16 @@ describe('AI close and expansion rules (3, 4)', () => {
     expect(none(distress)).toEqual([]);
   });
 
+  it('closing its last store does not trigger a bootstrap re-open in the same decision (review: economist #2)', () => {
+    const cmds = decide((st) => {
+      st.negContributionMonths = 3;
+    });
+    expect(ofType(cmds, 'CloseStore')).toHaveLength(1);
+    expect(ofType(cmds, 'OpenStore')).toEqual([]);
+    // Không còn cửa hàng nào: marketing về 0 thay vì theo doanh thu tháng trước.
+    expect(ofType(cmds, 'SetMarketingBudget')[0]?.payload.monthly ?? 0).toBe(0);
+  });
+
   it('a company without stores opens its first affordable store (bootstrap)', () => {
     const s = createGame(content);
     const cmds = decideMonthly(s, content, 'player', aiPolicy(content, 'balanced'), rng());

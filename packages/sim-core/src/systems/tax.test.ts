@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { money } from '../money';
 import { accrueMonthlyTax, type TaxState } from './tax';
@@ -56,5 +57,37 @@ describe('accrueMonthlyTax (economic-model §6.2)', () => {
   it('taxBookedYTD is never negative', () => {
     const { tax } = run([-100, -200, 50]);
     expect(tax.taxBookedYTD).toBe(0);
+  });
+});
+
+describe('accrueMonthlyTax (property)', () => {
+  it('over random profit/loss months: booked tax and carryforward never negative; a year’s expenses sum to its final tax due', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.integer({ min: -10_000_000, max: 10_000_000 }), { minLength: 12, maxLength: 48 }),
+        (profits) => {
+          let tax = zero;
+          let yearExpense = 0;
+          let lcfAtYearStart = 0;
+          let ytd = 0;
+          profits.forEach((p, m) => {
+            const yearEnd = (m + 1) % 12 === 0;
+            const r = accrueMonthlyTax(tax, money(p), 0.2, yearEnd);
+            yearExpense += r.expense;
+            ytd += p;
+            expect(r.next.taxBookedYTD).toBeGreaterThanOrEqual(0);
+            expect(r.next.lossCarryforward).toBeGreaterThanOrEqual(0);
+            if (yearEnd) {
+              expect(yearExpense).toBe(Math.round(0.2 * Math.max(0, ytd - lcfAtYearStart)));
+              yearExpense = 0;
+              ytd = 0;
+              lcfAtYearStart = r.next.lossCarryforward;
+            }
+            tax = r.next;
+          });
+        },
+      ),
+      { numRuns: Number(process.env['FC_RUNS'] ?? 100) },
+    );
   });
 });

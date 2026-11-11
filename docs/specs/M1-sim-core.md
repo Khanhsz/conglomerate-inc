@@ -112,7 +112,7 @@ Trạng thái ban đầu: người chơi `qualityTier = standard`, marketing 0. 
 0. nếu day % 30 == 0 và day > 0: (đã chốt tháng ở cuối ngày trước) → AI ra quyết định tháng (§9)
 1. applyQueuedCommands
 2. macroSystem            (cập nhật priceIndex; bỏ qua ở ngày 0)
-3. brandSystem            (dùng spend + served hôm qua)
+3. brandSystem            (ngân sách marketing hiện hành sau lệnh hôm nay + served hôm qua)
 4. demandSystem           (share, demand, noise)
 5. operationsSystem       (capacity, served, doanh thu + giá vốn ghi sổ, cộng dồn lương/thuê/marketing, morale, skill, serviceLevel)
 6. financeDailySystem     (thấu chi tự trả, cộng dồn số dư thấu chi; việc rút thấu chi nằm trong helper thanh toán — economic-model §7.2)
@@ -171,9 +171,13 @@ checkInvariants(state, content): InvariantViolation[]  // dùng trong test và b
 | performance | 3 năm, 60 cửa hàng, 4 công ty < 1.5s trên Node (bench, không fail CI, in kết quả) |
 
 ## 9. Tiêu chí nghiệm thu M1
-- [ ] `pnpm typecheck && pnpm test && pnpm balance:smoke` xanh.
-- [ ] `pnpm balance -- --seeds 100 --years 3 --bots all` chạy xong, có CSV và bảng tóm tắt.
-- [ ] Mục tiêu hiệu chỉnh §14 đạt, hoặc ghi rõ lệch bao nhiêu trong `docs/balance-log.md`.
-- [ ] Chơi được trên web 15 phút: mở cửa hàng, chỉnh giá/lương, thấy P&L thay đổi hợp lý.
-- [ ] Phá sản có báo cáo nguyên nhân (3 khoản chi lớn nhất + dự báo tiền mặt).
-- [ ] `docs/open-questions.md` liệt kê mọi giả định Claude phải tự đặt.
+Cập nhật 2026-11-11 (bước 08):
+- [x] `pnpm typecheck && pnpm test && pnpm balance:smoke` xanh (CI chạy cả `balance:smoke`).
+- [x] `pnpm balance -- --seeds 100 --years 3 --bots all` chạy xong (~5 phút, 4 worker), có CSV và bảng tóm tắt.
+- [x] Mục tiêu hiệu chỉnh §14 đạt sau vòng 1; xem `docs/balance-log.md`. Vấn đề năm 2–3 ngoài §14 ghi ở #49.
+- [x] Chơi được trên web: mở cửa hàng, chỉnh giá/lương, thấy P&L thay đổi hợp lý. Kiểm bằng Playwright (`pnpm e2e` và script chụp màn hình); **chưa có người chơi thật chơi 15 phút**.
+- [x] Phá sản có báo cáo nguyên nhân (3 khoản chi lớn nhất + dự báo tiền mặt), cả trong event lẫn hộp thoại game over.
+- [x] `docs/open-questions.md` liệt kê mọi giả định Claude phải tự đặt (#1–#55).
+- [ ] Bench hiệu năng (§8, không chặn CI): `pnpm bench` ~3.2 s so với mục tiêu < 1.5 s → cần ADR mới (#46).
+
+Review độc lập: `docs/reviews/M1-review.md`.

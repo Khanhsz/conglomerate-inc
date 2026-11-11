@@ -192,14 +192,14 @@ Quyết định chạy vào ngày đầu mỗi tháng, đọc **cùng dữ liệ
 
 Luật tháng (mỗi cửa hàng):
 0. Trạng thái ban đầu (ngày 0): cửa hàng AI mở ở `targetPrice` làm tròn 5 cent, lương = `wageRatio × marketWageMonthly`, marketing = 0 cho tới lần quyết định đầu tiên ở ngày 30.
-1. Giá: `targetPrice = unitCost × tierMult × priceIndex × markup`. `adjTarget = targetPrice × 1.03` nếu utilization (`served/capacity` trung bình tháng) > 0.95; `× 0.97` nếu < 0.6; ngược lại giữ nguyên (không cộng dồn qua các tháng). Giá mới = `adjTarget` kẹp trong ±5% giá hiện tại. Làm tròn tới 5 cent.
-2. Nhân sự: chọn staff để utilization dự kiến ≈ 0.85 dựa trên demand trung bình tháng, thay đổi tối đa ±2 người/tháng.
-3. Đóng cửa hàng nếu lợi nhuận đóng góp (doanh thu − giá vốn − lương − thuê) âm 3 tháng liên tiếp (`store.negContributionMonths ≥ 3`).
+1. Giá: `targetPrice = unitCost × tierMult × priceIndex × markup`. `adjTarget = targetPrice × (1 + priceAdjust)` nếu utilization (`served/capacity` tháng trước) > `highUtilization`; `× (1 − priceAdjust)` nếu < `lowUtilization`; ngược lại giữ nguyên (không cộng dồn qua các tháng). Giá mới = `adjTarget` kẹp trong ±`maxPriceStep` giá hiện tại. Làm tròn tới 5 cent. (Tham số trong `coffee.yaml > aiRules`; hiện là 0.03, 0.95, 0.6, 0.05.)
+2. Nhân sự: chọn staff để utilization dự kiến ≈ `targetUtilization` (0.85) dựa trên demand trung bình/ngày tháng trước, thay đổi tối đa ±`maxStaffStep` (2) người/tháng.
+3. Đóng cửa hàng nếu lợi nhuận đóng góp (doanh thu − giá vốn − lương − thuê) âm `closeAfterNegativeMonths` (3) tháng liên tiếp.
 3b. Lương: mỗi tháng đặt `wageMonthly = round(wageRatio × marketWageMonthly × priceIndex)`.
 
 Luật công ty:
-3c. Marketing: `marketingBudgetMonthly = round(marketingShareOfRevenue × doanh thu công ty tháng trước)`.
-4. Mở cửa hàng mới nếu: ROI đóng góp 3 tháng gần nhất trên capex > 2%/tháng **và** cash ≥ 1.5 × capex **và** không ở distress. Chọn quận có `Σ_s N_{d,s} × f_s / (1 + số cửa hàng trong quận)` cao nhất. Tối đa 1 cửa hàng/tháng.
+3c. Marketing: `marketingBudgetMonthly = round(marketingShareOfRevenue × doanh thu công ty tháng trước)`; bằng 0 nếu sau lần quyết định không còn cửa hàng nào.
+4. Mở cửa hàng mới nếu: ROI đóng góp 3 tháng gần nhất trên capex > `expansion.minMonthlyRoi` (0.02/tháng) **và** cash ≥ `expansion.cashMultiple` (hiện 3, vòng hiệu chỉnh 1) × capex **và** không ở distress **và** tháng này không đóng cửa hàng nào. Công ty chưa có cửa hàng nào thì mở cửa hàng đầu tiên nếu đủ tiền (bootstrap, #48). Chọn quận có `Σ_s N_{d,s} × f_s / (1 + số cửa hàng trong quận)` cao nhất. Tối đa 1 cửa hàng/tháng.
 5. Dùng `rng('ai:<companyId>')` chỉ để phá hòa khi chọn quận.
 
 ## 10. Chốt tháng — thứ tự

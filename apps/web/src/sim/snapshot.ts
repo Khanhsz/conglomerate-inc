@@ -82,7 +82,7 @@ export interface Snapshot {
   };
   readonly city: { readonly name: string; readonly gridW: number; readonly gridH: number };
   /** Luật cho ô nhập (validate thật vẫn ở worker). */
-  readonly rules: { readonly minStaffPerStore: number };
+  readonly rules: { readonly minStaffPerStore: number; readonly earlyRepaymentFee: number };
   readonly districts: readonly DistrictView[];
   /** Cửa hàng đang mở của người chơi. */
   readonly stores: readonly StoreRow[];
@@ -201,7 +201,10 @@ export function buildSnapshot(state: GameState, content: LoadedContent, speed: S
       qualityTier: player.qualityTier,
     },
     city: { name: scenario.city.name, gridW: scenario.city.gridW, gridH: scenario.city.gridH },
-    rules: { minStaffPerStore: content.industry.minStaffPerStore },
+    rules: {
+      minStaffPerStore: content.industry.minStaffPerStore,
+      earlyRepaymentFee: scenario.finance.earlyRepaymentFee,
+    },
     districts,
     stores: selectors.storeTable(state, pid).filter((r) => r.status === 'open'),
     statements: (state.statements[pid] ?? []).slice(-STATEMENT_MONTHS),

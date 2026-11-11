@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
 import { createGame, enqueue, runDays, step, validateCommand } from '../engine';
@@ -8,7 +9,7 @@ import { fixtureContent } from '../test-support/fixture';
 import { must } from '../test-support/must';
 import type { Command } from '../types/commands';
 import type { GameState } from '../types/state';
-import { annuityPayment } from './loans';
+import { annuityPayment, installment } from './loans';
 
 const content = fixtureContent();
 
@@ -128,5 +129,47 @@ describe('RepayLoan', () => {
     expect(validateCommand(s1, content, repay('loan-000001', 'ai-1')).ok).toBe(false);
     const s2 = step(enqueue(s1, repay('loan-000001')), content);
     expect(validateCommand(s2, content, repay('loan-000001')).ok).toBe(false);
+  });
+});
+
+describe('annuity amortization (property)', () => {
+  it('n installments repay exactly the principal, interest ≥ 0, payments equal except the last', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 10_000, max: 1_000_000_000 }),
+        fc.double({ min: 0.005, max: 0.25, noNaN: true }),
+        fc.constantFrom(12, 24, 36, 60),
+        (p, rate, n) => {
+          const payment = annuityPayment(money(p), rate, n);
+          let loan = {
+            id: 'loan-000001',
+            companyId: 'x',
+            principal: money(p),
+            outstanding: money(p),
+            paymentMonthly: payment,
+            annualRate: rate,
+            termMonths: n,
+            takenDay: 0,
+            paymentsMade: 0,
+          };
+          let repaid = 0;
+          for (let k = 0; k < n; k++) {
+            const { interest, principal } = installment(loan);
+            expect(interest).toBeGreaterThanOrEqual(0);
+            expect(principal).toBeGreaterThanOrEqual(0);
+            if (k < n - 1) expect(interest + principal).toBe(payment);
+            repaid += principal;
+            loan = {
+              ...loan,
+              outstanding: money(loan.outstanding - principal),
+              paymentsMade: loan.paymentsMade + 1,
+            };
+          }
+          expect(loan.outstanding).toBe(0);
+          expect(repaid).toBe(p);
+        },
+      ),
+      { numRuns: Number(process.env['FC_RUNS'] ?? 100) },
+    );
   });
 });

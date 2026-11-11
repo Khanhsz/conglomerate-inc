@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { produce, type Draft } from 'immer';
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../engine';
@@ -156,5 +157,25 @@ describe('accruals (economic-model §6)', () => {
       },
     );
     expect(runOps(bankrupt).ledger.entries).toHaveLength(base.ledger.entries.length);
+  });
+});
+
+describe('moraleTarget (property)', () => {
+  // Với k·(r − 1) lớn, 1/(1 + e^−x) làm tròn đúng bằng 1.0 trong số thực; morale ∈ [0, 1] vẫn đúng.
+  it('is in [0, 1] and non-decreasing in the wage ratio', () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.3, max: 3, noNaN: true }),
+        fc.double({ min: 0.001, max: 1, noNaN: true }),
+        fc.double({ min: 0.5, max: 20, noNaN: true }),
+        (r, dr, k) => {
+          const a = moraleTarget(r, k);
+          const b = moraleTarget(r + dr, k);
+          expect(a).toBeGreaterThanOrEqual(0);
+          expect(b).toBeLessThanOrEqual(1);
+          expect(b).toBeGreaterThanOrEqual(a);
+        },
+      ),
+    );
   });
 });

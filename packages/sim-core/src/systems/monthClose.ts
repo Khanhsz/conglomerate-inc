@@ -19,7 +19,7 @@ import { currentBalances } from '../ledger/balances';
 import { pay } from '../ledger/payments';
 import { post } from '../ledger/post';
 import { buildMonthlyStatements } from '../ledger/statements';
-import { add, fromFloatCents, money, sub, sum, ZERO, type Money } from '../money';
+import { add, fromFloatCents, money, type Money, mul, sub, sum, ZERO } from '../money';
 import type { CompanyId } from '../types/content';
 import type { SimContext, System } from '../types/context';
 import type { JournalLine, Ledger } from '../types/ledger';
@@ -51,16 +51,17 @@ export function settleQuarterTax(ledger: Ledger, companyId: CompanyId, day: numb
   if (balance > 0) {
     pay(ledger, { companyId, day, memo, debits: [{ account: ACC.TaxPayable, amount: balance }] });
   } else if (balance < 0) {
+    // Hoàn thuế trả thấu chi trước (như bước tự trả §7.2), phần dư mới vào Cash: nếu không, distress
+    // xét ngay sau đó sẽ thấy thấu chi gộp dù tiền ròng đã đủ.
     const refund = sub(ZERO, balance);
-    post(ledger, {
-      day,
-      companyId,
-      memo,
-      lines: [
-        { account: ACC.Cash, debit: refund, credit: ZERO },
-        { account: ACC.TaxPayable, debit: ZERO, credit: refund },
-      ],
-    });
+    const overdraft = currentBalances(ledger, companyId)[ACC.Overdraft];
+    const toOverdraft = refund < overdraft ? refund : overdraft;
+    const toCash = sub(refund, toOverdraft);
+    const lines: JournalLine[] = [];
+    if (toOverdraft > 0) lines.push({ account: ACC.Overdraft, debit: toOverdraft, credit: ZERO });
+    if (toCash > 0) lines.push({ account: ACC.Cash, debit: toCash, credit: ZERO });
+    lines.push({ account: ACC.TaxPayable, debit: ZERO, credit: refund });
+    post(ledger, { day, companyId, memo, lines });
   }
 }
 
@@ -110,10 +111,9 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
   const marketing = fromFloatCents(company.marketingAccrued);
   const admin =
     openStores.length > 0
-      ? fromFloatCents(
-          industry.overheadBaseMonthly *
-            draft.macro.priceIndex *
-            openStores.length ** industry.overheadExponent,
+      ? mul(
+          industry.overheadBaseMonthly,
+          draft.macro.priceIndex * openStores.length ** industry.overheadExponent,
         )
       : ZERO;
   pay(ledger, {
@@ -181,7 +181,7 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
     debits: [
       {
         account: ACC.InterestExpense,
-        amount: fromFloatCents(overdraftRate * company.overdraft.dailyBalanceSum),
+        amount: mul(company.overdraft.dailyBalanceSum, overdraftRate),
       },
     ],
   });

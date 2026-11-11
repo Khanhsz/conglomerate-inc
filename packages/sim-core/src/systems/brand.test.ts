@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../engine';
@@ -65,5 +66,26 @@ describe('brandSystem (economic-model §5)', () => {
       must(d.companies['player']).status = 'bankrupt';
     });
     expect(awareness(runBrand(broke))).toBe(0.05);
+  });
+});
+
+describe('brandLift (property)', () => {
+  it('is in [0, α] and non-decreasing in spend', () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0, max: 1, noNaN: true }),
+        fc.double({ min: 0, max: 1e7, noNaN: true }),
+        fc.double({ min: 0, max: 1e7, noNaN: true }),
+        fc.double({ min: 1, max: 1e6, noNaN: true }),
+        fc.double({ min: 0.5, max: 3, noNaN: true }),
+        (alpha, s1, extra, halfSat, priceIndex) => {
+          const a = brandLift(alpha, s1, halfSat, priceIndex);
+          const b = brandLift(alpha, s1 + extra, halfSat, priceIndex);
+          expect(a).toBeGreaterThanOrEqual(0);
+          expect(b).toBeLessThanOrEqual(alpha);
+          expect(b).toBeGreaterThanOrEqual(a);
+        },
+      ),
+    );
   });
 });
