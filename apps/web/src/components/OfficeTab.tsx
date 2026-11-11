@@ -15,8 +15,8 @@ const DEPARTMENT_INFO: { readonly [D in Department]: { readonly does: string; re
     ready: false,
   },
   finance: {
-    does: 'Báo cáo hợp nhất theo cửa hàng, biểu đồ, tư vấn vay, tái cấp vốn, hạn mức tín dụng.',
-    ready: false,
+    does: 'Báo cáo hợp nhất theo cửa hàng, biểu đồ, tư vấn vay, tái cấp vốn, hạn mức tín dụng (tab Tài chính).',
+    ready: true,
   },
   marketing: {
     does: 'Kênh marketing theo quận và phân khúc, bản đồ nhận biết, hiệu quả (ROI) từng kênh.',
