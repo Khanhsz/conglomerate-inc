@@ -9,6 +9,7 @@ import { dirname } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { parseArgs } from './args';
 import { BOT_NAMES } from './bots/index';
+import { setDevChecks } from '@game/sim-core';
 import { loadDefaultContent } from './content';
 import { calibration, formatReport, summarize, toCsv, type RunResult } from './report';
 import { runOne } from './runner';
@@ -33,6 +34,7 @@ function runJob(worker: Worker, job: Job): Promise<RunResult> {
 
 async function runAll(jobs: readonly Job[], workers: number): Promise<RunResult[]> {
   if (workers <= 1) {
+    setDevChecks(jobs.some((j) => j.devChecks));
     const content = loadDefaultContent();
     return jobs.map((j) => runOne(content, j.seed, j.bot, j.years, { checkInvariants: j.checkInvariants }));
   }
@@ -62,7 +64,13 @@ async function main(): Promise<number> {
   const jobs: Job[] = [];
   for (const bot of args.bots) {
     for (let i = 0; i < args.seeds; i++)
-      jobs.push({ seed: args.seedStart + i, bot, years: args.years, checkInvariants: args.checkInvariants });
+      jobs.push({
+        seed: args.seedStart + i,
+        bot,
+        years: args.years,
+        checkInvariants: args.checkInvariants,
+        devChecks: args.smoke,
+      });
   }
   const workers = args.workers ?? Math.max(1, Math.min(availableParallelism(), jobs.length));
   const started = performance.now();

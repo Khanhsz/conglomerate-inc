@@ -1,7 +1,13 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
+/** Chế độ kiểm tra của sim-core cho mọi project (ADR-0002). */
+const setupFiles = [
+  fileURLToPath(new URL('./packages/sim-core/src/test-support/dev-checks.setup.ts', import.meta.url)),
+];
+
 const pkg = (name: string, root: string) => ({
-  test: { name, root, include: ['src/**/*.test.{ts,tsx}'], environment: 'node' as const },
+  test: { name, root, include: ['src/**/*.test.{ts,tsx}'], environment: 'node' as const, setupFiles },
 });
 
 export default defineConfig({

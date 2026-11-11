@@ -1,6 +1,7 @@
 export * from './calendar';
 export * from './constants';
-export { createGame, enqueue, makeContext, runDays, step, validateCommand } from './engine';
+export { createGame, enqueue, makeContext, runDays, runSystems, step, validateCommand } from './engine';
+export { deepFreeze, devChecksEnabled, setDevChecks } from './devChecks';
 export * from './hash';
 export * from './ids';
 export { checkInvariants, hashState, type InvariantCode, type InvariantViolation } from './invariants';

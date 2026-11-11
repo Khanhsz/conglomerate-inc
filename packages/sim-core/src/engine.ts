@@ -12,6 +12,8 @@ import { createLedger, post } from './ledger/post';
 import { mul, ZERO } from './money';
 import { createRngFactory } from './rng';
 import { defaultHrPolicy, emptyOfficeAccrued, noDepartments } from './office';
+import { deepFreeze, devChecksEnabled } from './devChecks';
+import { beginTick } from './tick';
 import { aiSystem, aiTargetPrice } from './systems/ai';
 import { brandSystem } from './systems/brand';
 import { demandSystem } from './systems/demand';
@@ -174,21 +176,27 @@ export function enqueue(state: GameState, cmd: Command): GameState {
 export function step(state: GameState, content: LoadedContent): GameState {
   assertContent(state, content);
   const ctx = makeContext(state, content);
-  return produce(state, (draft) => {
-    if (ctx.day % DAYS_PER_MONTH === 0 && ctx.day > 0) {
-      aiSystem(draft, ctx);
-      monthlyPolicySystem(draft, ctx);
-    }
-    applyQueuedCommands(draft, ctx);
-    macroSystem(draft, ctx);
-    brandSystem(draft, ctx);
-    demandSystem(draft, ctx);
-    operationsSystem(draft, ctx);
-    officeSystem(draft, ctx);
-    financeDailySystem(draft, ctx);
-    draft.clock.day += 1;
-    if (draft.clock.day % DAYS_PER_MONTH === 0) monthCloseSystem(draft, ctx);
-  });
+  // ADR-0002: bản sao có chọn lọc thay cho draft immer (immer chiếm ~2/3 thời gian tick).
+  const draft = beginTick(state);
+  runSystems(draft, ctx);
+  return devChecksEnabled() ? deepFreeze(draft) : draft;
+}
+
+/** Thứ tự system của một ngày (spec §4), ghi trực tiếp lên `draft`. Dùng chung cho step và test tương đương. */
+export function runSystems(draft: GameState, ctx: SimContext): void {
+  if (ctx.day % DAYS_PER_MONTH === 0 && ctx.day > 0) {
+    aiSystem(draft, ctx);
+    monthlyPolicySystem(draft, ctx);
+  }
+  applyQueuedCommands(draft, ctx);
+  macroSystem(draft, ctx);
+  brandSystem(draft, ctx);
+  demandSystem(draft, ctx);
+  operationsSystem(draft, ctx);
+  officeSystem(draft, ctx);
+  financeDailySystem(draft, ctx);
+  draft.clock.day += 1;
+  if (draft.clock.day % DAYS_PER_MONTH === 0) monthCloseSystem(draft, ctx);
 }
 
 /** Chạy n ngày; gọi `onMonth` ngay sau mỗi lần chốt tháng. */
