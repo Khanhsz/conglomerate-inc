@@ -8,6 +8,7 @@ import {
   money,
   MoneyError,
   mul,
+  parseDisplay,
   pct,
   roundHalfAwayFromZero,
   sub,
@@ -185,5 +186,33 @@ describe('toDisplay', () => {
 
   it('formats MAX_SAFE_INTEGER exactly', () => {
     expect(toDisplay(money(MAX))).toBe('$90,071,992,547,409.91');
+  });
+});
+
+describe('parseDisplay (UI input → Money)', () => {
+  it.each([
+    ['3.50', 350],
+    ['3.5', 350],
+    ['3', 300],
+    ['$2,200', 220_000],
+    ['  $2,200.00 ', 220_000],
+    ['2200.5', 220_050],
+    ['-1.5', -150],
+    ['-$0.05', -5],
+    ['0', 0],
+  ])('%j → %s cents', (text, cents) => {
+    expect(parseDisplay(text)).toBe(cents);
+  });
+
+  it.each(['', 'abc', '1.234', '1,2,3.5', '$', '--1', '1e5', '12.3.4', '9'.repeat(20)])(
+    '%j → null',
+    (text) => {
+      expect(parseDisplay(text)).toBeNull();
+    },
+  );
+
+  it('round-trips with toDisplay', () => {
+    for (const n of [0, 5, 350, 220_000, -123_456, 123_456_789_012])
+      expect(parseDisplay(toDisplay(money(n)))).toBe(n);
   });
 });

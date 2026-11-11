@@ -25,14 +25,15 @@ export function topExpenses(pnl: PnL, n = 3): ExpenseItem[] {
 }
 
 /**
- * Xu hướng dòng tiền tháng = trung bình 3 tháng gần nhất của CFO + CFI − trả gốc
- * (không tính góp vốn và tiền vay mới vì không lặp lại). Chưa có lịch sử → 0.
+ * Xu hướng dòng tiền tháng = trung bình 3 tháng gần nhất của CFO − trả gốc.
+ * Không tính CFI (đầu tư mở cửa hàng là tự nguyện, một lần), góp vốn và tiền vay mới (không lặp lại).
+ * Chưa có lịch sử → 0.
  */
 export function cashTrend(statements: readonly MonthlyStatements[]): number {
   const recent = statements.slice(-FORECAST_TREND_MONTHS);
   if (recent.length === 0) return 0;
   let total = 0;
-  for (const s of recent) total += s.cashFlow.cfo + s.cashFlow.cfi - s.cashFlow.principalRepaid;
+  for (const s of recent) total += s.cashFlow.cfo - s.cashFlow.principalRepaid;
   return total / recent.length;
 }
 

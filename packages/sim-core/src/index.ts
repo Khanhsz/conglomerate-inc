@@ -12,6 +12,7 @@ export * from './ledger/statements';
 export * from './money';
 export * from './rng';
 export { selectors, type MarketShares, type StoreRow } from './selectors';
+export { storeCapex } from './commands/openStore';
 export { aiPolicy, aiTargetPrice, decideMonthly, targetPrice, type AiPolicy } from './systems/ai';
 export { annuityPayment, loanQuote, type LoanQuote } from './systems/loans';
 export {

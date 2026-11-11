@@ -1,0 +1,222 @@
+/**
+ * Snapshot gửi cho UI: chỉ phần dữ liệu cần hiển thị, không có sổ cái. Hàm thuần, chạy trong worker.
+ * Mọi số tiền vẫn là Money (cent); UI chỉ định dạng bằng toDisplay, không làm toán tiền.
+ */
+import {
+  ACC,
+  currentBalances,
+  DAYS_PER_MONTH,
+  fromFloatCents,
+  monthOf,
+  MONTHS_PER_YEAR,
+  mul,
+  selectors,
+  storeCapex,
+  type CompanyStatus,
+  type GameEvent,
+  type GameState,
+  type LoadedContent,
+  type Money,
+  type MonthlyStatements,
+  type QualityTier,
+  type StoreRow,
+} from '@game/sim-core';
+import type { Speed } from './protocol';
+
+export interface DistrictView {
+  readonly id: string;
+  readonly x: number;
+  readonly y: number;
+  readonly pop: number;
+  /** Thuê và capex nếu mở cửa hàng hôm nay (đã nhân CPI). */
+  readonly rentMonthly: Money;
+  readonly capex: Money;
+  /** Cửa hàng đang mở theo công ty, sort theo companyId. */
+  readonly stores: readonly { readonly companyId: string; readonly count: number }[];
+}
+
+export interface CompanyView {
+  readonly id: string;
+  readonly name: string;
+  readonly kind: 'player' | 'ai';
+  readonly status: CompanyStatus;
+  readonly brandAwareness: number;
+  readonly storeCount: number;
+  readonly avgPrice: Money | null;
+  readonly marketShare: number;
+}
+
+export interface LoanView {
+  readonly id: string;
+  readonly principal: Money;
+  readonly outstanding: Money;
+  readonly paymentMonthly: Money;
+  readonly annualRate: number;
+  readonly termMonths: number;
+  readonly paymentsMade: number;
+}
+
+/** Event distress và bankrupt dùng chung một kiểu trong sim-core; đây là nhánh bankrupt. */
+export type BankruptEvent = Extract<GameEvent, { kind: 'distress' | 'bankrupt' }> & {
+  readonly kind: 'bankrupt';
+};
+
+export interface Snapshot {
+  readonly calendar: {
+    readonly day: number;
+    readonly year: number;
+    readonly month: number;
+    readonly dayOfMonth: number;
+  };
+  readonly speed: Speed;
+  readonly pendingCommands: number;
+  readonly player: {
+    readonly id: string;
+    readonly name: string;
+    readonly status: CompanyStatus;
+    readonly cash: Money;
+    readonly overdraft: Money;
+    readonly overdraftLimit: Money;
+    readonly marketingBudgetMonthly: Money;
+    readonly qualityTier: QualityTier;
+  };
+  readonly city: { readonly name: string; readonly gridW: number; readonly gridH: number };
+  /** Luật cho ô nhập (validate thật vẫn ở worker). */
+  readonly rules: { readonly minStaffPerStore: number };
+  readonly districts: readonly DistrictView[];
+  /** Cửa hàng đang mở của người chơi. */
+  readonly stores: readonly StoreRow[];
+  /** 12 tháng gần nhất của người chơi, cũ → mới. */
+  readonly statements: readonly MonthlyStatements[];
+  readonly loans: readonly LoanView[];
+  /** Người chơi trước, rồi AI theo id. */
+  readonly companies: readonly CompanyView[];
+  readonly outsideShare: number;
+  /** 50 event gần nhất, mới nhất trước. */
+  readonly events: readonly GameEvent[];
+  readonly gameOver: BankruptEvent | null;
+}
+
+const STATEMENT_MONTHS = 12;
+const EVENT_LIMIT = 50;
+const PUBLIC_EVENTS: ReadonlySet<GameEvent['kind']> = new Set([
+  'storeOpened',
+  'storeClosed',
+  'distress',
+  'bankrupt',
+]);
+
+export function playerId(state: GameState): string {
+  const id = state.companyIds.find((c) => state.companies[c]?.kind === 'player');
+  if (!id) throw new Error('scenario has no player company');
+  return id;
+}
+
+export function buildSnapshot(state: GameState, content: LoadedContent, speed: Speed): Snapshot {
+  const pid = playerId(state);
+  const player = state.companies[pid];
+  if (!player) throw new Error(`missing player company ${pid}`);
+  const { scenario } = content;
+  const day = state.clock.day;
+  const month = monthOf(day);
+  const balances = currentBalances(state.ledger, pid);
+  const shares = selectors.marketShares(state, content);
+
+  const openStores = state.storeIds.flatMap((id) => {
+    const s = state.stores[id];
+    return s && s.status === 'open' ? [s] : [];
+  });
+
+  const districts = scenario.city.districts.map((d): DistrictView => {
+    const counts: Record<string, number> = {};
+    for (const s of openStores)
+      if (s.districtId === d.id) counts[s.companyId] = (counts[s.companyId] ?? 0) + 1;
+    return {
+      id: d.id,
+      x: d.x,
+      y: d.y,
+      pop: d.pop,
+      rentMonthly: mul(d.rentMonthly, state.macro.priceIndex),
+      capex: storeCapex(state, d),
+      stores: Object.keys(counts)
+        .sort()
+        .map((companyId) => ({ companyId, count: counts[companyId] ?? 0 })),
+    };
+  });
+
+  const companyOrder = [pid, ...state.companyIds.filter((id) => id !== pid)];
+  const companies = companyOrder.flatMap((id): CompanyView[] => {
+    const c = state.companies[id];
+    if (!c) return [];
+    const own = openStores.filter((s) => s.companyId === id);
+    const priceSum = own.reduce((a, s) => a + s.price, 0);
+    return [
+      {
+        id,
+        name: c.name,
+        kind: c.kind,
+        status: c.status,
+        brandAwareness: c.brandAwareness,
+        storeCount: own.length,
+        avgPrice: own.length > 0 ? fromFloatCents(priceSum / own.length) : null,
+        marketShare: shares.byCompany[id] ?? 0,
+      },
+    ];
+  });
+
+  const loans = state.loanIds.flatMap((id): LoanView[] => {
+    const l = state.loans[id];
+    if (!l || l.companyId !== pid || l.outstanding <= 0) return [];
+    const { principal, outstanding, paymentMonthly, annualRate, termMonths, paymentsMade } = l;
+    return [{ id, principal, outstanding, paymentMonthly, annualRate, termMonths, paymentsMade }];
+  });
+
+  // Người chơi chỉ thấy thông tin công khai của đối thủ: mở/đóng cửa hàng, distress, phá sản.
+  const events = state.events
+    .filter((e) => e.companyId === pid || PUBLIC_EVENTS.has(e.kind))
+    .slice(-EVENT_LIMIT)
+    .reverse();
+  const gameOver =
+    [...state.events]
+      .reverse()
+      .find((e): e is BankruptEvent => e.kind === 'bankrupt' && e.companyId === pid) ?? null;
+
+  return {
+    calendar: {
+      day,
+      year: Math.floor(month / MONTHS_PER_YEAR) + 1,
+      month: (month % MONTHS_PER_YEAR) + 1,
+      dayOfMonth: (day % DAYS_PER_MONTH) + 1,
+    },
+    speed,
+    pendingCommands: state.commandQueue.length,
+    player: {
+      id: pid,
+      name: player.name,
+      status: player.status,
+      cash: balances[ACC.Cash],
+      overdraft: balances[ACC.Overdraft],
+      overdraftLimit: player.overdraft.limit,
+      marketingBudgetMonthly: player.marketingBudgetMonthly,
+      qualityTier: player.qualityTier,
+    },
+    city: { name: scenario.city.name, gridW: scenario.city.gridW, gridH: scenario.city.gridH },
+    rules: { minStaffPerStore: content.industry.minStaffPerStore },
+    districts,
+    stores: selectors.storeTable(state, pid).filter((r) => r.status === 'open'),
+    statements: (state.statements[pid] ?? []).slice(-STATEMENT_MONTHS),
+    loans,
+    companies,
+    outsideShare: 1 - shares.industryShare,
+    events,
+    gameOver,
+  };
+}
+
+/** Một bước sim vừa sinh event distress/bankrupt của người chơi → UI nên tạm dừng (spec §7). */
+export function shouldPause(prev: GameState, next: GameState): boolean {
+  const pid = playerId(next);
+  return next.events
+    .slice(prev.events.length)
+    .some((e) => (e.kind === 'distress' || e.kind === 'bankrupt') && e.companyId === pid);
+}

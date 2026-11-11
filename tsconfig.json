@@ -17,6 +17,9 @@
       "path": "apps/web"
     },
     {
+      "path": "apps/web/tsconfig.worker.json"
+    },
+    {
       "path": "tsconfig.tools.json"
     }
   ]

@@ -73,3 +73,19 @@ export function toDisplay(m: Money): string {
   const grouped = String(dollars).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return `${negative ? '-' : ''}$${grouped}.${String(cents).padStart(2, '0')}`;
 }
+
+/** "$1,234.56" / "1234.5" / "-0.05" (tối đa 2 chữ số thập phân, nhóm nghìn bằng dấu phẩy). */
+const DISPLAY_PATTERN = /^(-)?\$?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?$/;
+
+/**
+ * Đọc số tiền người dùng nhập (biên I/O của UI) thành Money; sai định dạng hoặc vượt safe integer → null.
+ * Nghịch đảo của `toDisplay`. UI dùng hàm này thay vì tự nhân 100.
+ */
+export function parseDisplay(text: string): Money | null {
+  const match = DISPLAY_PATTERN.exec(text.trim());
+  if (!match) return null;
+  const [, minus, dollars = '', cents = ''] = match;
+  const value = Number(dollars.replace(/,/g, '')) * 100 + Number(cents.padEnd(2, '0'));
+  if (!Number.isSafeInteger(value)) return null;
+  return money(minus ? -value : value);
+}

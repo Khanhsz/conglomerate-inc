@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist/worker-types",
+    "tsBuildInfoFile": "dist/worker-types/.tsbuildinfo",
+    "lib": ["ES2022", "WebWorker"],
+    "types": ["vite/client"]
+  },
+  "include": ["src/sim/worker.ts", "src/sim/content.ts", "src/sim/protocol.ts", "src/sim/snapshot.ts"],
+  "references": [{ "path": "../../packages/sim-core" }, { "path": "../../packages/content" }]
+}

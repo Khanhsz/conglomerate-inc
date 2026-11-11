@@ -52,10 +52,12 @@ describe('topExpenses (economic-model §8)', () => {
 });
 
 describe('cash forecast (decision B)', () => {
-  it('trend = average of the last 3 months of CFO + CFI − principal repaid (new borrowing ignored)', () => {
+  it('trend = average of the last 3 months of CFO − principal repaid (capex and new borrowing ignored)', () => {
     const history = [month(999, 0, 0), month(-100, -50, 10, 5_000), month(-200, 0, 0), month(-300, -30, 20)];
-    // 3 tháng cuối: −160, −200, −350 → trung bình −236.67
-    expect(cashTrend(history)).toBeCloseTo(-710 / 3, 12);
+    // 3 tháng cuối: −110, −200, −320 (bỏ CFI −50, −30 và khoản vay 5,000) → trung bình −210
+    expect(cashTrend(history)).toBeCloseTo(-210, 12);
+    // Một tháng đầu tư lớn không làm dự báo âm
+    expect(cashTrend([month(1_000, -250_000, 0)])).toBe(1_000);
     expect(cashTrend([])).toBe(0);
     expect(cashTrend([month(30, 0, 0)])).toBe(30);
   });
