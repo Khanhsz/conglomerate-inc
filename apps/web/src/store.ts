@@ -5,7 +5,15 @@ import { ALERT_KINDS, type AlertKind } from './sim/alerts';
 import type { FromWorker, ToWorker } from './sim/protocol';
 import type { Snapshot } from './sim/snapshot';
 
-export type Tab = 'stores' | 'office' | 'hr' | 'finance' | 'market';
+/** Màn hình (M1.7): bản đồ là trang chủ; Trụ sở và Cửa hàng có tab dưới. */
+export const HQ_TABS = ['office', 'finance', 'hr', 'product', 'marketing', 'board'] as const;
+export type HqTab = (typeof HQ_TABS)[number];
+export const STORE_TABS = ['ops', 'product', 'marketing', 'finance'] as const;
+export type StoreTab = (typeof STORE_TABS)[number];
+export type Screen =
+  | { readonly kind: 'map' }
+  | { readonly kind: 'hq'; readonly tab: HqTab }
+  | { readonly kind: 'store'; readonly storeId: string; readonly tab: StoreTab };
 
 export interface Notice {
   readonly id: number;
@@ -16,7 +24,7 @@ export interface Notice {
 interface UiState {
   readonly snapshot: Snapshot | null;
   readonly notices: readonly Notice[];
-  readonly tab: Tab;
+  readonly screen: Screen;
   readonly selectedDistrict: string | null;
   /** Cửa hàng đang mở panel chi tiết. */
   readonly inspectedStore: string | null;
@@ -25,7 +33,9 @@ interface UiState {
   readonly pauseOn: readonly AlertKind[];
   send(message: ToWorker): void;
   receive(message: FromWorker): void;
-  setTab(tab: Tab): void;
+  openMap(): void;
+  openHq(tab?: HqTab): void;
+  openStore(storeId: string, tab?: StoreTab): void;
   selectDistrict(id: string): void;
   inspect(storeId: string | null): void;
   requestPreview(storeId: string, change: WhatIfChange): void;
@@ -40,6 +50,26 @@ let latestRequest = 0;
 let post: (message: ToWorker) => void = () => undefined;
 
 const PAUSE_KEY = 'conglomerate.pauseOn';
+const HQ_TAB_KEY = 'conglomerate.hqTab';
+const STORE_TAB_KEY = 'conglomerate.storeTab';
+
+/** Tab mở gần nhất: tiện ích theo trình duyệt, bộ nhớ có thể bị chặn nên luôn có mặc định. */
+function loadTab<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
+  try {
+    const raw = globalThis.localStorage?.getItem(key);
+    return allowed.find((t) => t === raw) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveTab(key: string, tab: string): void {
+  try {
+    globalThis.localStorage?.setItem(key, tab);
+  } catch {
+    // bỏ qua: chỉ là tiện ích
+  }
+}
 const DEFAULT_PAUSE: readonly AlertKind[] = ['cashForecast', 'rivalNearby'];
 
 /** Lựa chọn tự tạm dừng là tiện ích theo trình duyệt; bộ nhớ có thể bị chặn nên luôn có giá trị mặc định. */
@@ -71,7 +101,7 @@ export function connect(sender: (message: ToWorker) => void): void {
 export const useUi = create<UiState>((set, get) => ({
   snapshot: null,
   notices: [],
-  tab: 'stores',
+  screen: { kind: 'map' },
   selectedDistrict: null,
   inspectedStore: null,
   preview: null,
@@ -95,7 +125,21 @@ export const useUi = create<UiState>((set, get) => ({
         return;
     }
   },
-  setTab: (tab) => set({ tab }),
+  openMap: () => {
+    set({ screen: { kind: 'map' }, inspectedStore: null, preview: null });
+    post({ type: 'inspect', storeId: null });
+  },
+  openHq: (tab) => {
+    const next = tab ?? loadTab(HQ_TAB_KEY, HQ_TABS, 'office');
+    saveTab(HQ_TAB_KEY, next);
+    set({ screen: { kind: 'hq', tab: next } });
+  },
+  openStore: (storeId, tab) => {
+    const next = tab ?? loadTab(STORE_TAB_KEY, STORE_TABS, 'ops');
+    saveTab(STORE_TAB_KEY, next);
+    set({ screen: { kind: 'store', storeId, tab: next }, inspectedStore: storeId, preview: null });
+    post({ type: 'inspect', storeId });
+  },
   selectDistrict: (id) => set({ selectedDistrict: id }),
   inspect: (storeId) => {
     set({ inspectedStore: storeId, preview: null });

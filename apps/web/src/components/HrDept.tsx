@@ -20,7 +20,7 @@ const STATUS: { readonly [S in StaffStatus]: readonly [string, string] } = {
 
 /** Phòng Nhân sự (economic-model §16): tình trạng nhân sự từng cửa hàng và chính sách công ty. */
 export function HrDept({ snap }: { snap: Snapshot }) {
-  const { send, setTab } = useUi();
+  const { send, openHq } = useUi();
   const companyId = snap.player.id;
   const { open, view } = snap.hr;
   const setPolicy = (payload: Partial<HrPolicy>) =>
@@ -35,7 +35,7 @@ export function HrDept({ snap }: { snap: Snapshot }) {
             Bảng dưới đây chỉ để xem. Mở phòng Nhân sự ở tab Văn phòng để đặt lương chuẩn cho cả chuỗi, chính
             sách đào tạo, phúc lợi và thưởng theo lợi nhuận.
           </p>
-          <button type="button" className="link" onClick={() => setTab('office')}>
+          <button type="button" className="link" onClick={() => openHq('office')}>
             Đến Văn phòng →
           </button>
         </article>

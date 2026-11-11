@@ -4,6 +4,7 @@ test('finance department: locked until opened, then store P&L, advice and credit
   await page.goto('/');
   await page.getByTestId('district-c').click();
   await page.getByTestId('open-store').click();
+  await page.getByTestId('open-hq').click();
   await page.getByTestId('tab-finance').click();
   await expect(page.getByTestId('finance-locked')).toBeVisible();
 

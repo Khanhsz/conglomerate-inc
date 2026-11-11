@@ -23,7 +23,7 @@ test('price slider previews the estimate while dragging and commits on release',
   await page.getByTestId('speed-0').click();
 
   const id = 'store-000010';
-  await page.getByTestId(`inspect-${id}`).click();
+  await page.getByTestId(`open-store-${id}`).click();
   await expect(page.locator('.store-detail')).toBeVisible();
   await expect(page.getByTestId('gap-summary')).toBeVisible();
 

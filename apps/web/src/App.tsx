@@ -1,56 +1,20 @@
-import { AlertsPanel } from './components/AlertsPanel';
-import { CityMap } from './components/CityMap';
-import { EventsPanel } from './components/EventsPanel';
-import { FinanceTab } from './components/FinanceTab';
 import { GameOverDialog } from './components/GameOverDialog';
-import { HrDept } from './components/HrDept';
-import { MarketTab } from './components/MarketTab';
-import { OfficeTab } from './components/OfficeTab';
-import { StoreTable } from './components/StoreTable';
+import { HqScreen } from './components/HqScreen';
+import { MapScreen } from './components/MapScreen';
+import { StoreScreen } from './components/StoreScreen';
 import { TopBar } from './components/TopBar';
-import { useUi, type Tab } from './store';
+import { useUi } from './store';
 
-const TABS: readonly (readonly [Tab, string])[] = [
-  ['stores', 'Cửa hàng'],
-  ['office', 'Văn phòng'],
-  ['hr', 'Nhân sự'],
-  ['finance', 'Tài chính'],
-  ['market', 'Thị trường'],
-];
-
+/** Bản đồ là trang chủ; Trụ sở và Cửa hàng là màn hình riêng có tab (M1.7). */
 export function App() {
-  const { snapshot, tab, setTab } = useUi();
+  const { snapshot, screen } = useUi();
   if (!snapshot) return <p className="loading">Đang khởi tạo mô phỏng…</p>;
   return (
-    <div className="app">
+    <div className={`app app-${screen.kind}`}>
       <TopBar snap={snapshot} />
-      <main className="layout">
-        <CityMap snap={snapshot} />
-        <section className="panel tabs-panel">
-          <nav className="tabs" role="tablist">
-            {TABS.map(([id, label]) => (
-              <button
-                key={id}
-                role="tab"
-                data-testid={`tab-${id}`}
-                aria-selected={tab === id}
-                onClick={() => setTab(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-          {tab === 'stores' && <StoreTable snap={snapshot} />}
-          {tab === 'office' && <OfficeTab snap={snapshot} />}
-          {tab === 'hr' && <HrDept snap={snapshot} />}
-          {tab === 'finance' && <FinanceTab snap={snapshot} />}
-          {tab === 'market' && <MarketTab snap={snapshot} />}
-        </section>
-      </main>
-      <div className="bottom">
-        <AlertsPanel snap={snapshot} />
-        <EventsPanel snap={snapshot} />
-      </div>
+      {screen.kind === 'map' && <MapScreen snap={snapshot} />}
+      {screen.kind === 'hq' && <HqScreen snap={snapshot} tab={screen.tab} />}
+      {screen.kind === 'store' && <StoreScreen snap={snapshot} storeId={screen.storeId} tab={screen.tab} />}
       <GameOverDialog snap={snapshot} />
     </div>
   );

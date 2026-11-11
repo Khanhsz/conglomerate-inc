@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('lease an office, open a department, see slots used and close it again', async ({ page }) => {
   await page.goto('/');
+  await page.getByTestId('open-hq').click();
   await page.getByTestId('tab-office').click();
   await page.getByTestId('office-district').selectOption('nw');
   await page.getByTestId('lease-small').click();
@@ -16,5 +17,6 @@ test('lease an office, open a department, see slots used and close it again', as
   await page.getByTestId('close-dept-hr').click();
   await expect(page.getByTestId('open-dept-hr')).toBeVisible({ timeout: 10_000 });
   await page.getByTestId('speed-0').click();
+  await page.getByTestId('close-screen').click();
   await expect(page.locator('.events')).toContainText('mở phòng Nhân sự');
 });

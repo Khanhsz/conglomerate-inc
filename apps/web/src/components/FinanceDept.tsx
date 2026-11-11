@@ -33,7 +33,7 @@ function adviceText(code: AdviceCode, a: FinanceAdvice): string {
 
 /** Phòng Tài chính (economic-model §19.1): xu hướng, P&L theo cửa hàng, tư vấn, tái cấp vốn, hạn mức tín dụng. */
 export function FinanceDept({ snap }: { snap: Snapshot }) {
-  const { send, setTab } = useUi();
+  const { send, openHq } = useUi();
   const fin = snap.finance;
   if (!fin.open) {
     return (
@@ -43,7 +43,7 @@ export function FinanceDept({ snap }: { snap: Snapshot }) {
           Mở phòng Tài chính ở tab Văn phòng để xem báo cáo hợp nhất theo cửa hàng, biểu đồ xu hướng, nhận tư
           vấn vay, tái cấp vốn và mở hạn mức tín dụng.
         </p>
-        <button type="button" className="link" onClick={() => setTab('office')}>
+        <button type="button" className="link" onClick={() => openHq('office')}>
           Đến Văn phòng →
         </button>
       </article>

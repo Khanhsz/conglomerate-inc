@@ -12,6 +12,7 @@ test('open a store in district C, run 2 months at 16×, see revenue in the P&L',
 
   await expect(page.getByTestId('store-store-000010')).toBeVisible();
 
+  await page.getByTestId('open-hq').click();
   await page.getByTestId('tab-finance').click();
   const revenue = page.getByTestId('pnl-revenue').locator('td');
   await expect(revenue).toHaveCount(2);

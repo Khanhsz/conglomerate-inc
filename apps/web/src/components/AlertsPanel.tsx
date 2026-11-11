@@ -12,7 +12,7 @@ const KIND_LABEL: Record<AlertKind, string> = {
 };
 
 export function AlertsPanel({ snap }: { snap: Snapshot }) {
-  const { pauseOn, togglePause, inspect, setTab } = useUi();
+  const { pauseOn, togglePause, openStore } = useUi();
   return (
     <section className="panel alerts" aria-labelledby="alerts-title">
       <h2 id="alerts-title">Cảnh báo vận hành</h2>
@@ -28,8 +28,7 @@ export function AlertsPanel({ snap }: { snap: Snapshot }) {
                   type="button"
                   className="link"
                   onClick={() => {
-                    setTab('stores');
-                    inspect(a.storeId ?? null);
+                    if (a.storeId) openStore(a.storeId, 'ops');
                   }}
                 >
                   Xem

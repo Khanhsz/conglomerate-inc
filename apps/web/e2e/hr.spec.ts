@@ -4,6 +4,7 @@ test('HR department: roster is visible, policies unlock once the department is o
   await page.goto('/');
   await page.getByTestId('district-c').click();
   await page.getByTestId('open-store').click();
+  await page.getByTestId('open-hq').click();
   await page.getByTestId('tab-hr').click();
   await expect(page.getByTestId('hr-locked')).toBeVisible();
 

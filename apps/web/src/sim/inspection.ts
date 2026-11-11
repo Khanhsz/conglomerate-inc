@@ -13,6 +13,7 @@ import {
   type WhatIfChange,
   type WhatIfResult,
   storeContribution,
+  sum,
 } from '@game/sim-core';
 import { playerId } from './snapshot';
 
@@ -23,7 +24,10 @@ export interface InspectionView {
   readonly curve: readonly PricePoint[];
   readonly recentDays: readonly StoreDayRecord[];
   /** 12 tháng gần nhất, kèm lãi đóng góp (doanh thu − giá vốn − lương − thuê) tính sẵn ở worker. */
-  readonly history: readonly (StoreLastMonth & { readonly contribution: Money })[];
+  readonly history: readonly (StoreLastMonth & {
+    readonly contribution: Money;
+    readonly wagesTotal: Money;
+  })[];
   readonly morale: number;
   readonly skill: number;
 }
@@ -46,6 +50,7 @@ export function buildInspection(
     history: store.history.map((m) => ({
       ...m,
       contribution: storeContribution(m),
+      wagesTotal: sum([m.wages, m.training, m.benefits, m.bonus]),
     })),
     morale: store.morale,
     skill: store.skill,

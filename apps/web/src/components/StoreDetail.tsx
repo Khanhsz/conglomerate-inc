@@ -22,7 +22,7 @@ const segmentName = (id: string) => SEGMENT_LABEL[id] ?? id;
 
 /** Panel chi tiết cửa hàng: thanh kéo có ước tính trực tiếp, đường cong giá, 14 ngày, vì sao cầu như vậy. */
 export function StoreDetail({ snap }: { snap: Snapshot }) {
-  const { send, inspect, requestPreview, clearPreview, preview } = useUi();
+  const { send, requestPreview, clearPreview, preview } = useUi();
   const view = snap.inspection;
   if (!view) return null;
   const row = snap.stores.find((r) => r.id === view.storeId);
@@ -42,16 +42,17 @@ export function StoreDetail({ snap }: { snap: Snapshot }) {
 
   return (
     <section className="store-detail" aria-labelledby="detail-title">
-      <header className="detail-head">
-        <h3 id="detail-title">Cửa hàng quận {row.districtId.toUpperCase()}</h3>
-        <span className="muted">
-          tinh thần {pct(view.morale, 0)} · kỹ năng {pct(view.skill, 0)} · phục vụ{' '}
-          {row.serviceLevel.toFixed(2)}
-        </span>
-        <button type="button" onClick={() => inspect(null)} aria-label="Đóng chi tiết">
-          Đóng
-        </button>
-      </header>
+      <p className="muted small detail-meta">
+        Giá hiện tại{' '}
+        <span data-testid={`price-${row.id}`}>
+          {usd(row.price)}
+          {pending.price !== undefined && pending.price !== row.price && (
+            <span className="pending"> → {usd(pending.price)}</span>
+          )}
+        </span>{' '}
+        · tinh thần {pct(view.morale, 0)} · kỹ năng {pct(view.skill, 0)} · phục vụ{' '}
+        {row.serviceLevel.toFixed(2)}
+      </p>
 
       <div className="detail-grid">
         <div className="levers">
@@ -199,33 +200,6 @@ export function StoreDetail({ snap }: { snap: Snapshot }) {
           </p>
         )}
       </div>
-
-      {view.history.length > 0 && (
-        <div className="table-wrap">
-          <table className="kv history">
-            <thead>
-              <tr>
-                <th>Tháng trước…</th>
-                <th>Khách/ngày</th>
-                <th>Utilization</th>
-                <th>Doanh thu</th>
-                <th>Lãi đóng góp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...view.history].reverse().map((m, i) => (
-                <tr key={i}>
-                  <td>{i === 0 ? 'gần nhất' : `−${i}`}</td>
-                  <td className="num">{m.days > 0 ? int(m.served / m.days) : '—'}</td>
-                  <td className="num">{m.capacity > 0 ? pct(m.served / m.capacity, 0) : '—'}</td>
-                  <td className="num">{usd(m.revenue)}</td>
-                  <td className={`num ${m.contribution < 0 ? 'bad' : ''}`}>{usd(m.contribution)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </section>
   );
 }
