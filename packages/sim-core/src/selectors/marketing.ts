@@ -74,7 +74,9 @@ export function marketingEffect(
   const priceIndex = state.macro.priceIndex;
   const unitCost =
     industry.unitCost * industry.qualityTiers[company.qualityTier].unitCostMultiplier * priceIndex;
-  const now = companyDemand(state, content, companyId);
+  // Cầu hiện tại chỉ cần khi có kênh đã từng chi; tính một lần, đúng lúc cần (selector chạy mỗi snapshot).
+  let cached: ReturnType<typeof companyDemand> | null = null;
+  const demandNow = () => (cached ??= companyDemand(state, content, companyId));
 
   const effect = (
     channel: string,
@@ -84,9 +86,10 @@ export function marketingEffect(
     const monthlySpend = budgets.length > 0 ? sum(budgets.map((b) => b.monthly)) : ZERO;
     const cells = company.channelAwareness.find((c) => c.channel === channel)?.cells ?? [];
     let extra = 0;
-    if (now.demand > 0 && cells.some((c) => c > 0)) {
+    if (cells.some((c) => c > 0) && demandNow().demand > 0) {
       const reduced = company.awareness.map((a, i) => Math.max(0, a - (cells[i] ?? 0)));
-      extra = now.demand - companyDemand(withAwareness(state, company, reduced), content, companyId).demand;
+      extra =
+        demandNow().demand - companyDemand(withAwareness(state, company, reduced), content, companyId).demand;
     }
     return {
       channel,
@@ -104,7 +107,7 @@ export function marketingEffect(
         monthlySpend > 0
           ? extra === 0
             ? 0
-            : (extra * (now.avgPrice - unitCost) * DAYS_PER_MONTH) / monthlySpend
+            : (extra * (demandNow().avgPrice - unitCost) * DAYS_PER_MONTH) / monthlySpend
           : null,
     };
   };

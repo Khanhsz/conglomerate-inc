@@ -17,8 +17,8 @@ export const DEPARTMENT_INFO: {
     ready: true,
   },
   marketing: {
-    does: 'Kênh marketing theo quận và phân khúc, bản đồ nhận biết, hiệu quả (ROI) từng kênh.',
-    ready: false,
+    does: 'Kênh marketing theo quận và phân khúc, bản đồ nhận biết, hiệu quả (ROI) từng kênh (tab Marketing).',
+    ready: true,
   },
   board: {
     does: 'Tuyển C-level (COO, CHRO, CPO, CMO, CFO) để tự điều hành các phòng.',

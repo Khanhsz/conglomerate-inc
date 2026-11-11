@@ -204,3 +204,67 @@ button.level.active {
 .hr-policies .wide {
   order: 1;
 }
+
+/* M1.6 phase 5: phòng Marketing (bản đồ nhận biết, kênh, hiệu quả). */
+.marketing-dept {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip-button {
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.heatmap {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+}
+.heat-cell {
+  display: grid;
+  gap: 1px;
+  justify-items: center;
+  min-width: 0;
+  padding: 8px 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.heat-cell[aria-pressed='true'] {
+  /* Giữ nền theo nhận biết; chỉ viền cho biết quận đang chọn. */
+  color: var(--text);
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--text);
+}
+.heat-id,
+.heat-stores {
+  font-size: 11px;
+}
+.channels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 10px;
+}
+.card.channel {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.card.channel p {
+  margin: 0;
+}
+/* Điện thoại: bảng hiệu quả bỏ cột phụ để ROI luôn nằm trong màn hình. */
+@media (max-width: 600px) {
+  .hide-narrow {
+    display: none;
+  }
+  table.mom.effects thead th.num {
+    white-space: normal;
+  }
+}

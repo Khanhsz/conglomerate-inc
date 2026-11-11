@@ -9,13 +9,18 @@ export interface PendingView {
   /** Theo cửa hàng của người chơi; lệnh sau ghi đè lệnh trước, `'all'` áp cho mọi cửa hàng. */
   readonly stores: Readonly<Record<string, WhatIfChange>>;
   readonly marketingBudgetMonthly: Money | null;
+  /** Ngân sách kênh đang chờ, khóa `kênh|mục tiêu` (xem `channelKey`). */
+  readonly channelBudgets: Readonly<Record<string, Money>>;
 }
+
+export const channelKey = (channel: string, target: string): string => `${channel}|${target}`;
 
 export function pendingChanges(state: GameState): PendingView {
   const pid = playerId(state);
   const mine = state.storeIds.filter((id) => state.stores[id]?.companyId === pid);
   const stores: Record<string, WhatIfChange> = {};
   let marketing: Money | null = null;
+  const channelBudgets: Record<string, Money> = {};
   const set = (ref: string, change: WhatIfChange) => {
     for (const id of ref === 'all' ? mine : [ref]) stores[id] = { ...stores[id], ...change };
   };
@@ -34,9 +39,12 @@ export function pendingChanges(state: GameState): PendingView {
       case 'SetMarketingBudget':
         marketing = command.payload.monthly;
         break;
+      case 'SetChannelBudget':
+        channelBudgets[channelKey(command.payload.channel, command.payload.target)] = command.payload.monthly;
+        break;
       default:
         break;
     }
   }
-  return { stores, marketingBudgetMonthly: marketing };
+  return { stores, marketingBudgetMonthly: marketing, channelBudgets };
 }

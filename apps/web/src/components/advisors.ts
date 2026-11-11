@@ -85,7 +85,9 @@ export function hqAdvice(snap: Snapshot, tab: HqTab): Advice {
       const me = snap.companies.find((c) => c.kind === 'player');
       return {
         tone: 'info',
-        text: `Nhận biết thương hiệu ${pct(me?.brandAwareness ?? 0, 0)}, thị phần ${pct(me?.marketShare ?? 0, 1)} lượt mua của thành phố.`,
+        text: `Nhận biết thương hiệu ${pct(me?.brandAwareness ?? 0, 0)}, thị phần ${pct(me?.marketShare ?? 0, 1)} lượt mua của thành phố.${
+          snap.marketing.open ? '' : ' Mở phòng Marketing để chi theo quận và xem hiệu quả từng kênh.'
+        }`,
       };
     }
     case 'board':

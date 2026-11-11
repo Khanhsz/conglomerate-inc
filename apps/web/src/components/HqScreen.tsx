@@ -7,6 +7,7 @@ import { DeptLocked } from './DeptLocked';
 import { FinanceTab } from './FinanceTab';
 import { HrDept } from './HrDept';
 import { MarketTab } from './MarketTab';
+import { MarketingDept } from './MarketingDept';
 import { OfficeTab } from './OfficeTab';
 import { FloorPlan } from './Plans';
 import { hqAdvice } from './advisors';
@@ -101,7 +102,7 @@ function ProductHq({ snap }: { snap: Snapshot }) {
   );
 }
 
-/** Ngân sách thương hiệu chung là tính năng M1; kênh theo quận cần phòng Marketing (phase 5). */
+/** Ngân sách thương hiệu chung là tính năng M1 (không khóa); kênh theo quận và bản đồ nhận biết cần phòng Marketing. */
 function MarketingHq({ snap }: { snap: Snapshot }) {
   const send = useUi((s) => s.send);
   const companyId = snap.player.id;
@@ -126,6 +127,7 @@ function MarketingHq({ snap }: { snap: Snapshot }) {
           })
         }
       />
+      <MarketingDept snap={snap} />
       <MarketTab snap={snap} />
     </section>
   );

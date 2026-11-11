@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { computeAlerts, newAlertKeys } from './alerts';
 import { loadGameContent } from './content';
 import { buildInspection } from './inspection';
-import { pendingChanges } from './pending';
+import { channelKey, pendingChanges } from './pending';
 import { sliderLimits } from './limits';
 
 const content = loadGameContent();
@@ -172,13 +172,29 @@ describe('pendingChanges (queued player commands, applied next tick)', () => {
       { type: 'SetWage', companyId: 'player', payload: { storeId: 'all', wageMonthly: money(250_000) } },
       { type: 'SetStaff', companyId: 'ai-bean', payload: { storeId: 'store-000001', staff: 9 } },
       { type: 'SetMarketingBudget', companyId: 'player', payload: { monthly: money(500_000) } },
+      {
+        type: 'SetChannelBudget',
+        companyId: 'player',
+        payload: { channel: 'flyers', target: 'c', monthly: money(30_000) },
+      },
+      {
+        type: 'SetChannelBudget',
+        companyId: 'player',
+        payload: { channel: 'flyers', target: 'c', monthly: money(40_000) },
+      },
     ] satisfies Command[];
     const state = queued.reduce<GameState>((s, c) => enqueue(s, c), opened);
     const pending = pendingChanges(state);
     expect(pending.stores[PLAYER_STORE]).toEqual({ price: 420, wageMonthly: 250_000 });
     expect(pending.stores['store-000001']).toBeUndefined();
     expect(pending.marketingBudgetMonthly).toBe(500_000);
+    // Ngân sách kênh: khóa `kênh|mục tiêu`, lệnh sau ghi đè lệnh trước.
+    expect(pending.channelBudgets).toEqual({ [channelKey('flyers', 'c')]: 40_000 });
     // Sau một tick hàng đợi trống.
-    expect(pendingChanges(runDays(state, content, 1))).toEqual({ stores: {}, marketingBudgetMonthly: null });
+    expect(pendingChanges(runDays(state, content, 1))).toEqual({
+      stores: {},
+      marketingBudgetMonthly: null,
+      channelBudgets: {},
+    });
   });
 });

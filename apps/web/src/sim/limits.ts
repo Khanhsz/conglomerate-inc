@@ -26,6 +26,8 @@ export interface Limits {
   readonly staff: Range;
   /** Cent, thang bậc ba trên thanh kéo. */
   readonly marketing: Range;
+  /** Cent, bước $100: ngân sách tháng của một kênh (một quận với kênh theo quận). */
+  readonly channelBudget: Range;
   /** Cent, bước $1,000; ngân hàng có thể từ chối khoản vay theo leverage. */
   readonly loan: Range;
   /** Cent, bước $1,000: [0, 2 × doanh thu 3 tháng] (economic-model §19.1). */
@@ -51,6 +53,7 @@ export function sliderLimits(state: GameState, content: LoadedContent): Limits {
     },
     staff: { min: content.industry.minStaffPerStore, max: MAX_STAFF_PER_STORE, step: 1 },
     marketing: { min: 0, max: MAX_MARKETING_BUDGET_MONTHLY, step: 1_000 },
+    channelBudget: { min: 0, max: MAX_MARKETING_BUDGET_MONTHLY, step: 10_000 },
     loan: { min: 100_000, max: 50_000_000, step: 100_000 },
     creditLine: {
       min: 0,

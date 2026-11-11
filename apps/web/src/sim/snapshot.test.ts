@@ -73,6 +73,40 @@ describe('buildSnapshot', () => {
     expect(later.events[0]?.day).toBeGreaterThanOrEqual(later.events[later.events.length - 1]?.day ?? 0); // mới nhất trước
   });
 
+  it('marketing: awareness per district, the four channels after general, locked until the department opens', () => {
+    expect(snap.marketing.open).toBe(false);
+    expect(snap.marketing.byDistrict).toHaveLength(9);
+    for (const a of snap.marketing.byDistrict) expect(a).toBeCloseTo(0.05, 12);
+    expect(snap.marketing.view.channels.map((c) => c.channel)).toEqual([
+      'general',
+      'events',
+      'flyers',
+      'outdoor',
+      'social',
+    ]);
+    expect(snap.limits.channelBudget).toEqual({ min: 0, max: 100_000_000, step: 10_000 });
+    const setup: Command[] = [
+      { type: 'LeaseOffice', companyId: 'player', payload: { districtId: 'c', size: 'small' } },
+      { type: 'OpenDepartment', companyId: 'player', payload: { dept: 'marketing' } },
+      {
+        type: 'SetChannelBudget',
+        companyId: 'player',
+        payload: { channel: 'flyers', target: 'c', monthly: money(30_000) },
+      },
+    ];
+    const withDept = runDays(
+      setup.reduce<GameState>((s, c) => enqueue(s, c), s0),
+      content,
+      10,
+    );
+    const later = buildSnapshot(withDept, content, 0).marketing;
+    expect(later.open).toBe(true);
+    const c = snap.districts.findIndex((d) => d.id === 'c');
+    // Chỉ quận c được chi tờ rơi: nhận biết trung bình của quận đó cao nhất.
+    expect(later.byDistrict[c]).toBe(Math.max(...later.byDistrict));
+    expect(later.view.channels.find((x) => x.channel === 'flyers')?.monthlySpend).toBe(30_000);
+  });
+
   it('keeps only the last 12 months of statements and 50 events', () => {
     const s = runDays(s0, content, 15 * 30);
     const later = buildSnapshot(s, content, 0);

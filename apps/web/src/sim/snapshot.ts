@@ -29,7 +29,9 @@ import {
   type HrView,
   type OfficeView,
   type StorePnl,
+  marketingEffect,
   meanAwareness,
+  type MarketingEffect,
 } from '@game/sim-core';
 import { computeAlerts, type Alert } from './alerts';
 import { buildInspection, type InspectionView } from './inspection';
@@ -144,6 +146,13 @@ export interface Snapshot {
   readonly finance: FinanceView;
   /** Phòng Nhân sự (economic-model §16); chính sách chỉnh được khi phòng đã mở. */
   readonly hr: { readonly open: boolean; readonly view: HrView };
+  /** Phòng Marketing (economic-model §18): nhận biết theo quận × phân khúc và hiệu quả từng kênh. */
+  readonly marketing: {
+    readonly open: boolean;
+    readonly view: MarketingEffect;
+    /** Nhận biết trung bình của từng quận (theo cơ cấu dân cư của quận), thứ tự như `districts`. */
+    readonly byDistrict: readonly number[];
+  };
   /** Lệnh của người chơi đã vào hàng đợi, áp dụng ở đầu ngày kế tiếp. */
   readonly pending: PendingView;
 }
@@ -284,6 +293,7 @@ export function buildSnapshot(
     office,
     finance: financeView(state, content, pid),
     hr: hrSection(state, content, pid),
+    marketing: marketingSection(state, content, pid),
   };
 }
 
@@ -317,6 +327,22 @@ function financeView(state: GameState, content: LoadedContent, pid: string): Fin
       netCash: sub(m.balanceSheet.cash, m.balanceSheet.overdraft),
     })),
   };
+}
+
+function marketingSection(state: GameState, content: LoadedContent, pid: string): Snapshot['marketing'] {
+  const view = marketingEffect(state, content, pid);
+  const S = view.segmentIds.length;
+  const byDistrict = content.scenario.city.districts.map((d, e) => {
+    let weighted = 0;
+    let share = 0;
+    view.segmentIds.forEach((segmentId, s) => {
+      const mix = d.mix[segmentId] ?? 0;
+      weighted += mix * (view.awareness[e * S + s] ?? 0);
+      share += mix;
+    });
+    return share > 0 ? weighted / share : 0;
+  });
+  return { open: state.companies[pid]?.departments.marketing !== null, view, byDistrict };
 }
 
 function hrSection(state: GameState, content: LoadedContent, pid: string): Snapshot['hr'] {
