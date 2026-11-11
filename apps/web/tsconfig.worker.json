@@ -15,7 +15,8 @@
     "src/sim/alerts.ts",
     "src/sim/inspection.ts",
     "src/sim/limits.ts",
-    "src/sim/pending.ts"
+    "src/sim/pending.ts",
+    "src/sim/mom.ts"
   ],
   "references": [
     {

@@ -21,6 +21,7 @@ import {
   type StoreReviews,
   sum,
 } from '@game/sim-core';
+import { storeMonthOverMonth, type MomTable } from './mom';
 import { playerId } from './snapshot';
 
 export interface InspectionView {
@@ -34,6 +35,8 @@ export interface InspectionView {
     readonly contribution: Money;
     readonly wagesTotal: Money;
   })[];
+  /** Tháng gần nhất so với tháng trước (bảng "Kết quả theo tháng"). */
+  readonly historyMom: MomTable | null;
   /** Lãi đóng góp tháng gần nhất trừ tháng trước đó (null khi chưa đủ 2 tháng). */
   readonly contributionDelta: Money | null;
   /** Đánh giá sao và thị phần khu vực (M1.7 U4). */
@@ -67,7 +70,13 @@ export function buildInspection(
   const h = store.history;
   const prev = h[h.length - 2];
   const last = h[h.length - 1];
+  const history = h.map((m) => ({
+    ...m,
+    contribution: storeContribution(m),
+    wagesTotal: sum([m.wages, m.training, m.benefits, m.bonus]),
+  }));
   return {
+    historyMom: storeMonthOverMonth(history),
     contributionDelta: prev && last ? sub(storeContribution(last), storeContribution(prev)) : null,
     reviews: storeReviews(state, content, storeId),
     area: areaShares(state, content, storeId) ?? [],
@@ -95,11 +104,7 @@ export function buildInspection(
     current: whatIf(state, content, storeId, pending),
     curve: priceCurve(state, content, storeId),
     recentDays: store.recentDays,
-    history: store.history.map((m) => ({
-      ...m,
-      contribution: storeContribution(m),
-      wagesTotal: sum([m.wages, m.training, m.benefits, m.bonus]),
-    })),
+    history,
     morale: store.morale,
     skill: store.skill,
   };

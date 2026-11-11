@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { Snapshot } from '../sim/snapshot';
 import { STORE_TABS, useUi, type StoreTab } from '../store';
-import { int, pct, signedUsd, usd } from '../format';
+import { int, signedUsd, usd } from '../format';
+import { MomTable } from './MomTable';
 import { storeAdvice } from './advisors';
 import { AdvisorStrip, KpiPair } from './Parts';
 import { StorePlan } from './Plans';
@@ -16,8 +17,6 @@ const LABEL: { readonly [T in StoreTab]: string } = {
   marketing: 'Marketing',
   finance: 'Tài chính',
 };
-
-const monthLabel = (m: number) => `N${Math.floor(m / 12) + 1}·T${(m % 12) + 1}`;
 
 /** Màn hình một cửa hàng (M1.7): mỗi cửa hàng là một đơn vị kinh doanh. */
 export function StoreScreen({ snap, storeId, tab }: { snap: Snapshot; storeId: string; tab: StoreTab }) {
@@ -81,43 +80,14 @@ function StoreFinance({ snap, storeId }: { snap: Snapshot; storeId: string }) {
   const send = useUi((s) => s.send);
   const [confirm, setConfirm] = useState(false);
   const view = snap.inspection;
-  const history = view?.storeId === storeId ? view.history : [];
+  const historyMom = view?.storeId === storeId ? view.historyMom : null;
   return (
     <section className="hq-section">
-      <h3>Kết quả theo tháng</h3>
-      {history.length === 0 ? (
+      <h3>Kết quả tháng này so với tháng trước</h3>
+      {historyMom === null ? (
         <p className="muted">Chưa có tháng nào chốt sổ.</p>
       ) : (
-        <div className="table-wrap">
-          <table className="history" data-testid="store-history">
-            <thead>
-              <tr>
-                <th>Tháng</th>
-                <th>Khách/ngày</th>
-                <th>Utilization</th>
-                <th>Doanh thu</th>
-                <th>Giá vốn</th>
-                <th>Lương & nhân sự</th>
-                <th>Thuê</th>
-                <th>Lãi đóng góp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...history].reverse().map((m) => (
-                <tr key={m.month}>
-                  <td>{monthLabel(m.month)}</td>
-                  <td className="num">{m.days > 0 ? int(m.served / m.days) : '—'}</td>
-                  <td className="num">{m.capacity > 0 ? pct(m.served / m.capacity, 0) : '—'}</td>
-                  <td className="num">{usd(m.revenue)}</td>
-                  <td className="num">{usd(m.cogs)}</td>
-                  <td className="num">{usd(m.wagesTotal)}</td>
-                  <td className="num">{usd(m.rent)}</td>
-                  <td className={`num ${m.contribution < 0 ? 'bad' : ''}`}>{usd(m.contribution)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <MomTable table={historyMom} testId="store-history" rowTestId="store-mom" />
       )}
       <div className="danger-zone">
         {confirm ? (

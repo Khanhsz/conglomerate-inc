@@ -8,12 +8,10 @@ import {
 import { useState } from 'react';
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
-import { pct, usd } from '../format';
+import { monthLabel, pct, usd } from '../format';
 import { DeptLocked } from './DeptLocked';
 import { Slider } from './Slider';
 import { TrendChart } from './TrendChart';
-
-const monthLabel = (m: number) => `N${Math.floor(m / 12) + 1}·T${(m % 12) + 1}`;
 
 function adviceText(code: AdviceCode, a: FinanceAdvice): string {
   switch (code) {

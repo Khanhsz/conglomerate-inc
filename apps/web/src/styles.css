@@ -295,6 +295,46 @@ tr.subtotal th,
 tr.subtotal td {
   font-weight: 600;
 }
+/* Bảng so sánh tháng này / tháng trước: tăng .good (xanh), giảm .bad (đỏ). */
+table.mom {
+  width: 100%;
+  max-width: 720px;
+}
+table.mom th.num,
+table.mom td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+table.mom tbody th {
+  font-weight: 400;
+}
+table.mom tr.subtotal th {
+  font-weight: 600;
+}
+table.mom td.muted {
+  color: var(--muted);
+}
+table.mom .mom-pct-inline {
+  display: none;
+}
+/* Điện thoại: bỏ cột tháng trước và cột %, % hiện dưới chênh lệch để bảng vừa bề ngang. */
+@media (max-width: 600px) {
+  table.mom [data-col='previous'],
+  table.mom [data-col='pct'] {
+    display: none;
+  }
+  table.mom .mom-pct-inline {
+    display: block;
+    font-size: 0.85em;
+  }
+  table.mom th,
+  table.mom td {
+    padding: 4px 4px;
+  }
+}
+.finance h4 {
+  margin: 16px 0 4px;
+}
 table.kv {
   width: auto;
   min-width: 280px;

@@ -14,8 +14,9 @@ test('open a store in district C, run 2 months at 16×, see revenue in the P&L',
 
   await page.getByTestId('open-hq').click();
   await page.getByTestId('tab-finance').click();
-  const revenue = page.getByTestId('pnl-revenue').locator('td');
+  // Bảng so sánh tháng này / tháng trước: cả hai tháng đều có doanh thu.
+  const revenue = page.getByTestId('pnl-revenue').locator('td[data-col="current"], td[data-col="previous"]');
   await expect(revenue).toHaveCount(2);
-  const cents = await revenue.evaluateAll((cells) => cells.map((c) => Number(c.getAttribute('data-cents'))));
+  const cents = await revenue.evaluateAll((cells) => cells.map((c) => Number(c.getAttribute('data-value'))));
   expect(cents.every((c) => c > 0)).toBe(true);
 });

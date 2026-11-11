@@ -33,6 +33,7 @@ import {
 import { computeAlerts, type Alert } from './alerts';
 import { buildInspection, type InspectionView } from './inspection';
 import { sliderLimits, type Limits } from './limits';
+import { monthOverMonth, type FinanceMom } from './mom';
 import { pendingChanges, type PendingView } from './pending';
 import type { Speed } from './protocol';
 
@@ -122,6 +123,8 @@ export interface Snapshot {
   readonly stores: readonly StoreRow[];
   /** 12 tháng gần nhất của người chơi, cũ → mới. */
   readonly statements: readonly MonthlyStatements[];
+  /** Tháng gần nhất so với tháng trước (P&L, cân đối, lưu chuyển tiền). */
+  readonly financeMom: FinanceMom;
   readonly loans: readonly LoanView[];
   /** Người chơi trước, rồi AI theo id. */
   readonly companies: readonly CompanyView[];
@@ -264,6 +267,7 @@ export function buildSnapshot(
     districts,
     stores: selectors.storeTable(state, pid).filter((r) => r.status === 'open'),
     statements: (state.statements[pid] ?? []).slice(-STATEMENT_MONTHS),
+    financeMom: monthOverMonth(state.statements[pid] ?? []),
     loans,
     companies,
     outsideShare: 1 - shares.industryShare,
