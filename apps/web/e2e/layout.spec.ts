@@ -11,7 +11,7 @@ test('phone: no horizontal page scroll on any HQ or store tab', async ({ page })
   const day = async () => Number(await page.locator('header.topbar').getAttribute('data-day'));
   await expect.poll(day, { timeout: 30_000 }).toBeGreaterThanOrEqual(65);
   await page.getByTestId('speed-0').click();
-  const width = () => page.evaluate(() => document.documentElement.scrollWidth);
+  const width = () => page.evaluate<number>('document.documentElement.scrollWidth');
 
   await page.getByTestId('open-hq').click();
   for (const tab of ['office', 'finance', 'hr', 'product', 'marketing', 'board']) {
