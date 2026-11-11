@@ -133,6 +133,16 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
     ],
   });
 
+  // M1c (M1.7, §21): chi phí tháng của tiện ích cửa hàng (phí lắp đặt đã ghi khi bật).
+  pay(ledger, {
+    companyId,
+    day,
+    memo: memo('tiện ích cửa hàng'),
+    debits: [
+      { account: ACC.StoreAmenities, amount: sum(stores.map((s) => fromFloatCents(s.mtd.amenitiesAccrued))) },
+    ],
+  });
+
   // M1a (M1.6, §16): đào tạo, phúc lợi, rồi thưởng trên lãi đóng góp dương (trước thưởng) → Wages.
   // Chính sách mặc định: mọi khoản = 0, không ghi bút toán nào.
   const hrCosts = new Map<string, { training: Money; benefits: Money; bonus: Money }>();
@@ -147,6 +157,7 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
         fromFloatCents(s.mtd.rentAccrued),
         training,
         benefits,
+        storeAmenities(s),
       ]),
     );
     const bonus = beforeBonus > 0 ? pct(beforeBonus, company.hrPolicy.bonusRate) : ZERO;
@@ -353,6 +364,7 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
       training: hrCosts.get(s.id)?.training ?? ZERO,
       benefits: hrCosts.get(s.id)?.benefits ?? ZERO,
       bonus: hrCosts.get(s.id)?.bonus ?? ZERO,
+      amenities: storeAmenities(s),
     };
     if (s.status === 'open') {
       const contribution = storeContribution(lastMonth);
@@ -368,6 +380,11 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
   }
   company.marketingAccrued = 0;
   return toLiquidate;
+}
+
+/** Tiện ích của cửa hàng trong tháng = phí lắp đặt đã trả + chi phí tháng cộng dồn (làm tròn như khi ghi sổ). */
+function storeAmenities(s: Store): Money {
+  return add(s.mtd.amenitiesSetup, fromFloatCents(s.mtd.amenitiesAccrued));
 }
 
 /** Σ served / Σ capacity của tháng; null nếu không có công suất. */

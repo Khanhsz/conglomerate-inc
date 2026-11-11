@@ -32,12 +32,16 @@ function buildPnl(flow: AccountTotals): PnL {
   const officeRent = movement(flow, ACC.OfficeRent);
   const departments = sum(DEPARTMENTS.map((d) => movement(flow, DEPARTMENT_ACCOUNT[d])));
   const research = movement(flow, ACC.ResearchAndDevelopment);
+  const amenities = movement(flow, ACC.StoreAmenities);
   const depreciation = movement(flow, ACC.Depreciation);
   const lossOnDisposal = movement(flow, ACC.LossOnDisposal);
   const interest = movement(flow, ACC.InterestExpense);
   const incomeTax = movement(flow, ACC.IncomeTax);
   const grossProfit = sub(revenue, cogs);
-  const ebitda = sub(grossProfit, sum([wages, rent, marketing, admin, officeRent, departments, research]));
+  const ebitda = sub(
+    grossProfit,
+    sum([wages, amenities, rent, marketing, admin, officeRent, departments, research]),
+  );
   const ebit = sub(ebitda, add(depreciation, lossOnDisposal));
   const preTax = sub(ebit, interest);
   const netIncome = sub(preTax, incomeTax);
@@ -46,6 +50,7 @@ function buildPnl(flow: AccountTotals): PnL {
     cogs,
     grossProfit,
     wages,
+    amenities,
     rent,
     marketing,
     admin,
@@ -200,7 +205,15 @@ export function checkStatements(s: MonthlyStatements): string[] {
   expectEq(
     'pnl.ebitda',
     p.ebitda,
-    p.grossProfit - p.wages - p.rent - p.marketing - p.admin - p.officeRent - p.departments - p.research,
+    p.grossProfit -
+      p.wages -
+      p.amenities -
+      p.rent -
+      p.marketing -
+      p.admin -
+      p.officeRent -
+      p.departments -
+      p.research,
   );
   expectEq('pnl.ebit', p.ebit, p.ebitda - p.depreciation - p.lossOnDisposal);
   expectEq('pnl.preTax', p.preTax, p.ebit - p.interest);

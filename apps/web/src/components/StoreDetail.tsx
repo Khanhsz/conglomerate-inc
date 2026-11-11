@@ -18,6 +18,7 @@ const PART_LABEL: Record<UtilityPart, string> = {
   brand: 'thương hiệu',
   distance: 'khoảng cách',
   service: 'phục vụ',
+  atmosphere: 'không gian',
 };
 const segmentName = (id: string) => SEGMENT_LABEL[id] ?? id;
 

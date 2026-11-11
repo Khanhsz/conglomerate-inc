@@ -14,6 +14,7 @@ import {
   type WhatIfResult,
   areaShares,
   storeContribution,
+  mul,
   storeReviews,
   sub,
   type AreaShare,
@@ -38,8 +39,20 @@ export interface InspectionView {
   /** Đánh giá sao và thị phần khu vực (M1.7 U4). */
   readonly reviews: StoreReviews | null;
   readonly area: readonly AreaShare[];
+  /** Tiện ích cửa hàng (M1.7 U5): giá hôm nay, phân khúc được hưởng nhiều nhất. */
+  readonly amenities: readonly AmenityOption[];
   readonly morale: number;
   readonly skill: number;
+}
+
+export interface AmenityOption {
+  readonly id: string;
+  readonly name: string;
+  readonly on: boolean;
+  readonly setupCost: Money;
+  readonly monthlyCost: Money;
+  /** Phân khúc có trọng số ≥ 0.8, theo thứ tự id. */
+  readonly appealsTo: readonly string[];
 }
 
 export function buildInspection(
@@ -58,6 +71,25 @@ export function buildInspection(
     contributionDelta: prev && last ? sub(storeContribution(last), storeContribution(prev)) : null,
     reviews: storeReviews(state, content, storeId),
     area: areaShares(state, content, storeId) ?? [],
+    amenities: Object.keys(content.industry.storeAmenities)
+      .sort()
+      .flatMap((id) => {
+        const def = content.industry.storeAmenities[id];
+        return def
+          ? [
+              {
+                id,
+                name: def.name,
+                on: store.amenities.includes(id),
+                setupCost: mul(def.setupCost, state.macro.priceIndex),
+                monthlyCost: mul(def.monthlyCost, state.macro.priceIndex),
+                appealsTo: Object.keys(def.segmentWeight)
+                  .sort()
+                  .filter((s) => (def.segmentWeight[s] ?? 0) >= 0.8),
+              },
+            ]
+          : [];
+      }),
     storeId,
     report: inspectStore(state, content, storeId),
     current: whatIf(state, content, storeId, pending),

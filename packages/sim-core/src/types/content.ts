@@ -54,6 +54,20 @@ export interface HrPolicyParams {
   readonly bonusRateMax: number;
 }
 
+/** Tiện ích cửa hàng (M1.7, economic-model §21). */
+export interface StoreAmenityDef {
+  readonly name: string;
+  /** Phí lắp đặt mỗi lần bật, trước CPI. */
+  readonly setupCost: Money;
+  /** Chi phí mỗi tháng khi đang bật, trước CPI. */
+  readonly monthlyCost: Money;
+  /** Utility cộng thêm (nhân trọng số phân khúc). */
+  readonly utility: number;
+  readonly segmentWeight: { readonly [segment: SegmentId]: number };
+  /** Trọng số trong tiêu chí "Không gian" của đánh giá sao. */
+  readonly reviewWeight: number;
+}
+
 export type SegmentId = string;
 export type DistrictId = string;
 export type CompanyId = string;
@@ -142,6 +156,8 @@ export interface IndustryContent {
   readonly office: { readonly sizes: { readonly [S in OfficeSize]: OfficeSizeDef } };
   readonly departments: { readonly [D in Department]: DepartmentDef };
   readonly hrPolicies: HrPolicyParams;
+  /** Theo id; duyệt bằng key đã sort. */
+  readonly storeAmenities: { readonly [id: string]: StoreAmenityDef };
 }
 
 export interface MacroParams {

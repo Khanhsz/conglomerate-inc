@@ -10,7 +10,7 @@ import {
   distanceKm,
   expectedDemand,
   logitShares,
-  storeUtility,
+  candidateUtility,
   utilityParts,
   type DemandCandidate,
   type UtilityParts,
@@ -19,8 +19,8 @@ import { moraleTarget, productivity } from '../systems/operations';
 import type { LoadedContent, SegmentDef } from '../types/content';
 import type { GameState, Store } from '../types/state';
 
-export type UtilityPart = 'quality' | 'price' | 'brand' | 'distance' | 'service';
-const PARTS: readonly UtilityPart[] = ['quality', 'price', 'brand', 'distance', 'service'];
+export type UtilityPart = 'quality' | 'price' | 'brand' | 'distance' | 'service' | 'atmosphere';
+const PARTS: readonly UtilityPart[] = ['quality', 'price', 'brand', 'distance', 'service', 'atmosphere'];
 
 export interface UtilityGap {
   readonly part: UtilityPart;
@@ -109,7 +109,7 @@ export function inspectStore(state: GameState, content: LoadedContent, storeId: 
           const km = distanceKm(city, origin, c.district);
           return km > segment.maxTravelKm
             ? []
-            : [{ c, km, u: storeUtility(segment, incomeIndex, { ...c.x, distanceKm: km }) }];
+            : [{ c, km, u: candidateUtility(segmentId, segment, incomeIndex, c, km) }];
         });
         const mine = reachable.findIndex((r) => r.c.id === storeId);
         if (mine < 0) continue;
@@ -174,7 +174,12 @@ function compareInCell(
   const mine = cell.reachable.findIndex((r) => r.c.id === me.id);
   const own = cell.reachable[mine];
   if (!own) throw new Error('store not in its own focus cell');
-  const ownParts = utilityParts(cell.segment, incomeIndex, { ...me.x, distanceKm: own.km });
+  const ownParts = utilityParts(
+    cell.segment,
+    incomeIndex,
+    { ...me.x, distanceKm: own.km },
+    me.amenity[cell.segmentId],
+  );
   let rival: (typeof cell.reachable)[number] | undefined;
   for (const r of cell.reachable) if (r.c.companyId !== me.companyId && (!rival || r.u > rival.u)) rival = r;
   if (!rival)
@@ -187,7 +192,12 @@ function compareInCell(
       gaps: [],
     };
 
-  const rivalParts = utilityParts(cell.segment, incomeIndex, { ...rival.c.x, distanceKm: rival.km });
+  const rivalParts = utilityParts(
+    cell.segment,
+    incomeIndex,
+    { ...rival.c.x, distanceKm: rival.km },
+    rival.c.amenity[cell.segmentId],
+  );
   const before = cell.shares[mine] ?? 0;
   const gaps: UtilityGap[] = [];
   for (const part of PARTS) {

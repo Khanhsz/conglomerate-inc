@@ -101,3 +101,35 @@ hrPolicies:
   benefitsShare: [0, 0.03, 0.06, 0.10]                   # phúc lợi = tỷ lệ × lương
   benefitsMorale: [0, 0.05, 0.09, 0.12]                  # cộng vào tinh thần mục tiêu
   bonusRateMax: 0.2                                      # thưởng tối đa 20% lãi đóng góp dương
+
+# M1.7 — tiện ích cửa hàng (economic-model §21). Bật / tắt từng cửa hàng; lắp đặt trả mỗi lần bật. Đề xuất (#59).
+# utility nhân trọng số phân khúc rồi cộng vào utility của cửa hàng; reviewWeight cho tiêu chí "Không gian".
+storeAmenities:
+  wifi:
+    name: "Wi-Fi miễn phí"
+    setupCost: 50000            # $500
+    monthlyCost: 30000          # $300
+    utility: 0.20
+    segmentWeight: { students: 1.0, office: 0.8, premium: 0.4, other: 0.4 }
+    reviewWeight: 1
+  sockets:
+    name: "Ổ cắm tại bàn"
+    setupCost: 150000           # $1,500
+    monthlyCost: 10000          # $100
+    utility: 0.15
+    segmentWeight: { students: 1.0, office: 1.0, premium: 0.3, other: 0.2 }
+    reviewWeight: 1
+  ambience:
+    name: "Nhạc & ánh sáng"
+    setupCost: 200000           # $2,000
+    monthlyCost: 25000          # $250
+    utility: 0.15
+    segmentWeight: { students: 0.4, office: 0.3, premium: 1.0, other: 0.6 }
+    reviewWeight: 1.5
+  lounge:
+    name: "Khu ghế lounge"
+    setupCost: 800000           # $8,000
+    monthlyCost: 40000          # $400
+    utility: 0.25
+    segmentWeight: { students: 0.5, office: 0.4, premium: 1.0, other: 0.7 }
+    reviewWeight: 2

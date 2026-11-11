@@ -14,6 +14,8 @@ export function emptyMonthToDate(): StoreMonthToDate {
     rentAccrued: 0,
     trainingAccrued: 0,
     benefitsAccrued: 0,
+    amenitiesAccrued: 0,
+    amenitiesSetup: ZERO,
   };
 }
 
@@ -32,10 +34,11 @@ export function emptyLastMonth(): StoreLastMonth {
     training: ZERO,
     benefits: ZERO,
     bonus: ZERO,
+    amenities: ZERO,
   };
 }
 
 /** Lãi đóng góp = doanh thu − giá vốn − lương (gồm đào tạo, phúc lợi, thưởng) − thuê (economic-model §9.3, §16). */
 export function storeContribution(m: StoreLastMonth): Money {
-  return sub(m.revenue, sum([m.cogs, m.wages, m.rent, m.training, m.benefits, m.bonus]));
+  return sub(m.revenue, sum([m.cogs, m.wages, m.rent, m.training, m.benefits, m.bonus, m.amenities]));
 }

@@ -25,6 +25,7 @@ export const ACCOUNTS = {
   4000: { name: 'Revenue', type: 'income', normal: 'credit', contra: false },
   5000: { name: 'COGS', type: 'expense', normal: 'debit', contra: false },
   6000: { name: 'Wages', type: 'expense', normal: 'debit', contra: false },
+  6050: { name: 'StoreAmenities', type: 'expense', normal: 'debit', contra: false },
   6100: { name: 'Rent', type: 'expense', normal: 'debit', contra: false },
   6150: { name: 'OfficeRent', type: 'expense', normal: 'debit', contra: false },
   6200: { name: 'Marketing', type: 'expense', normal: 'debit', contra: false },
@@ -56,6 +57,7 @@ export const ACC = {
   Revenue: 4000,
   COGS: 5000,
   Wages: 6000,
+  StoreAmenities: 6050,
   Rent: 6100,
   OfficeRent: 6150,
   Marketing: 6200,
@@ -74,8 +76,8 @@ export const ACC = {
 
 /** Mọi mã, tăng dần. Duyệt tài khoản bằng mảng này, không dùng Object.keys. */
 export const ACCOUNT_CODES = [
-  1000, 1500, 1590, 2000, 2100, 2500, 3000, 4000, 5000, 6000, 6100, 6150, 6200, 6300, 6400, 6410, 6420, 6430,
-  6440, 6450, 6600, 6900, 7000, 8000,
+  1000, 1500, 1590, 2000, 2100, 2500, 3000, 4000, 5000, 6000, 6050, 6100, 6150, 6200, 6300, 6400, 6410, 6420,
+  6430, 6440, 6450, 6600, 6900, 7000, 8000,
 ] as const satisfies readonly AccountCode[];
 
 const CODE_SET: ReadonlySet<unknown> = new Set(ACCOUNT_CODES);
@@ -97,6 +99,7 @@ export function mapAccounts<T>(f: (code: AccountCode) => T): { [C in AccountCode
     4000: f(4000),
     5000: f(5000),
     6000: f(6000),
+    6050: f(6050),
     6100: f(6100),
     6150: f(6150),
     6200: f(6200),

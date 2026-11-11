@@ -6,6 +6,7 @@ import { storeAdvice } from './advisors';
 import { AdvisorStrip, KpiPair } from './Parts';
 import { StorePlan } from './Plans';
 import { ScreenShell } from './ScreenShell';
+import { AmenityCards } from './AmenityCards';
 import { StoreCustomers } from './StoreCustomers';
 import { StoreDetail } from './StoreDetail';
 
@@ -50,6 +51,11 @@ export function StoreScreen({ snap, storeId, tab }: { snap: Snapshot; storeId: s
         capacity={snap.inspection?.storeId === storeId ? snap.inspection.report.capacityToday : 0}
         served={row.servedToday}
         lost={snap.inspection?.storeId === storeId ? snap.inspection.report.lostToday : 0}
+        amenities={
+          snap.inspection?.storeId === storeId
+            ? snap.inspection.amenities.filter((x) => x.on).map((x) => x.name)
+            : []
+        }
       />
       {tab === 'ops' && <StoreKpis snap={snap} storeId={storeId} />}
       {tab === 'ops' && <StoreCustomers snap={snap} />}
@@ -65,13 +71,7 @@ export function StoreScreen({ snap, storeId, tab }: { snap: Snapshot; storeId: s
           </p>
         </section>
       )}
-      {tab === 'marketing' && (
-        <section className="hq-section">
-          <p className="small muted">
-            Tiện ích cửa hàng (Wi-Fi, ổ cắm, nhạc, lounge) đang được thêm ở bước tiếp theo.
-          </p>
-        </section>
-      )}
+      {tab === 'marketing' && <AmenityCards snap={snap} storeId={storeId} />}
       {tab === 'finance' && <StoreFinance snap={snap} storeId={storeId} />}
     </ScreenShell>
   );

@@ -17,6 +17,8 @@ export interface StorePnlLines {
   readonly wages: Money;
   readonly rent: Money;
   readonly depreciation: Money;
+  /** Tiện ích cửa hàng (M1.7). */
+  readonly amenities: Money;
   /** Doanh thu − giá vốn − lương − thuê (như luật AI §9.3). */
   readonly contribution: Money;
   /** Lãi đóng góp − khấu hao. */
@@ -39,9 +41,9 @@ export interface StorePnl {
 }
 
 function lines(
-  l: Pick<StorePnlLines, 'revenue' | 'cogs' | 'wages' | 'rent' | 'depreciation'>,
+  l: Pick<StorePnlLines, 'revenue' | 'cogs' | 'wages' | 'rent' | 'depreciation' | 'amenities'>,
 ): StorePnlLines {
-  const contribution = sub(l.revenue, sum([l.cogs, l.wages, l.rent]));
+  const contribution = sub(l.revenue, sum([l.cogs, l.wages, l.rent, l.amenities]));
   return { ...l, contribution, operatingProfit: sub(contribution, l.depreciation) };
 }
 
@@ -65,16 +67,19 @@ export function storePnl(state: GameState, companyId: CompanyId, month: number):
         wages: sum([m.wages, m.training, m.benefits, m.bonus]),
         rent: m.rent,
         depreciation: m.depreciation,
+        amenities: m.amenities,
       }),
     });
   }
-  const total = (k: 'revenue' | 'cogs' | 'wages' | 'rent' | 'depreciation') => sum(stores.map((s) => s[k]));
+  const total = (k: 'revenue' | 'cogs' | 'wages' | 'rent' | 'depreciation' | 'amenities') =>
+    sum(stores.map((s) => s[k]));
   const storesTotal = lines({
     revenue: total('revenue'),
     cogs: total('cogs'),
     wages: total('wages'),
     rent: total('rent'),
     depreciation: total('depreciation'),
+    amenities: total('amenities'),
   });
   const storePart: Partial<Record<keyof PnL, Money>> = {
     revenue: storesTotal.revenue,
@@ -83,6 +88,7 @@ export function storePnl(state: GameState, companyId: CompanyId, month: number):
     wages: storesTotal.wages,
     rent: storesTotal.rent,
     depreciation: storesTotal.depreciation,
+    amenities: storesTotal.amenities,
   };
   const c = (k: keyof PnL): Money => sub(company[k], storePart[k] ?? ZERO);
   const corporate = {
@@ -90,6 +96,7 @@ export function storePnl(state: GameState, companyId: CompanyId, month: number):
     cogs: c('cogs'),
     grossProfit: c('grossProfit'),
     wages: c('wages'),
+    amenities: c('amenities'),
     rent: c('rent'),
     marketing: c('marketing'),
     admin: c('admin'),

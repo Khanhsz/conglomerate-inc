@@ -7,6 +7,8 @@ export interface PnL {
   readonly cogs: Money;
   readonly grossProfit: Money;
   readonly wages: Money;
+  /** Tiện ích cửa hàng (M1.7, §21). */
+  readonly amenities: Money;
   readonly rent: Money;
   readonly marketing: Money;
   readonly admin: Money;

@@ -56,6 +56,7 @@ U_{e,s,j} = βq_s · Q_j
 Lưu ý: dùng `ln(P/Pref)` để độ co giãn theo giá phụ thuộc tỷ lệ, không phụ thuộc đơn vị tiền. Giá phải được nhân `incomeIndex`? → Không; thu nhập ảnh hưởng qua `βp_s,eff = βp_s / incomeIndex^η_s` với `η_s = segment.incomeElasticityOfPriceSensitivity` (M1 mặc định 0, tức tắt).
 
 > M1.6: với nhiều sản phẩm, `βq·Q − βp·ln(P/Pref)` được thay bằng inclusive value của menu (§17.3); `A_c` thay bằng `A_{c,e,s}` (§18.1). Cấu hình mặc định cho kết quả đúng bằng công thức trên.
+> M1.7: cộng thêm utility của tiện ích cửa hàng đang bật (§21).
 
 ### 3.2 Lựa chọn ngoài (không mua)
 `U_{e,s,0} = segment.outsideUtility` (hằng số hiệu chỉnh, calibrated).
@@ -252,6 +253,7 @@ Chốt tháng chạy sau khi `clock.day` đã tăng (spec §4 bước 8), nên m
 | 4000 | Revenue | Income |
 | 5000 | COGS | Expense |
 | 6000 | Wages | Expense |
+| 6050 | StoreAmenities (M1.7, §21) | Expense |
 | 6100 | Rent | Expense |
 | 6150 | OfficeRent (M1.6) | Expense |
 | 6200 | Marketing | Expense |
@@ -509,3 +511,30 @@ A_{c,e,s} ← A + (1 − A) × lift_{e,s} − δ × A + γ × Σ_j served_j / ci
 
 ### 19.3 AI (M1.6)
 Mỗi personality có `office: { openAtStores, size, departments[] }`. Ngày đầu tháng, khi số cửa hàng ≥ `openAtStores`, AI thuê văn phòng và mở các phòng trong danh sách (tối đa 1 hành động/tháng). AI không tuyển C-level: luật AI chính là "ban điều hành" của nó. AI dùng gói nhà cung cấp theo tier, menu `core` và kênh `general`, cho tới khi spec hiệu chỉnh vòng 2 đổi lại (#57).
+
+## 21. Tiện ích cửa hàng (M1.7)
+Spec: `docs/specs/M1.7-ui.md`.
+- **Content:** `industry.storeAmenities[a] = { name, setupCost, monthlyCost, utility, segmentWeight: {s: w ∈ [0,1]}, reviewWeight }`.
+- **Utility (cộng vào §3.1):**
+  ```
+  + Σ_{a ∈ amenities_j} utility_a × segmentWeight_{a,s}
+  ```
+  - Cửa hàng không bật tiện ích nào thì không cộng gì, nên **đúng bằng M1**.
+  - Áp ở mọi nơi tính utility: cầu kỳ vọng, thị phần khu vực, phân rã "vì sao cầu như vậy". Ở phần phân rã, đây là thành phần "không gian".
+- **Bật** (`SetStoreAmenity { storeId, amenity, on: true }`):
+  - trả ngay `setupCost × priceIndex`, Nợ **StoreAmenities (6050)** / Có Cash, qua helper thanh toán;
+  - tắt rồi bật lại thì trả lại phí này;
+  - lệnh validate theo `cash + hạn mức còn lại`; không cần phòng ban.
+- **Chi phí tháng:** mỗi ngày đang bật cộng dồn `monthlyCost × priceIndex / 30` (float cent). Cuối tháng ghi Nợ 6050 / Có Cash, ngay sau bút toán chi phí vận hành.
+- **P&L:** dòng `amenities`, tính trong EBITDA.
+- **Lãi đóng góp của cửa hàng** (luật AI §9.3, thưởng §16.4, P&L theo cửa hàng) trừ thêm `phí lắp đặt + chi phí tháng` của cửa hàng.
+- **Tiêu chí "Không gian"** của đánh giá sao (chỉ giao diện) = Σ `reviewWeight` tiện ích đang bật / Σ `reviewWeight` mọi tiện ích.
+- **AI:** chưa dùng tiện ích (phase 8).
+- **Đề xuất ban đầu** (#59):
+
+| Tiện ích | Lắp đặt | Tháng | utility | Trọng số students / office / premium / other | reviewWeight |
+|---|---|---|---|---|---|
+| Wi-Fi miễn phí | $500 | $300 | 0.20 | 1 / 0.8 / 0.4 / 0.4 | 1 |
+| Ổ cắm tại bàn | $1,500 | $100 | 0.15 | 1 / 1 / 0.3 / 0.2 | 1 |
+| Nhạc & ánh sáng | $2,000 | $250 | 0.15 | 0.4 / 0.3 / 1 / 0.6 | 1.5 |
+| Khu ghế lounge | $8,000 | $400 | 0.25 | 0.5 / 0.4 / 1 / 0.7 | 2 |

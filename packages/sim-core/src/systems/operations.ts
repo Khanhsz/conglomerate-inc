@@ -66,6 +66,10 @@ export const operationsSystem: System = (draft, ctx) => {
     store.mtd.cogs = add(store.mtd.cogs, cogs);
     store.mtd.wagesAccrued += (store.staff * store.wageMonthly) / DAYS_PER_MONTH;
     store.mtd.rentAccrued += store.rentMonthly / DAYS_PER_MONTH;
+    for (const a of store.amenities) {
+      const def = industry.storeAmenities[a];
+      if (def) store.mtd.amenitiesAccrued += (def.monthlyCost * priceIndex) / DAYS_PER_MONTH;
+    }
     const hr = company.hrPolicy;
     const hrParams = industry.hrPolicies;
     store.mtd.trainingAccrued +=

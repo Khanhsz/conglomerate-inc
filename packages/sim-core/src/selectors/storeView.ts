@@ -1,7 +1,7 @@
 /**
  * Màn hình cửa hàng (M1.7, spec M1.7 §3): đánh giá sao theo tiêu chí và thị phần khu vực. Hàm thuần, không đổi kinh tế.
  */
-import { demandCandidates, distanceKm, logitShares, storeUtility } from '../systems/demand';
+import { candidateUtility, demandCandidates, distanceKm, logitShares } from '../systems/demand';
 import type { CompanyId, LoadedContent } from '../types/content';
 import type { GameState, StoreId } from '../types/state';
 
@@ -22,13 +22,12 @@ export const toStars = (x: number): number => Math.round(2 * (1 + 4 * clamp01(x)
 
 /**
  * Giá: x = 0.5 − 0.5·ln(P/Pref)/ln 2 (giá tham chiếu → 3 sao, nửa giá → 5, gấp đôi → 1);
- * Sản phẩm: x = Q; Phục vụ: x = W; Không gian: phần trọng số tiện ích đang bật (U5; chưa có tiện ích → 0).
+ * Sản phẩm: x = Q; Phục vụ: x = W; Không gian: phần trọng số tiện ích đang bật (atmosphereScore).
  */
 export function storeReviews(
   state: GameState,
   content: LoadedContent,
   storeId: StoreId,
-  atmosphere = 0,
 ): StoreReviews | null {
   const store = state.stores[storeId];
   const company = store ? state.companies[store.companyId] : undefined;
@@ -38,7 +37,7 @@ export function storeReviews(
     price: 0.5 - (0.5 * Math.log(store.price / pref)) / Math.LN2,
     product: content.industry.qualityTiers[company.qualityTier].quality,
     service: store.serviceLevel,
-    atmosphere,
+    atmosphere: atmosphereScore(content, store.amenities),
   };
   const stars = {
     price: toStars(scores.price),
@@ -48,6 +47,18 @@ export function storeReviews(
   };
   const mean = REVIEW_CRITERIA.reduce((a, c) => a + stars[c], 0) / REVIEW_CRITERIA.length;
   return { stars, overall: Math.round(mean * 10) / 10, basedOn: Math.round(store.lastMonth.served) };
+}
+
+/** Không gian: Σ reviewWeight tiện ích đang bật / Σ reviewWeight mọi tiện ích (0 nếu content không có tiện ích). */
+export function atmosphereScore(content: LoadedContent, active: readonly string[]): number {
+  let on = 0;
+  let all = 0;
+  for (const id of Object.keys(content.industry.storeAmenities).sort()) {
+    const w = content.industry.storeAmenities[id]?.reviewWeight ?? 0;
+    all += w;
+    if (active.includes(id)) on += w;
+  }
+  return all > 0 ? on / all : 0;
 }
 
 export interface AreaShare {
@@ -78,10 +89,13 @@ export function areaShares(state: GameState, content: LoadedContent, storeId: St
       (c) => distanceKm(scenario.city, origin, c.district) <= segment.maxTravelKm,
     );
     const utilities = reach.map((c) =>
-      storeUtility(segment, state.macro.incomeIndex, {
-        ...c.x,
-        distanceKm: distanceKm(scenario.city, origin, c.district),
-      }),
+      candidateUtility(
+        segmentId,
+        segment,
+        state.macro.incomeIndex,
+        c,
+        distanceKm(scenario.city, origin, c.district),
+      ),
     );
     const { outside: o, shares } = logitShares(segment.outsideUtility, utilities);
     total += visits;

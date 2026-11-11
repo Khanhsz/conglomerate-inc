@@ -44,6 +44,15 @@ const moneyLevels = z
   .refine((v) => levelsOk(v, 0), LEVELS_MESSAGE);
 const numberLevels = (item: z.ZodNumber, neutral: number) =>
   z.tuple([item, item, item, item]).refine((v) => levelsOk(v, neutral), LEVELS_MESSAGE);
+const storeAmenityDef = z.strictObject({
+  name: z.string().min(1),
+  setupCost: moneyCents,
+  monthlyCost: moneyCents,
+  utility: nonNegative,
+  segmentWeight: z.record(id, unit),
+  reviewWeight: positive,
+});
+
 const hrPolicies = z.strictObject({
   trainingCostPerStaffMonthly: moneyLevels,
   trainingMult: numberLevels(positive, 1),
@@ -130,6 +139,7 @@ export const industrySchema = z
       board: departmentDef,
     }),
     hrPolicies,
+    storeAmenities: z.record(id, storeAmenityDef),
   })
   .superRefine((ind, ctx) => {
     const min = ind.minStaffPerStore;
@@ -139,6 +149,17 @@ export const industrySchema = z
         path: ['newStore', 'staff'],
         message: `phải ≥ minStaffPerStore (${min})`,
       });
+    }
+    for (const [amenityId, a] of Object.entries(ind.storeAmenities)) {
+      for (const s of Object.keys(a.segmentWeight)) {
+        if (!(s in ind.segments)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['storeAmenities', amenityId, 'segmentWeight', s],
+            message: `phân khúc "${s}" không tồn tại`,
+          });
+        }
+      }
     }
     if (ind.aiInitialStaff < min) {
       ctx.addIssue({ code: 'custom', path: ['aiInitialStaff'], message: `phải ≥ minStaffPerStore (${min})` });

@@ -100,6 +100,7 @@ describe('buildMonthlyStatements — hand-checked month', () => {
       cogs: 1_215_000,
       grossProfit: 3_510_000,
       wages: 1_155_000,
+      amenities: 0,
       rent: 900_000,
       marketing: 0,
       admin: 300_000,

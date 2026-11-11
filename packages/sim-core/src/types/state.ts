@@ -115,6 +115,9 @@ export interface StoreMonthToDate {
   /** Đào tạo và phúc lợi (M1.6, §16), cent float. */
   trainingAccrued: number;
   benefitsAccrued: number;
+  /** Tiện ích cửa hàng (M1.7, §21): chi phí tháng cộng dồn (cent float) và phí lắp đặt đã trả trong tháng. */
+  amenitiesAccrued: number;
+  amenitiesSetup: Money;
 }
 
 /** Kết quả tháng trước của một cửa hàng (tiền đã làm tròn như khi ghi sổ). */
@@ -135,6 +138,8 @@ export interface StoreLastMonth {
   readonly training: Money;
   readonly benefits: Money;
   readonly bonus: Money;
+  /** Tiện ích cửa hàng: lắp đặt + chi phí tháng (M1.7). */
+  readonly amenities: Money;
 }
 
 export interface StoreDayRecord {
@@ -177,6 +182,8 @@ export interface Store {
   overrides: { wage: boolean; staff: boolean };
   /** Thưởng tháng trước / nhân viên (cent float), cộng vào lương khi tính tinh thần (§16.4). */
   bonusPerHead: number;
+  /** Tiện ích đang bật, id đã sort (M1.7, §21). */
+  amenities: string[];
 }
 
 /** Khoản vay kỳ hạn (economic-model §7.1). Dùng từ bước 05. */

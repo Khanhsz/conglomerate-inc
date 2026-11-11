@@ -11,6 +11,7 @@ const PNL_ROWS: readonly (readonly [keyof PnL, string, boolean?])[] = [
   ['cogs', 'COGS'],
   ['grossProfit', 'Gross profit', true],
   ['wages', 'Wages'],
+  ['amenities', 'Tiện ích cửa hàng'],
   ['rent', 'Rent'],
   ['marketing', 'Marketing'],
   ['admin', 'Admin'],

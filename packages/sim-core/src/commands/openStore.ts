@@ -88,6 +88,7 @@ export const openStore = {
       history: [],
       overrides: { wage: false, staff: false },
       bonusPerHead: 0,
+      amenities: [],
     };
     draft.storeIds.push(id); // id tăng dần và đệm 0 → mảng vẫn đã sort
     draft.events.push({

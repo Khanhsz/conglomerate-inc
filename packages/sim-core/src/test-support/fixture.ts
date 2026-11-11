@@ -96,6 +96,24 @@ const industry: IndustryContent = {
     benefitsMorale: [0, 0.05, 0.09, 0.12],
     bonusRateMax: 0.2,
   },
+  storeAmenities: {
+    wifi: {
+      name: 'Wi-Fi miễn phí',
+      setupCost: money(50_000),
+      monthlyCost: money(30_000),
+      utility: 0.2,
+      segmentWeight: { students: 1, office: 0.8 },
+      reviewWeight: 1,
+    },
+    lounge: {
+      name: 'Khu ghế lounge',
+      setupCost: money(800_000),
+      monthlyCost: money(40_000),
+      utility: 0.25,
+      segmentWeight: { students: 0.5, office: 0.4 },
+      reviewWeight: 2,
+    },
+  },
 };
 
 const scenario: ScenarioContent = {

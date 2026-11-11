@@ -7,6 +7,7 @@ import type { MonthlyStatements, PnL } from '../types/statements';
 const EXPENSE_LINES: readonly (readonly [string, keyof PnL])[] = [
   ['COGS', 'cogs'],
   ['Wages', 'wages'],
+  ['StoreAmenities', 'amenities'],
   ['Rent', 'rent'],
   ['Marketing', 'marketing'],
   ['Admin', 'admin'],

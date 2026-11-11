@@ -12,6 +12,7 @@ import { repayLoan } from './repayLoan';
 import { setMarketingBudget } from './setMarketingBudget';
 import { setPrice } from './setPrice';
 import { setQualityTier } from './setQualityTier';
+import { setStoreAmenity } from './setStoreAmenity';
 import { setStaff } from './setStaff';
 import { setWage } from './setWage';
 import { takeLoan } from './takeLoan';
@@ -58,6 +59,8 @@ export function validateCommand(state: GameState, ctx: SimContext, cmd: Command)
       return setHrPolicy.validate(state, ctx, cmd);
     case 'ClearOverride':
       return clearOverride.validate(state, ctx, cmd);
+    case 'SetStoreAmenity':
+      return setStoreAmenity.validate(state, ctx, cmd);
   }
 }
 
@@ -98,6 +101,8 @@ export function applyCommand(draft: GameState, ctx: SimContext, cmd: Command): v
       return setHrPolicy.apply(draft, ctx, cmd);
     case 'ClearOverride':
       return clearOverride.apply(draft, ctx, cmd);
+    case 'SetStoreAmenity':
+      return setStoreAmenity.apply(draft, ctx, cmd);
   }
 }
 

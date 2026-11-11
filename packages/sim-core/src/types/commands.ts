@@ -94,6 +94,11 @@ export type Command =
       readonly type: 'ClearOverride';
       readonly companyId: CompanyId;
       readonly payload: { readonly storeId: StoreRef; readonly field: 'wage' };
+    }
+  | {
+      readonly type: 'SetStoreAmenity';
+      readonly companyId: CompanyId;
+      readonly payload: { readonly storeId: StoreRef; readonly amenity: string; readonly on: boolean };
     };
 
 export type CommandType = Command['type'];
@@ -116,6 +121,7 @@ export const COMMAND_TYPES = [
   'SetCreditLine',
   'SetHrPolicy',
   'ClearOverride',
+  'SetStoreAmenity',
 ] as const satisfies readonly CommandType[];
 
 export type Validation = { readonly ok: true } | { readonly ok: false; readonly reason: string };
