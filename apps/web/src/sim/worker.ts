@@ -4,7 +4,7 @@
  * Thời gian thực chỉ quyết định khi nào gọi step(); bản thân sim vẫn deterministic.
  */
 import { createGame, enqueue, step, validateCommand, whatIf, type GameState } from '@game/sim-core';
-import { newAlertKeys, type Alert, type AlertKind } from './alerts';
+import { computeAlerts, newAlertKeys, type Alert, type AlertKind } from './alerts';
 import { loadGameContent } from './content';
 import type { FromWorker, Speed, ToWorker } from './protocol';
 import { buildSnapshot, playerId, shouldPause } from './snapshot';
@@ -15,24 +15,28 @@ let speed: Speed = 0;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let inspected: string | null = null;
 let pauseKinds: ReadonlySet<AlertKind> = new Set();
-let lastAlerts: readonly Alert[] = [];
+/** Cảnh báo đã thấy; khởi tạo từ state ban đầu để cảnh báo có sẵn không bị coi là mới. */
+let lastAlerts: readonly Alert[] = computeAlerts(state);
+let lastPublishAt = 0;
+/** Khoảng tối thiểu giữa hai snapshot khi đang chạy (ms). */
+const MIN_PUBLISH_MS = 100;
 
 function send(message: FromWorker): void {
   postMessage(message);
 }
 
-/** Dựng snapshot; nếu có cảnh báo mới thuộc loại được chọn thì tạm dừng trước khi gửi. */
-function publish(checkAlerts = false): void {
-  let snapshot = buildSnapshot(state, content, speed, inspected);
-  if (checkAlerts) {
-    const fresh = new Set(newAlertKeys(lastAlerts, snapshot.alerts));
-    if (speed > 0 && snapshot.alerts.some((a) => fresh.has(a.key) && pauseKinds.has(a.kind))) {
-      speed = 0;
-      snapshot = { ...snapshot, speed };
-    }
-  }
-  lastAlerts = snapshot.alerts;
-  send({ type: 'snapshot', snapshot });
+/** Dựng và gửi snapshot (đọc state hiện tại, không đổi gì). */
+function publish(): void {
+  lastPublishAt = performance.now();
+  send({ type: 'snapshot', snapshot: buildSnapshot(state, content, speed, inspected) });
+}
+
+/** Cảnh báo mới thuộc loại người chơi chọn thì tạm dừng; xét mỗi tick dù snapshot có được gửi hay không. */
+function checkAlerts(): void {
+  const alerts = computeAlerts(state);
+  const fresh = new Set(newAlertKeys(lastAlerts, alerts));
+  if (speed > 0 && alerts.some((a) => fresh.has(a.key) && pauseKinds.has(a.kind))) speed = 0;
+  lastAlerts = alerts;
 }
 
 function schedule(): void {
@@ -44,7 +48,9 @@ function tick(): void {
   const prev = state;
   state = step(state, content);
   if (shouldPause(prev, state)) speed = 0;
-  publish(true);
+  checkAlerts();
+  // Ở 16× gửi tối đa ~10 snapshot/giây; tạm dừng thì gửi ngay để UI khớp state.
+  if (speed === 0 || performance.now() - lastPublishAt >= MIN_PUBLISH_MS) publish();
   schedule();
 }
 
@@ -54,7 +60,7 @@ function handle(message: ToWorker): void {
       state = createGame(content, message.seed === undefined ? {} : { seed: message.seed });
       speed = 0;
       inspected = null;
-      lastAlerts = [];
+      lastAlerts = computeAlerts(state);
       break;
     case 'command': {
       // Kiểm tra ngay để báo lỗi tức thì; lệnh hợp lệ vào hàng đợi và áp dụng ở đầu tick kế tiếp.

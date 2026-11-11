@@ -17,7 +17,7 @@ import {
 } from '../systems/demand';
 import { moraleTarget, productivity } from '../systems/operations';
 import type { LoadedContent, SegmentDef } from '../types/content';
-import type { GameState, Store } from '../types/state';
+import type { Company, GameState, Store } from '../types/state';
 
 export type UtilityPart = 'quality' | 'price' | 'brand' | 'distance' | 'service' | 'atmosphere';
 const PARTS: readonly UtilityPart[] = ['quality', 'price', 'brand', 'distance', 'service', 'atmosphere'];
@@ -252,7 +252,6 @@ export function whatIf(
   const store = getStore(state, storeId);
   const company = state.companies[store.companyId];
   if (!company) throw new Error(`unknown company ${store.companyId}`);
-  const { industry } = content;
   const price = change.price ?? store.price;
   const staff = change.staff ?? store.staff;
   const wageMonthly = change.wageMonthly ?? store.wageMonthly;
@@ -260,6 +259,20 @@ export function whatIf(
   // Bản sao nông: chỉ thay giá của cửa hàng này (state gốc không bị chạm).
   const modified: GameState = { ...state, stores: { ...state.stores, [storeId]: { ...store, price } } };
   const demand = expectedDemand(modified, content).byStore[storeId] ?? 0;
+  return estimate(state, content, store, company, { price, staff, wageMonthly }, demand);
+}
+
+/** Kinh tế một ngày của cửa hàng với cầu kỳ vọng `demand` đã biết (dùng chung cho whatIf và priceCurve). */
+function estimate(
+  state: GameState,
+  content: LoadedContent,
+  store: Store,
+  company: Company,
+  levers: { readonly price: Money; readonly staff: number; readonly wageMonthly: Money },
+  demand: number,
+): WhatIfResult {
+  const { industry } = content;
+  const { price, staff, wageMonthly } = levers;
   const capacity = staff * industry.customersPerStaffPerDay * productivity(store.morale);
   const served = Math.min(demand, capacity);
   const priceIndex = state.macro.priceIndex;
@@ -308,19 +321,84 @@ export function priceCurve(
   const lo = Math.ceil((PRICE_BAND.min * pref) / AI_PRICE_TICK) * AI_PRICE_TICK;
   const hi = Math.floor((PRICE_BAND.max * pref) / AI_PRICE_TICK) * AI_PRICE_TICK;
   const out: PricePoint[] = [];
+  const prices: Money[] = [];
   let last = -1;
   for (let i = 0; i < points; i++) {
     const raw = lo * (hi / lo) ** (i / (points - 1));
     const price = Math.min(hi, Math.max(lo, Math.round(raw / AI_PRICE_TICK) * AI_PRICE_TICK));
     if (price <= last) continue;
     last = price;
-    const r = whatIf(state, content, storeId, { price: money(price) });
+    prices.push(money(price));
+  }
+  // Nhanh: chỉ utility của cửa hàng này đổi theo giá, nên phần "mọi lựa chọn khác" của mỗi ô tính một lần (§3.3).
+  const store = getStore(state, storeId);
+  const company = state.companies[store.companyId];
+  if (!company) throw new Error(`unknown company ${store.companyId}`);
+  const demands = ownDemandAtPrices(state, content, storeId, prices);
+  const levers = { staff: store.staff, wageMonthly: store.wageMonthly };
+  prices.forEach((price, i) => {
+    const r = estimate(state, content, store, company, { ...levers, price }, demands[i] ?? 0);
     out.push({
       price: r.price,
       expectedDemand: r.expectedDemand,
       served: r.served,
       contributionPerDay: r.contributionPerDay,
     });
+  });
+  return out;
+}
+
+/**
+ * Cầu kỳ vọng của một cửa hàng ở từng mức giá, các yếu tố khác giữ nguyên. Cùng logit §3.3 với expectedDemand:
+ * với mỗi ô (quận nguồn, phân khúc), share = 1 / (1 + exp(LSE(các lựa chọn khác) − u(P))).
+ */
+export function ownDemandAtPrices(
+  state: GameState,
+  content: LoadedContent,
+  storeId: string,
+  prices: readonly number[],
+): number[] {
+  const { industry, scenario } = content;
+  const { city } = scenario;
+  const incomeIndex = state.macro.incomeIndex;
+  const candidates = demandCandidates(state, content);
+  const me = candidates.find((c) => c.id === storeId);
+  const out = prices.map(() => 0);
+  if (!me) return out;
+  for (const origin of city.districts) {
+    for (const segmentId of Object.keys(industry.segments).sort()) {
+      const segment = industry.segments[segmentId];
+      if (!segment) continue;
+      const visits = origin.pop * (origin.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
+      if (visits === 0) continue;
+      const ownKm = distanceKm(city, origin, me.district);
+      if (ownKm > segment.maxTravelKm) continue;
+      const others: number[] = [segment.outsideUtility];
+      for (const c of candidates) {
+        if (c.id === storeId) continue;
+        const km = distanceKm(city, origin, c.district);
+        if (km <= segment.maxTravelKm) others.push(candidateUtility(segmentId, segment, incomeIndex, c, km));
+      }
+      let max = -Infinity;
+      for (const u of others) if (u > max) max = u;
+      let sumExp = 0;
+      for (const u of others) sumExp += Math.exp(u - max);
+      const logSumOthers = max + Math.log(sumExp);
+      // utility ở giá tham chiếu (ln 1 = 0) rồi trừ phần giá cho từng mức
+      const atRef = candidateUtility(
+        segmentId,
+        segment,
+        incomeIndex,
+        { ...me, x: { ...me.x, price: me.x.refPrice } },
+        ownKm,
+      );
+      const eta = segment.incomeElasticityOfPriceSensitivity;
+      const priceBeta = eta === 0 ? segment.betas.p : segment.betas.p / incomeIndex ** eta;
+      prices.forEach((p, i) => {
+        const u = atRef - priceBeta * Math.log(p / me.x.refPrice);
+        out[i] = (out[i] ?? 0) + visits / (1 + Math.exp(logSumOthers - u));
+      });
+    }
   }
   return out;
 }

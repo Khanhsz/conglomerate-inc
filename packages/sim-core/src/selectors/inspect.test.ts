@@ -175,3 +175,14 @@ describe('store history (A3)', () => {
     expect(st.history.at(-1)).toEqual(st.lastMonth);
   }, 30_000);
 });
+
+describe('priceCurve fast path (ownDemandAtPrices)', () => {
+  it('matches whatIf (full recompute) at every point', () => {
+    for (const pt of priceCurve(game, content, PLAYER_E)) {
+      const full = whatIf(game, content, PLAYER_E, { price: pt.price });
+      expect(pt.expectedDemand).toBeCloseTo(full.expectedDemand, 9);
+      expect(pt.served).toBeCloseTo(full.served, 9);
+      expect(pt.contributionPerDay).toBe(full.contributionPerDay);
+    }
+  });
+});
