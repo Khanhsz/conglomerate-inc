@@ -9,7 +9,16 @@ import type { Validation } from '../types/commands';
 import type { DistrictDef } from '../types/content';
 import type { SimContext } from '../types/context';
 import type { GameState } from '../types/state';
-import { companyProblem, findDistrict, OK, reject, spendingPower, type CommandOf } from './common';
+import { effectiveNewHireSkill, policyWage } from '../hr';
+import {
+  companyProblem,
+  findDistrict,
+  getCompany,
+  OK,
+  reject,
+  spendingPower,
+  type CommandOf,
+} from './common';
 
 export function storeCapex(state: GameState, district: DistrictDef): Money {
   return mul(district.fitOutCost, state.macro.priceIndex);
@@ -54,6 +63,7 @@ export const openStore = {
       debits: [{ account: ACC.PPE, amount: capex }],
     });
     const priceIndex = draft.macro.priceIndex;
+    const company = getCompany(draft, cmd.companyId);
     draft.stores[id] = {
       id,
       companyId: cmd.companyId,
@@ -62,13 +72,13 @@ export const openStore = {
       status: 'open',
       price: mul(industry.referencePrice, priceIndex),
       staff: industry.newStore.staff,
-      wageMonthly: mul(draft.macro.marketWageMonthly, priceIndex),
+      wageMonthly: policyWage(draft, company.hrPolicy) ?? mul(draft.macro.marketWageMonthly, priceIndex),
       rentMonthly: mul(district.rentMonthly, priceIndex),
       rentResetDay: ctx.day + RENT_TERM_DAYS,
       capex,
       accumDep: ZERO,
       morale: industry.newStore.morale,
-      skill: industry.newHireSkill,
+      skill: effectiveNewHireSkill(ctx.content, company),
       serviceLevel: industry.newStore.serviceLevel,
       today: { demand: 0, served: 0, lost: 0, capacity: 0 },
       mtd: emptyMonthToDate(),
@@ -76,6 +86,8 @@ export const openStore = {
       negContributionMonths: 0,
       recentDays: [],
       history: [],
+      overrides: { wage: false, staff: false },
+      bonusPerHead: 0,
     };
     draft.storeIds.push(id); // id tăng dần và đệm 0 → mảng vẫn đã sort
     draft.events.push({

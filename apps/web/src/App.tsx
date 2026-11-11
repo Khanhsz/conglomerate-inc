@@ -3,6 +3,7 @@ import { CityMap } from './components/CityMap';
 import { EventsPanel } from './components/EventsPanel';
 import { FinanceTab } from './components/FinanceTab';
 import { GameOverDialog } from './components/GameOverDialog';
+import { HrDept } from './components/HrDept';
 import { MarketTab } from './components/MarketTab';
 import { OfficeTab } from './components/OfficeTab';
 import { StoreTable } from './components/StoreTable';
@@ -12,6 +13,7 @@ import { useUi, type Tab } from './store';
 const TABS: readonly (readonly [Tab, string])[] = [
   ['stores', 'Cửa hàng'],
   ['office', 'Văn phòng'],
+  ['hr', 'Nhân sự'],
   ['finance', 'Tài chính'],
   ['market', 'Thị trường'],
 ];
@@ -40,6 +42,7 @@ export function App() {
           </nav>
           {tab === 'stores' && <StoreTable snap={snapshot} />}
           {tab === 'office' && <OfficeTab snap={snapshot} />}
+          {tab === 'hr' && <HrDept snap={snapshot} />}
           {tab === 'finance' && <FinanceTab snap={snapshot} />}
           {tab === 'market' && <MarketTab snap={snapshot} />}
         </section>

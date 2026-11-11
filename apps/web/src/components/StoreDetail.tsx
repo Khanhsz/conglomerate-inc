@@ -85,6 +85,13 @@ export function StoreDetail({ snap }: { snap: Snapshot }) {
               })
             }
           />
+          {snap.hr.view.standardWage !== null && (
+            <p className="small muted" data-testid="wage-policy-note">
+              {snap.hr.view.roster.find((r) => r.storeId === view.storeId)?.wageOverridden
+                ? 'Lương đặt riêng cho cửa hàng này (không theo lương chuẩn công ty).'
+                : `Theo lương chuẩn công ty (${usd(snap.hr.view.standardWage)}). Kéo để đặt riêng.`}
+            </p>
+          )}
           <Slider
             id="slider-wage"
             label="Lương / người / tháng"

@@ -1,5 +1,5 @@
 /** Giá trị rỗng cho số liệu tháng của cửa hàng. */
-import { ZERO } from './money';
+import { sub, sum, ZERO, type Money } from './money';
 import type { StoreLastMonth, StoreMonthToDate } from './types/state';
 
 export function emptyMonthToDate(): StoreMonthToDate {
@@ -12,6 +12,8 @@ export function emptyMonthToDate(): StoreMonthToDate {
     cogs: ZERO,
     wagesAccrued: 0,
     rentAccrued: 0,
+    trainingAccrued: 0,
+    benefitsAccrued: 0,
   };
 }
 
@@ -27,5 +29,13 @@ export function emptyLastMonth(): StoreLastMonth {
     wages: ZERO,
     rent: ZERO,
     depreciation: ZERO,
+    training: ZERO,
+    benefits: ZERO,
+    bonus: ZERO,
   };
+}
+
+/** Lãi đóng góp = doanh thu − giá vốn − lương (gồm đào tạo, phúc lợi, thưởng) − thuê (economic-model §9.3, §16). */
+export function storeContribution(m: StoreLastMonth): Money {
+  return sub(m.revenue, sum([m.cogs, m.wages, m.rent, m.training, m.benefits, m.bonus]));
 }

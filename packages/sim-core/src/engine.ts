@@ -11,7 +11,7 @@ import { ACC } from './ledger/accounts';
 import { createLedger, post } from './ledger/post';
 import { mul, ZERO } from './money';
 import { createRngFactory } from './rng';
-import { emptyOfficeAccrued, noDepartments } from './office';
+import { defaultHrPolicy, emptyOfficeAccrued, noDepartments } from './office';
 import { aiSystem, aiTargetPrice } from './systems/ai';
 import { brandSystem } from './systems/brand';
 import { demandSystem } from './systems/demand';
@@ -20,6 +20,7 @@ import { macroSystem } from './systems/macro';
 import { monthCloseSystem } from './systems/monthClose';
 import { officeSystem } from './systems/office';
 import { operationsSystem } from './systems/operations';
+import { monthlyPolicySystem } from './systems/policies';
 import type { Command, Validation } from './types/commands';
 import type { CompanyDef, LoadedContent } from './types/content';
 import type { SimContext } from './types/context';
@@ -56,6 +57,7 @@ function newCompany(def: CompanyDef, content: LoadedContent): Company {
     departments: noDepartments(),
     officeAccrued: emptyOfficeAccrued(),
     creditLine: { limit: ZERO, commitmentFeeAccrued: 0 },
+    hrPolicy: defaultHrPolicy(),
   };
   return def.kind === 'ai'
     ? {
@@ -173,7 +175,10 @@ export function step(state: GameState, content: LoadedContent): GameState {
   assertContent(state, content);
   const ctx = makeContext(state, content);
   return produce(state, (draft) => {
-    if (ctx.day % DAYS_PER_MONTH === 0 && ctx.day > 0) aiSystem(draft, ctx);
+    if (ctx.day % DAYS_PER_MONTH === 0 && ctx.day > 0) {
+      aiSystem(draft, ctx);
+      monthlyPolicySystem(draft, ctx);
+    }
     applyQueuedCommands(draft, ctx);
     macroSystem(draft, ctx);
     brandSystem(draft, ctx);

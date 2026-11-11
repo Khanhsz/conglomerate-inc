@@ -62,7 +62,7 @@ export function storePnl(state: GameState, companyId: CompanyId, month: number):
       ...lines({
         revenue: m.revenue,
         cogs: m.cogs,
-        wages: m.wages,
+        wages: sum([m.wages, m.training, m.benefits, m.bonus]),
         rent: m.rent,
         depreciation: m.depreciation,
       }),

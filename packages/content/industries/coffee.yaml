@@ -92,3 +92,12 @@ departments:                   # openingCost một lần, fixedMonthly mỗi th�
   finance:   { openingCost: 1000000, fixedMonthly: 300000 }   # $10k, $3k
   marketing: { openingCost: 1500000, fixedMonthly: 350000 }   # $15k, $3.5k
   board:     { openingCost: 2000000, fixedMonthly: 200000 }   # $20k, $2k (chưa gồm lương C-level)
+
+# M1.6 — chính sách phòng Nhân sự (economic-model §16). Mỗi mảng là mức 0–3; mức 0 = như M1. Đề xuất (#59).
+hrPolicies:
+  trainingCostPerStaffMonthly: [0, 2000, 5000, 10000]   # $0 / $20 / $50 / $100 mỗi nhân viên mỗi tháng
+  trainingMult: [1, 1.5, 2, 3]                           # nhân tốc độ tăng kỹ năng
+  trainingNewHire: [0, 0.05, 0.10, 0.15]                 # cộng vào kỹ năng người mới tuyển
+  benefitsShare: [0, 0.03, 0.06, 0.10]                   # phúc lợi = tỷ lệ × lương
+  benefitsMorale: [0, 0.05, 0.09, 0.12]                  # cộng vào tinh thần mục tiêu
+  bonusRateMax: 0.2                                      # thưởng tối đa 20% lãi đóng góp dương

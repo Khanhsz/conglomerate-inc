@@ -36,6 +36,24 @@ export interface DepartmentDef {
   readonly fixedMonthly: Money;
 }
 
+/** Mức chính sách nhân sự 0–3 (economic-model §16); 0 = như M1. */
+export const POLICY_LEVELS = [0, 1, 2, 3] as const;
+export type PolicyLevel = (typeof POLICY_LEVELS)[number];
+/** Một giá trị cho mỗi mức 0–3. */
+export type ByLevel<T> = readonly [T, T, T, T];
+
+/** Chính sách nhân sự (economic-model §16). Mức 0 phải là giá trị trung tính (chi phí 0, hệ số 1, cộng 0). */
+export interface HrPolicyParams {
+  /** Chi phí đào tạo / nhân viên / tháng, trước CPI. */
+  readonly trainingCostPerStaffMonthly: ByLevel<Money>;
+  readonly trainingMult: ByLevel<number>;
+  readonly trainingNewHire: ByLevel<number>;
+  /** Phúc lợi = tỷ lệ × lương. */
+  readonly benefitsShare: ByLevel<number>;
+  readonly benefitsMorale: ByLevel<number>;
+  readonly bonusRateMax: number;
+}
+
 export type SegmentId = string;
 export type DistrictId = string;
 export type CompanyId = string;
@@ -123,6 +141,7 @@ export interface IndustryContent {
   /** M1.6 (economic-model §15). */
   readonly office: { readonly sizes: { readonly [S in OfficeSize]: OfficeSizeDef } };
   readonly departments: { readonly [D in Department]: DepartmentDef };
+  readonly hrPolicies: HrPolicyParams;
 }
 
 export interface MacroParams {

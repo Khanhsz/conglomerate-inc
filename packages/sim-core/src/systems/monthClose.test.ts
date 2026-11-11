@@ -75,6 +75,8 @@ describe('month close entries (economic-model §6, §10)', () => {
       cogs: 0,
       wagesAccrued: 0,
       rentAccrued: 0,
+      trainingAccrued: 0,
+      benefitsAccrued: 0,
     });
     const contribution = pnl.revenue - pnl.cogs - 1_155_000 - 700_000;
     expect(st.negContributionMonths).toBe(contribution < 0 ? 1 : 0);

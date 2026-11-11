@@ -34,6 +34,9 @@ export const setWage = {
 
   apply(draft: GameState, _ctx: SimContext, cmd: CommandOf<'SetWage'>): void {
     const wage = money(cmd.payload.wageMonthly);
-    for (const store of targetStores(draft, cmd.companyId, cmd.payload.storeId)) store.wageMonthly = wage;
+    for (const store of targetStores(draft, cmd.companyId, cmd.payload.storeId)) {
+      store.wageMonthly = wage;
+      store.overrides.wage = true; // đặt tay: không theo lương chuẩn của công ty nữa (§16.1)
+    }
   },
 };

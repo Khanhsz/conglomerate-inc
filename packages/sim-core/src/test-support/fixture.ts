@@ -88,6 +88,14 @@ const industry: IndustryContent = {
     marketing: { openingCost: money(1_500_000), fixedMonthly: money(350_000) },
     board: { openingCost: money(2_000_000), fixedMonthly: money(200_000) },
   },
+  hrPolicies: {
+    trainingCostPerStaffMonthly: [money(0), money(2_000), money(5_000), money(10_000)],
+    trainingMult: [1, 1.5, 2, 3],
+    trainingNewHire: [0, 0.05, 0.1, 0.15],
+    benefitsShare: [0, 0.03, 0.06, 0.1],
+    benefitsMorale: [0, 0.05, 0.09, 0.12],
+    bonusRateMax: 0.2,
+  },
 };
 
 const scenario: ScenarioContent = {

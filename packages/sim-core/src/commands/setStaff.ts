@@ -5,6 +5,7 @@ import type { SimContext } from '../types/context';
 import type { GameState } from '../types/state';
 import {
   companyProblem,
+  getCompany,
   getStore,
   isSafeInt,
   OK,
@@ -12,6 +13,7 @@ import {
   reject,
   type CommandOf,
 } from './common';
+import { effectiveNewHireSkill } from '../hr';
 
 export const setStaff = {
   validate(state: GameState, ctx: SimContext, cmd: CommandOf<'SetStaff'>): Validation {
@@ -35,7 +37,8 @@ export const setStaff = {
     const after = cmd.payload.staff;
     if (after > before) {
       // skill ← (skill × staff_old + skill0 × Δ) / staff_new; giảm người không đổi skill.
-      store.skill = (store.skill * before + ctx.content.industry.newHireSkill * (after - before)) / after;
+      const hire = effectiveNewHireSkill(ctx.content, getCompany(draft, store.companyId));
+      store.skill = (store.skill * before + hire * (after - before)) / after;
     }
     store.staff = after;
   },

@@ -23,7 +23,8 @@ import { currentBalances } from '../ledger/balances';
 import { pay } from '../ledger/payments';
 import { post } from '../ledger/post';
 import { buildMonthlyStatements } from '../ledger/statements';
-import { add, fromFloatCents, money, type Money, mul, sub, sum, ZERO } from '../money';
+import { add, fromFloatCents, money, type Money, mul, pct, sub, sum, ZERO } from '../money';
+import { storeContribution } from '../store';
 import type { CompanyId } from '../types/content';
 import type { SimContext, System } from '../types/context';
 import type { JournalLine, Ledger } from '../types/ledger';
@@ -129,6 +130,38 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
       { account: ACC.Rent, amount: rent },
       { account: ACC.Marketing, amount: marketing },
       { account: ACC.Admin, amount: admin },
+    ],
+  });
+
+  // M1a (M1.6, §16): đào tạo, phúc lợi, rồi thưởng trên lãi đóng góp dương (trước thưởng) → Wages.
+  // Chính sách mặc định: mọi khoản = 0, không ghi bút toán nào.
+  const hrCosts = new Map<string, { training: Money; benefits: Money; bonus: Money }>();
+  for (const s of stores) {
+    const training = fromFloatCents(s.mtd.trainingAccrued);
+    const benefits = fromFloatCents(s.mtd.benefitsAccrued);
+    const beforeBonus = sub(
+      s.mtd.revenue,
+      sum([
+        s.mtd.cogs,
+        fromFloatCents(s.mtd.wagesAccrued),
+        fromFloatCents(s.mtd.rentAccrued),
+        training,
+        benefits,
+      ]),
+    );
+    const bonus = beforeBonus > 0 ? pct(beforeBonus, company.hrPolicy.bonusRate) : ZERO;
+    hrCosts.set(s.id, { training, benefits, bonus });
+    s.bonusPerHead = s.staff > 0 ? bonus / s.staff : 0;
+  }
+  pay(ledger, {
+    companyId,
+    day,
+    memo: memo('đào tạo, phúc lợi, thưởng'),
+    debits: [
+      {
+        account: ACC.Wages,
+        amount: sum([...hrCosts.values()].map((c) => sum([c.training, c.benefits, c.bonus]))),
+      },
     ],
   });
 
@@ -317,9 +350,12 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
       wages: fromFloatCents(s.mtd.wagesAccrued),
       rent: fromFloatCents(s.mtd.rentAccrued),
       depreciation: storeDepreciation.get(s.id) ?? ZERO,
+      training: hrCosts.get(s.id)?.training ?? ZERO,
+      benefits: hrCosts.get(s.id)?.benefits ?? ZERO,
+      bonus: hrCosts.get(s.id)?.bonus ?? ZERO,
     };
     if (s.status === 'open') {
-      const contribution = lastMonth.revenue - lastMonth.cogs - lastMonth.wages - lastMonth.rent;
+      const contribution = storeContribution(lastMonth);
       s.negContributionMonths = contribution < 0 ? s.negContributionMonths + 1 : 0;
     }
     s.lastMonth = lastMonth;

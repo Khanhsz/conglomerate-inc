@@ -4,7 +4,14 @@ import { ACC, DEPARTMENT_ACCOUNT } from '../ledger/accounts';
 import { pay } from '../ledger/payments';
 import { post } from '../ledger/post';
 import { money, mul, sub, toDisplay, ZERO, type Money } from '../money';
-import { DEPARTMENT_LABEL, departmentOpeningCost, officeCapex, officeRent, openDepartments } from '../office';
+import {
+  DEPARTMENT_LABEL,
+  defaultHrPolicy,
+  departmentOpeningCost,
+  officeCapex,
+  officeRent,
+  openDepartments,
+} from '../office';
 import type { Validation } from '../types/commands';
 import { DEPARTMENTS, OFFICE_SIZES, type Department, type OfficeSize } from '../types/content';
 import type { SimContext } from '../types/context';
@@ -59,6 +66,7 @@ export function disposeOffice(
  */
 function closeOne(draft: GameState, ctx: SimContext, company: Company, dept: Department): void {
   company.departments[dept] = null;
+  if (dept === 'hr') company.hrPolicy = defaultHrPolicy();
   if (dept === 'finance' && company.creditLine.limit > 0) {
     company.creditLine.limit = ZERO;
     company.overdraft.limit = defaultOverdraftLimit(draft, ctx, company.id);

@@ -7,7 +7,7 @@ import {
   type LoadedContent,
   type OfficeSize,
 } from './types/content';
-import type { Company, GameState, OfficeAccrued } from './types/state';
+import type { Company, GameState, HrPolicy, OfficeAccrued } from './types/state';
 
 export function noDepartments(): Company['departments'] {
   return { hr: null, product: null, finance: null, marketing: null, board: null };
@@ -59,3 +59,8 @@ export const OFFICE_SIZE_LABEL: { readonly [S in OfficeSize]: string } = {
   medium: 'vừa',
   large: 'lớn',
 };
+
+/** Chính sách nhân sự mặc định = như M1 (economic-model §16). */
+export function defaultHrPolicy(): HrPolicy {
+  return { wageRatio: null, trainingLevel: 0, benefitsLevel: 0, bonusRate: 0 };
+}

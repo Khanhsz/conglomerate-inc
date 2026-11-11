@@ -11,6 +11,7 @@ import {
   MONTHS_PER_YEAR,
   mul,
   financeAdvice,
+  hrView,
   officeView,
   storePnl,
   sub,
@@ -25,6 +26,7 @@ import {
   type QualityTier,
   type StoreRow,
   type FinanceAdvice,
+  type HrView,
   type OfficeView,
   type StorePnl,
 } from '@game/sim-core';
@@ -133,6 +135,8 @@ export interface Snapshot {
   readonly office: OfficeView;
   /** Phòng Tài chính (economic-model §19.1); chi tiết chỉ có khi phòng đã mở. */
   readonly finance: FinanceView;
+  /** Phòng Nhân sự (economic-model §16); chính sách chỉnh được khi phòng đã mở. */
+  readonly hr: { readonly open: boolean; readonly view: HrView };
   /** Lệnh của người chơi đã vào hàng đợi, áp dụng ở đầu ngày kế tiếp. */
   readonly pending: PendingView;
 }
@@ -271,6 +275,7 @@ export function buildSnapshot(
     pending,
     office,
     finance: financeView(state, content, pid),
+    hr: hrSection(state, content, pid),
   };
 }
 
@@ -299,4 +304,10 @@ function financeView(state: GameState, content: LoadedContent, pid: string): Fin
       netCash: sub(m.balanceSheet.cash, m.balanceSheet.overdraft),
     })),
   };
+}
+
+function hrSection(state: GameState, content: LoadedContent, pid: string): Snapshot['hr'] {
+  const view = hrView(state, content, pid);
+  if (!view) throw new Error(`missing player company ${pid}`);
+  return { open: state.companies[pid]?.departments.hr !== null, view };
 }

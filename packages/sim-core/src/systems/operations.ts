@@ -7,6 +7,7 @@ import { ACC } from '../ledger/accounts';
 import { pay } from '../ledger/payments';
 import { post } from '../ledger/post';
 import { add, type Money, mul, ZERO } from '../money';
+import { policyMoraleTarget } from '../hr';
 import type { System } from '../types/context';
 
 /** productivity = 0.7 + 0.6 × morale ∈ [0.7, 1.3] (economic-model §4.1). */
@@ -65,6 +66,12 @@ export const operationsSystem: System = (draft, ctx) => {
     store.mtd.cogs = add(store.mtd.cogs, cogs);
     store.mtd.wagesAccrued += (store.staff * store.wageMonthly) / DAYS_PER_MONTH;
     store.mtd.rentAccrued += store.rentMonthly / DAYS_PER_MONTH;
+    const hr = company.hrPolicy;
+    const hrParams = industry.hrPolicies;
+    store.mtd.trainingAccrued +=
+      (store.staff * hrParams.trainingCostPerStaffMonthly[hr.trainingLevel] * priceIndex) / DAYS_PER_MONTH;
+    store.mtd.benefitsAccrued +=
+      (store.staff * store.wageMonthly * hrParams.benefitsShare[hr.benefitsLevel]) / DAYS_PER_MONTH;
     revenueByCompany[company.id] = add(revenueByCompany[company.id] ?? ZERO, revenue);
     cogsByCompany[company.id] = add(cogsByCompany[company.id] ?? ZERO, cogs);
 
@@ -72,9 +79,14 @@ export const operationsSystem: System = (draft, ctx) => {
     const fill = demand > 0 ? served / demand : 1;
     const serviceTarget = 0.5 * fill + 0.5 * morale0 * skill0;
     store.serviceLevel += industry.serviceAdjustRate * (serviceTarget - store.serviceLevel);
-    const target = moraleTarget(store.wageMonthly / marketWage, industry.moraleWageSensitivity);
+    // §16: thưởng tháng trước cộng vào lương, phúc lợi cộng vào mục tiêu, đào tạo nhân tốc độ tăng kỹ năng.
+    const sigmoid = moraleTarget(
+      (store.wageMonthly + store.bonusPerHead) / marketWage,
+      industry.moraleWageSensitivity,
+    );
+    const target = policyMoraleTarget(sigmoid, hrParams, hr);
     store.morale += industry.moraleAdjustRate * (target - store.morale);
-    store.skill = Math.min(1, skill0 + industry.skillGainPerDay);
+    store.skill = Math.min(1, skill0 + industry.skillGainPerDay * hrParams.trainingMult[hr.trainingLevel]);
 
     store.recentDays.push({ day: ctx.day, demand, served, capacity });
     if (store.recentDays.length > STORE_RECENT_DAYS)

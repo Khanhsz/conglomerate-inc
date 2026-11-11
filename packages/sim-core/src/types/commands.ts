@@ -1,6 +1,6 @@
 /** Lệnh của người chơi / AI (spec §3, ADR-0001 #6). */
 import type { Money } from '../money';
-import type { CompanyId, Department, DistrictId, OfficeSize, QualityTier } from './content';
+import type { CompanyId, Department, DistrictId, OfficeSize, PolicyLevel, QualityTier } from './content';
 
 type StoreRef = string;
 
@@ -79,6 +79,21 @@ export type Command =
       readonly type: 'SetCreditLine';
       readonly companyId: CompanyId;
       readonly payload: { readonly limit: Money };
+    }
+  | {
+      readonly type: 'SetHrPolicy';
+      readonly companyId: CompanyId;
+      readonly payload: {
+        readonly wageRatio?: number | null;
+        readonly trainingLevel?: PolicyLevel;
+        readonly benefitsLevel?: PolicyLevel;
+        readonly bonusRate?: number;
+      };
+    }
+  | {
+      readonly type: 'ClearOverride';
+      readonly companyId: CompanyId;
+      readonly payload: { readonly storeId: StoreRef; readonly field: 'wage' };
     };
 
 export type CommandType = Command['type'];
@@ -99,6 +114,8 @@ export const COMMAND_TYPES = [
   'CloseDepartment',
   'RefinanceLoan',
   'SetCreditLine',
+  'SetHrPolicy',
+  'ClearOverride',
 ] as const satisfies readonly CommandType[];
 
 export type Validation = { readonly ok: true } | { readonly ok: false; readonly reason: string };

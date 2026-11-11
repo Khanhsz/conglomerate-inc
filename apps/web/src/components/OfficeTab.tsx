@@ -7,8 +7,8 @@ import { usd } from '../format';
 /** Chức năng mỗi phòng mở ra (spec M1.6 §6). `ready = false`: phòng mở được nhưng chức năng đang làm. */
 const DEPARTMENT_INFO: { readonly [D in Department]: { readonly does: string; readonly ready: boolean } } = {
   hr: {
-    does: 'Danh sách cửa hàng và tình trạng nhân sự; chính sách đào tạo, phúc lợi, thưởng, lương chuẩn.',
-    ready: false,
+    does: 'Danh sách cửa hàng và tình trạng nhân sự; chính sách đào tạo, phúc lợi, thưởng, lương chuẩn (tab Nhân sự).',
+    ready: true,
   },
   product: {
     does: 'Menu nhiều sản phẩm, giá niêm yết, chọn nhà cung cấp, R&D sản phẩm mới, giá vốn và đánh giá sao.',

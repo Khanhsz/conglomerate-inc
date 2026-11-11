@@ -1,5 +1,5 @@
 /** Cảnh báo vận hành (M1.5 A4), tính từ state ở worker. Hàm thuần. */
-import { ACC, currentBalances, toDisplay, type GameState } from '@game/sim-core';
+import { ACC, currentBalances, storeContribution, toDisplay, type GameState } from '@game/sim-core';
 import { playerId } from './snapshot';
 
 export type AlertKind =
@@ -64,7 +64,7 @@ export function computeAlerts(state: GameState): Alert[] {
       });
     }
     const lm = s.lastMonth;
-    if (lm.days > 0 && lm.revenue - lm.cogs - lm.wages - lm.rent < 0) {
+    if (lm.days > 0 && storeContribution(lm) < 0) {
       alerts.push({
         key: `negativeContribution:${id}`,
         kind: 'negativeContribution',

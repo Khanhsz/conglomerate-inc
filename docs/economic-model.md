@@ -349,6 +349,7 @@ Chính sách công ty: `company.hrPolicy = { wageRatio: number | null, trainingL
 - `wageRatio ≠ null` thì mọi cửa hàng **không ghi đè lương** có `wageMonthly = round(wageRatio × marketWageMonthly × priceIndex)`. Giá trị này áp khi lệnh có hiệu lực, và đầu mỗi tháng (theo CPI).
 - `SetWage` cho một cửa hàng bật `store.overrides.wage = true`. `ClearOverride { storeId, field: 'wage' }` tắt cờ và áp lương chuẩn ngay.
 - `wageRatio` phải nằm trong dải validate của `SetWage` (0.5–3).
+- Áp lại ở tick ngày đầu tháng, sau quyết định AI và trước bước vĩ mô của ngày đó, nên lương chuẩn dùng `priceIndex` cuối tháng trước. Đóng phòng `hr` thì chính sách về mặc định; lương hiện tại của cửa hàng giữ nguyên.
 
 ### 16.2 Đào tạo
 - `trainingLevel = L` thì:

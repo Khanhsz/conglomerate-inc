@@ -11,6 +11,8 @@ export * from './ledger/post';
 export * from './ledger/statements';
 export * from './money';
 export * from './office';
+export { storeContribution } from './store';
+export * from './hr';
 export * from './rng';
 export { selectors, type MarketShares, type StoreRow } from './selectors';
 export {
@@ -36,6 +38,14 @@ export {
   type StorePnlLines,
   type StorePnlRow,
 } from './selectors/finance';
+export {
+  hrView,
+  type BenefitsOption,
+  type HrRosterRow,
+  type HrView,
+  type StaffStatus,
+  type TrainingOption,
+} from './selectors/hr';
 export { storeCapex } from './commands/openStore';
 export { aiPolicy, aiTargetPrice, decideMonthly, targetPrice, type AiPolicy } from './systems/ai';
 export {

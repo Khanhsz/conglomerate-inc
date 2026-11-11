@@ -1,6 +1,7 @@
 /** Đọc state cho UI / balance runner (spec §5). Không mutate. */
 import { currentBalances } from './ledger/balances';
-import { sub, sum, type Money } from './money';
+import type { Money } from './money';
+import { storeContribution } from './store';
 import { expectedDemand } from './systems/demand';
 import type { LoadedContent } from './types/content';
 import type { AccountBalances } from './types/ledger';
@@ -57,7 +58,7 @@ export const selectors = {
         servedToday: s.today.served,
         utilizationToday: s.today.capacity > 0 ? s.today.served / s.today.capacity : null,
         serviceLevel: s.serviceLevel,
-        lastMonthContribution: sub(lm.revenue, sum([lm.cogs, lm.wages, lm.rent])),
+        lastMonthContribution: storeContribution(lm),
       });
     }
     return rows;

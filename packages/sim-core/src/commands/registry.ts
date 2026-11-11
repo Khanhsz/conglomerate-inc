@@ -5,6 +5,7 @@ import type { GameState } from '../types/state';
 import { closeStore } from './closeStore';
 import { isRecord, reject } from './common';
 import { refinanceLoan, setCreditLine } from './finance';
+import { clearOverride, setHrPolicy } from './hr';
 import { closeDepartment, leaseOffice, openDepartment, releaseOffice } from './office';
 import { openStore } from './openStore';
 import { repayLoan } from './repayLoan';
@@ -53,6 +54,10 @@ export function validateCommand(state: GameState, ctx: SimContext, cmd: Command)
       return refinanceLoan.validate(state, ctx, cmd);
     case 'SetCreditLine':
       return setCreditLine.validate(state, ctx, cmd);
+    case 'SetHrPolicy':
+      return setHrPolicy.validate(state, ctx, cmd);
+    case 'ClearOverride':
+      return clearOverride.validate(state, ctx, cmd);
   }
 }
 
@@ -89,6 +94,10 @@ export function applyCommand(draft: GameState, ctx: SimContext, cmd: Command): v
       return refinanceLoan.apply(draft, ctx, cmd);
     case 'SetCreditLine':
       return setCreditLine.apply(draft, ctx, cmd);
+    case 'SetHrPolicy':
+      return setHrPolicy.apply(draft, ctx, cmd);
+    case 'ClearOverride':
+      return clearOverride.apply(draft, ctx, cmd);
   }
 }
 

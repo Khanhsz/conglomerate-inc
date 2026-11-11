@@ -4,7 +4,15 @@
  */
 import type { Money } from '../money';
 import type { Command } from './commands';
-import type { CompanyId, Department, DistrictId, OfficeSize, Personality, QualityTier } from './content';
+import type {
+  CompanyId,
+  Department,
+  DistrictId,
+  OfficeSize,
+  Personality,
+  PolicyLevel,
+  QualityTier,
+} from './content';
 import type { Ledger } from './ledger';
 import type { MonthlyStatements } from './statements';
 
@@ -44,6 +52,17 @@ interface CompanyBase {
   officeAccrued: OfficeAccrued;
   /** Hạn mức tín dụng của phòng Tài chính (§19.1); limit 0 = dùng thấu chi §7.2. Phí cam kết là cent float. */
   creditLine: { limit: Money; commitmentFeeAccrued: number };
+  /** Chính sách phòng Nhân sự (§16); mặc định { null, 0, 0, 0 } = như M1. */
+  hrPolicy: HrPolicy;
+}
+
+export interface HrPolicy {
+  /** Lương chuẩn = wageRatio × lương thị trường cho cửa hàng không ghi đè; null = không đặt. */
+  wageRatio: number | null;
+  trainingLevel: PolicyLevel;
+  benefitsLevel: PolicyLevel;
+  /** Tỷ lệ thưởng trên lãi đóng góp dương của tháng. */
+  bonusRate: number;
 }
 
 export interface Office {
@@ -93,6 +112,9 @@ export interface StoreMonthToDate {
   cogs: Money;
   wagesAccrued: number;
   rentAccrued: number;
+  /** Đào tạo và phúc lợi (M1.6, §16), cent float. */
+  trainingAccrued: number;
+  benefitsAccrued: number;
 }
 
 /** Kết quả tháng trước của một cửa hàng (tiền đã làm tròn như khi ghi sổ). */
@@ -109,6 +131,10 @@ export interface StoreLastMonth {
   readonly rent: Money;
   /** Khấu hao của cửa hàng trong tháng (M1.6, cho P&L theo cửa hàng). */
   readonly depreciation: Money;
+  /** Đào tạo, phúc lợi, thưởng (M1.6, §16); đều ghi vào Wages ở sổ công ty. */
+  readonly training: Money;
+  readonly benefits: Money;
+  readonly bonus: Money;
 }
 
 export interface StoreDayRecord {
@@ -147,6 +173,10 @@ export interface Store {
   recentDays: StoreDayRecord[];
   /** 12 tháng gần nhất (mới nhất ở cuối). */
   history: StoreLastMonth[];
+  /** Trường người chơi đặt tay, không theo chính sách công ty (M1.6). */
+  overrides: { wage: boolean; staff: boolean };
+  /** Thưởng tháng trước / nhân viên (cent float), cộng vào lương khi tính tinh thần (§16.4). */
+  bonusPerHead: number;
 }
 
 /** Khoản vay kỳ hạn (economic-model §7.1). Dùng từ bước 05. */

@@ -1,8 +1,6 @@
 /** Dữ liệu panel "Chi tiết cửa hàng" (M1.5 A1–A3): chỉ cho cửa hàng của người chơi. */
 import {
   inspectStore,
-  sub,
-  sum,
   type Money,
   priceCurve,
   whatIf,
@@ -14,6 +12,7 @@ import {
   type StoreLastMonth,
   type WhatIfChange,
   type WhatIfResult,
+  storeContribution,
 } from '@game/sim-core';
 import { playerId } from './snapshot';
 
@@ -46,7 +45,7 @@ export function buildInspection(
     recentDays: store.recentDays,
     history: store.history.map((m) => ({
       ...m,
-      contribution: sub(m.revenue, sum([m.cogs, m.wages, m.rent])),
+      contribution: storeContribution(m),
     })),
     morale: store.morale,
     skill: store.skill,

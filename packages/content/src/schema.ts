@@ -34,6 +34,24 @@ const officeSizeDef = z.strictObject({
   overheadMonthly: moneyCents,
 });
 const departmentDef = z.strictObject({ openingCost: moneyCents, fixedMonthly: moneyCents });
+/** 4 giá trị cho mức 0–3: mức 0 trung tính (= `neutral`, giữ nguyên M1) và không giảm theo mức. */
+function levelsOk(v: readonly number[], neutral: number): boolean {
+  return v[0] === neutral && v.every((x, i) => i === 0 || x >= (v[i - 1] ?? x));
+}
+const LEVELS_MESSAGE = 'mức 0 phải trung tính (như M1) và giá trị không được giảm theo mức';
+const moneyLevels = z
+  .tuple([moneyCents, moneyCents, moneyCents, moneyCents])
+  .refine((v) => levelsOk(v, 0), LEVELS_MESSAGE);
+const numberLevels = (item: z.ZodNumber, neutral: number) =>
+  z.tuple([item, item, item, item]).refine((v) => levelsOk(v, neutral), LEVELS_MESSAGE);
+const hrPolicies = z.strictObject({
+  trainingCostPerStaffMonthly: moneyLevels,
+  trainingMult: numberLevels(positive, 1),
+  trainingNewHire: numberLevels(unit, 0),
+  benefitsShare: numberLevels(unit, 0),
+  benefitsMorale: numberLevels(unit, 0),
+  bonusRateMax: unit,
+});
 
 const segmentDef = z.strictObject({
   visitsPerPersonPerDay: nonNegative,
@@ -111,6 +129,7 @@ export const industrySchema = z
       marketing: departmentDef,
       board: departmentDef,
     }),
+    hrPolicies,
   })
   .superRefine((ind, ctx) => {
     const min = ind.minStaffPerStore;
