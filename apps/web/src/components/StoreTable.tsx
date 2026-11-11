@@ -1,48 +1,48 @@
-import {
-  MAX_MARKETING_BUDGET_MONTHLY,
-  MAX_STAFF_PER_STORE,
-  money,
-  QUALITY_TIERS,
-  type QualityTier,
-} from '@game/sim-core';
+import { money, QUALITY_TIERS, type QualityTier } from '@game/sim-core';
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
+import { CUBIC_TRACK, fromCubicPosition, toCubicPosition } from '../ui/sliderScale';
 import { int, pct, usd } from '../format';
-import { IntInput, MoneyInput } from './inputs';
+import { Slider } from './Slider';
+import { StoreDetail } from './StoreDetail';
 
 export function StoreTable({ snap }: { snap: Snapshot }) {
-  const send = useUi((s) => s.send);
+  const { send, inspect, inspectedStore } = useUi();
   const companyId = snap.player.id;
-  const command = send;
+  const marketing = snap.limits.marketing;
   return (
     <section>
       <div className="company-controls">
-        <label>
-          Marketing/tháng{' '}
-          <MoneyInput
-            label="Ngân sách marketing tháng"
-            value={snap.player.marketingBudgetMonthly}
+        <div className="grow">
+          <Slider
+            id="slider-marketing"
+            label="Ngân sách marketing / tháng"
+            value={snap.pending.marketingBudgetMonthly ?? snap.player.marketingBudgetMonthly}
+            {...marketing}
+            scale={{
+              track: CUBIC_TRACK,
+              toPosition: (v) => toCubicPosition(v, marketing.max),
+              fromPosition: (p) => fromCubicPosition(p, marketing.max, marketing.step),
+            }}
+            format={(v) => usd(money(v))}
             onCommit={(monthly) =>
-              command({
+              send({
                 type: 'command',
-                command: { type: 'SetMarketingBudget', companyId, payload: { monthly } },
+                command: { type: 'SetMarketingBudget', companyId, payload: { monthly: money(monthly) } },
               })
             }
           />
-        </label>
-        <span className="muted">tối đa {usd(money(MAX_MARKETING_BUDGET_MONTHLY))}</span>
+        </div>
         <label>
           Chất lượng{' '}
           <select
+            id="quality-tier"
             aria-label="Chất lượng"
             value={snap.player.qualityTier}
             onChange={(e) => {
               const tier = QUALITY_TIERS.find((t): t is QualityTier => t === e.target.value);
               if (tier)
-                command({
-                  type: 'command',
-                  command: { type: 'SetQualityTier', companyId, payload: { tier } },
-                });
+                send({ type: 'command', command: { type: 'SetQualityTier', companyId, payload: { tier } } });
             }}
           >
             {QUALITY_TIERS.map((t) => (
@@ -70,71 +70,80 @@ export function StoreTable({ snap }: { snap: Snapshot }) {
               </tr>
             </thead>
             <tbody>
-              {snap.stores.map((r) => (
-                <tr key={r.id} data-testid={`store-${r.id}`}>
-                  <td>{r.districtId.toUpperCase()}</td>
-                  <td>
-                    <MoneyInput
-                      label={`Giá ${r.id}`}
-                      value={r.price}
-                      onCommit={(price) =>
-                        command({
-                          type: 'command',
-                          command: { type: 'SetPrice', companyId, payload: { storeId: r.id, price } },
-                        })
-                      }
-                    />
-                  </td>
-                  <td>
-                    <IntInput
-                      label={`Staff ${r.id}`}
-                      value={r.staff}
-                      min={snap.rules.minStaffPerStore}
-                      max={MAX_STAFF_PER_STORE}
-                      onCommit={(staff) =>
-                        command({
-                          type: 'command',
-                          command: { type: 'SetStaff', companyId, payload: { storeId: r.id, staff } },
-                        })
-                      }
-                    />
-                  </td>
-                  <td>
-                    <MoneyInput
-                      label={`Lương ${r.id}`}
-                      value={r.wageMonthly}
-                      onCommit={(wageMonthly) =>
-                        command({
-                          type: 'command',
-                          command: { type: 'SetWage', companyId, payload: { storeId: r.id, wageMonthly } },
-                        })
-                      }
-                    />
-                  </td>
-                  <td className="num">{int(r.servedToday)}</td>
-                  <td className="num">{pct(r.utilizationToday, 0)}</td>
-                  <td className="num">{r.serviceLevel.toFixed(2)}</td>
-                  <td className={`num ${r.lastMonthContribution < 0 ? 'bad' : ''}`}>
-                    {usd(r.lastMonthContribution)}
-                  </td>
-                  <td>
-                    <button
-                      onClick={() =>
-                        command({
-                          type: 'command',
-                          command: { type: 'CloseStore', companyId, payload: { storeId: r.id } },
-                        })
-                      }
-                    >
-                      Đóng
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {snap.stores.map((r) => {
+                const p = snap.pending.stores[r.id] ?? {};
+                return (
+                  <tr
+                    key={r.id}
+                    data-testid={`store-${r.id}`}
+                    className={r.id === inspectedStore ? 'selected' : ''}
+                  >
+                    <td>{r.districtId.toUpperCase()}</td>
+                    <td className="num" data-testid={`price-${r.id}`}>
+                      {usd(r.price)}
+                      <Pending value={p.price} current={r.price} format={usd} />
+                    </td>
+                    <td className="num">
+                      {r.staff}
+                      <Pending value={p.staff} current={r.staff} format={String} />
+                    </td>
+                    <td className="num">
+                      {usd(r.wageMonthly)}
+                      <Pending value={p.wageMonthly} current={r.wageMonthly} format={usd} />
+                    </td>
+                    <td className="num">{int(r.servedToday)}</td>
+                    <td className="num">{pct(r.utilizationToday, 0)}</td>
+                    <td className="num">{r.serviceLevel.toFixed(2)}</td>
+                    <td className={`num ${r.lastMonthContribution < 0 ? 'bad' : ''}`}>
+                      {usd(r.lastMonthContribution)}
+                    </td>
+                    <td className="actions">
+                      <button
+                        type="button"
+                        data-testid={`inspect-${r.id}`}
+                        onClick={() => inspect(r.id === inspectedStore ? null : r.id)}
+                      >
+                        {r.id === inspectedStore ? 'Ẩn' : 'Điều hành'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          send({
+                            type: 'command',
+                            command: { type: 'CloseStore', companyId, payload: { storeId: r.id } },
+                          })
+                        }
+                      >
+                        Đóng
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+      <StoreDetail snap={snap} />
     </section>
+  );
+}
+
+/** Giá trị đã đặt nhưng chưa áp dụng (game đang dừng hoặc chờ tick kế tiếp). */
+function Pending<T>({
+  value,
+  current,
+  format,
+}: {
+  value: T | undefined;
+  current: T;
+  format: (v: T) => string;
+}) {
+  if (value === undefined || value === current) return null;
+  return (
+    <span className="pending" title="Áp dụng từ đầu ngày mai">
+      {' '}
+      → {format(value)}
+    </span>
   );
 }

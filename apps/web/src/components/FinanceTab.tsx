@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
 import { pct, usd } from '../format';
-import { MoneyInput } from './inputs';
+import { Slider } from './Slider';
 
 const PNL_ROWS: readonly (readonly [keyof PnL, string, boolean?])[] = [
   ['revenue', 'Revenue'],
@@ -170,9 +170,16 @@ export function FinanceTab({ snap }: { snap: Snapshot }) {
       )}
       <h3>Vay</h3>
       <div className="company-controls">
-        <label>
-          Số tiền <MoneyInput label="Số tiền vay" value={principal} onCommit={setPrincipal} />
-        </label>
+        <div className="grow">
+          <Slider
+            id="slider-loan"
+            label="Số tiền vay"
+            value={principal}
+            {...snap.limits.loan}
+            format={(v) => usd(money(v))}
+            onCommit={(v) => setPrincipal(money(v))}
+          />
+        </div>
         <label>
           Kỳ hạn{' '}
           <select aria-label="Kỳ hạn" value={term} onChange={(e) => setTerm(Number(e.target.value))}>

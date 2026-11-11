@@ -1,3 +1,4 @@
+import { AlertsPanel } from './components/AlertsPanel';
 import { CityMap } from './components/CityMap';
 import { EventsPanel } from './components/EventsPanel';
 import { FinanceTab } from './components/FinanceTab';
@@ -40,7 +41,10 @@ export function App() {
           {tab === 'market' && <MarketTab snap={snapshot} />}
         </section>
       </main>
-      <EventsPanel snap={snapshot} />
+      <div className="bottom">
+        <AlertsPanel snap={snapshot} />
+        <EventsPanel snap={snapshot} />
+      </div>
       <GameOverDialog snap={snapshot} />
     </div>
   );

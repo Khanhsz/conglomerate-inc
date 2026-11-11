@@ -21,6 +21,10 @@ import {
   type QualityTier,
   type StoreRow,
 } from '@game/sim-core';
+import { computeAlerts, type Alert } from './alerts';
+import { buildInspection, type InspectionView } from './inspection';
+import { sliderLimits, type Limits } from './limits';
+import { pendingChanges, type PendingView } from './pending';
 import type { Speed } from './protocol';
 
 export interface DistrictView {
@@ -95,6 +99,13 @@ export interface Snapshot {
   /** 50 event gần nhất, mới nhất trước. */
   readonly events: readonly GameEvent[];
   readonly gameOver: BankruptEvent | null;
+  /** Giới hạn thanh kéo, khớp luật validate hiện tại. */
+  readonly limits: Limits;
+  readonly alerts: readonly Alert[];
+  /** Chi tiết cửa hàng đang xem (chỉ cửa hàng của người chơi). */
+  readonly inspection: InspectionView | null;
+  /** Lệnh của người chơi đã vào hàng đợi, áp dụng ở đầu ngày kế tiếp. */
+  readonly pending: PendingView;
 }
 
 const STATEMENT_MONTHS = 12;
@@ -112,7 +123,12 @@ export function playerId(state: GameState): string {
   return id;
 }
 
-export function buildSnapshot(state: GameState, content: LoadedContent, speed: Speed): Snapshot {
+export function buildSnapshot(
+  state: GameState,
+  content: LoadedContent,
+  speed: Speed,
+  inspectedStoreId: string | null = null,
+): Snapshot {
   const pid = playerId(state);
   const player = state.companies[pid];
   if (!player) throw new Error(`missing player company ${pid}`);
@@ -120,6 +136,7 @@ export function buildSnapshot(state: GameState, content: LoadedContent, speed: S
   const day = state.clock.day;
   const month = monthOf(day);
   const balances = currentBalances(state.ledger, pid);
+  const pending = pendingChanges(state);
   const shares = selectors.marketShares(state, content);
 
   const openStores = state.storeIds.flatMap((id) => {
@@ -213,6 +230,13 @@ export function buildSnapshot(state: GameState, content: LoadedContent, speed: S
     outsideShare: 1 - shares.industryShare,
     events,
     gameOver,
+    limits: sliderLimits(state, content),
+    alerts: computeAlerts(state),
+    inspection:
+      inspectedStoreId === null
+        ? null
+        : buildInspection(state, content, inspectedStoreId, pending.stores[inspectedStoreId]),
+    pending,
   };
 }
 

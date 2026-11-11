@@ -7,6 +7,22 @@
     "lib": ["ES2022", "WebWorker"],
     "types": ["vite/client"]
   },
-  "include": ["src/sim/worker.ts", "src/sim/content.ts", "src/sim/protocol.ts", "src/sim/snapshot.ts"],
-  "references": [{ "path": "../../packages/sim-core" }, { "path": "../../packages/content" }]
+  "include": [
+    "src/sim/worker.ts",
+    "src/sim/content.ts",
+    "src/sim/protocol.ts",
+    "src/sim/snapshot.ts",
+    "src/sim/alerts.ts",
+    "src/sim/inspection.ts",
+    "src/sim/limits.ts",
+    "src/sim/pending.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/sim-core"
+    },
+    {
+      "path": "../../packages/content"
+    }
+  ]
 }
