@@ -4,6 +4,7 @@ import { STORE_TABS, useUi, type StoreTab } from '../store';
 import { int, pct, signedUsd, usd } from '../format';
 import { storeAdvice } from './advisors';
 import { AdvisorStrip, KpiPair } from './Parts';
+import { StorePlan } from './Plans';
 import { ScreenShell } from './ScreenShell';
 import { StoreDetail } from './StoreDetail';
 
@@ -43,6 +44,12 @@ export function StoreScreen({ snap, storeId, tab }: { snap: Snapshot; storeId: s
       onClose={close}
       advisor={<StoreAdvisor snap={snap} storeId={storeId} />}
     >
+      <StorePlan
+        staff={row.staff}
+        capacity={snap.inspection?.storeId === storeId ? snap.inspection.report.capacityToday : 0}
+        served={row.servedToday}
+        lost={snap.inspection?.storeId === storeId ? snap.inspection.report.lostToday : 0}
+      />
       {tab === 'ops' && <StoreKpis snap={snap} storeId={storeId} />}
       {tab === 'ops' && <StoreDetail snap={snap} />}
       {tab === 'product' && (

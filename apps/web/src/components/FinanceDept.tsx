@@ -9,6 +9,7 @@ import { useState } from 'react';
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
 import { pct, usd } from '../format';
+import { DeptLocked } from './DeptLocked';
 import { Slider } from './Slider';
 import { TrendChart } from './TrendChart';
 
@@ -33,21 +34,10 @@ function adviceText(code: AdviceCode, a: FinanceAdvice): string {
 
 /** Phòng Tài chính (economic-model §19.1): xu hướng, P&L theo cửa hàng, tư vấn, tái cấp vốn, hạn mức tín dụng. */
 export function FinanceDept({ snap }: { snap: Snapshot }) {
-  const { send, openHq } = useUi();
+  const { send } = useUi();
   const fin = snap.finance;
   if (!fin.open) {
-    return (
-      <article className="card locked" data-testid="finance-locked">
-        <h3>Phòng Tài chính chưa mở</h3>
-        <p className="small">
-          Mở phòng Tài chính ở tab Văn phòng để xem báo cáo hợp nhất theo cửa hàng, biểu đồ xu hướng, nhận tư
-          vấn vay, tái cấp vốn và mở hạn mức tín dụng.
-        </p>
-        <button type="button" className="link" onClick={() => openHq('office')}>
-          Đến Văn phòng →
-        </button>
-      </article>
-    );
+    return <DeptLocked snap={snap} dept="finance" testId="finance-locked" />;
   }
   const labels = fin.trend.map((t) => monthLabel(t.month));
   const a = fin.advice;

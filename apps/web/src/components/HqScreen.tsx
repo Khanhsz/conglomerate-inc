@@ -3,10 +3,12 @@ import type { Snapshot } from '../sim/snapshot';
 import { HQ_TABS, useUi, type HqTab } from '../store';
 import { CUBIC_TRACK, fromCubicPosition, toCubicPosition } from '../ui/sliderScale';
 import { pct, signedUsd, usd } from '../format';
+import { DeptLocked } from './DeptLocked';
 import { FinanceTab } from './FinanceTab';
 import { HrDept } from './HrDept';
 import { MarketTab } from './MarketTab';
 import { OfficeTab } from './OfficeTab';
+import { FloorPlan } from './Plans';
 import { hqAdvice } from './advisors';
 import { AdvisorStrip, KpiPair, type Kpi, type Role } from './Parts';
 import { ScreenShell } from './ScreenShell';
@@ -43,10 +45,20 @@ export function HqScreen({ snap, tab }: { snap: Snapshot; tab: HqTab }) {
       onClose={openMap}
       advisor={<HqAdvisor snap={snap} tab={tab} />}
     >
+      <FloorPlan
+        slots={office?.slots ?? 0}
+        open={snap.office.departments.filter((d) => d.openedDay !== null).map((d) => d.dept)}
+        active={tab === 'office' ? null : tab}
+        trainingLevel={snap.hr.view.policy.trainingLevel}
+        hasOffice={office !== null}
+      />
       <HqKpis snap={snap} tab={tab} />
       {tab === 'office' && <OfficeTab snap={snap} />}
       {tab === 'finance' && <FinanceTab snap={snap} />}
       {tab === 'hr' && <HrDept snap={snap} />}
+      {(tab === 'product' || tab === 'marketing' || tab === 'board') && !opened(tab) && (
+        <DeptLocked snap={snap} dept={tab} testId={`${tab}-locked`} />
+      )}
       {tab === 'product' && <ProductHq snap={snap} />}
       {tab === 'marketing' && <MarketingHq snap={snap} />}
       {tab === 'board' && (

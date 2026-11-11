@@ -2,6 +2,7 @@ import { type HrPolicy, type PolicyLevel, type StaffStatus } from '@game/sim-cor
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
 import { pct, usd } from '../format';
+import { DeptLocked } from './DeptLocked';
 import { Slider } from './Slider';
 
 const LEVEL_NAME: { readonly [L in PolicyLevel]: string } = {
@@ -20,7 +21,7 @@ const STATUS: { readonly [S in StaffStatus]: readonly [string, string] } = {
 
 /** Phòng Nhân sự (economic-model §16): tình trạng nhân sự từng cửa hàng và chính sách công ty. */
 export function HrDept({ snap }: { snap: Snapshot }) {
-  const { send, openHq } = useUi();
+  const { send } = useUi();
   const companyId = snap.player.id;
   const { open, view } = snap.hr;
   const setPolicy = (payload: Partial<HrPolicy>) =>
@@ -28,28 +29,9 @@ export function HrDept({ snap }: { snap: Snapshot }) {
 
   return (
     <section className="hr" data-testid="hr-dept">
-      {!open && (
-        <article className="card locked" data-testid="hr-locked">
-          <h3>Phòng Nhân sự chưa mở</h3>
-          <p className="small">
-            Bảng dưới đây chỉ để xem. Mở phòng Nhân sự ở tab Văn phòng để đặt lương chuẩn cho cả chuỗi, chính
-            sách đào tạo, phúc lợi và thưởng theo lợi nhuận.
-          </p>
-          <button type="button" className="link" onClick={() => openHq('office')}>
-            Đến Văn phòng →
-          </button>
-        </article>
-      )}
+      {!open && <DeptLocked snap={snap} dept="hr" testId="hr-locked" />}
 
       <dl className="kv hr-summary">
-        <div className="kv-row">
-          <dt>Nhân viên</dt>
-          <dd>{view.totals.staff}</dd>
-        </div>
-        <div className="kv-row">
-          <dt>Tinh thần TB</dt>
-          <dd>{view.totals.avgMorale === null ? '—' : pct(view.totals.avgMorale, 0)}</dd>
-        </div>
         <div className="kv-row">
           <dt>Kỹ năng TB</dt>
           <dd>{view.totals.avgSkill === null ? '—' : pct(view.totals.avgSkill, 0)}</dd>
