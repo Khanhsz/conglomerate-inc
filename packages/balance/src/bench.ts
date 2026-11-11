@@ -43,6 +43,12 @@ function main(): void {
   console.log(
     `Tốt nhất ${best.toFixed(0)} ms; mục tiêu < ${TARGET_MS} ms: ${best < TARGET_MS ? 'ĐẠT' : 'CHƯA ĐẠT'}`,
   );
+  // CI: `--warn-ms N` in cảnh báo GitHub Actions khi chậm hơn N ms (không làm fail job).
+  const warnAt = process.argv.indexOf('--warn-ms');
+  const warnMs = warnAt >= 0 ? Number(process.argv[warnAt + 1]) : NaN;
+  if (Number.isFinite(warnMs) && best > warnMs) {
+    console.log(`::warning::Bench ${best.toFixed(0)} ms vượt ngưỡng cảnh báo ${warnMs} ms`);
+  }
 }
 
 main();
