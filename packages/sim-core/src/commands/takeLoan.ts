@@ -3,7 +3,7 @@ import { LOAN_TERMS_MONTHS } from '../constants';
 import { formatId } from '../ids';
 import { ACC } from '../ledger/accounts';
 import { post } from '../ledger/post';
-import { money, ZERO } from '../money';
+import { money, ZERO, type Money } from '../money';
 import { annuityPayment, loanQuote } from '../systems/loans';
 import type { Validation } from '../types/commands';
 import type { SimContext } from '../types/context';
@@ -29,21 +29,13 @@ export const takeLoan = {
     const principal = money(cmd.payload.principal);
     const quote = loanQuote(draft, ctx.content, cmd.companyId, principal);
     if (!quote.ok) throw new Error(`apply TakeLoan after validate: ${quote.reason}`);
-    const id = formatId('loan', draft.nextIds.loan);
-    draft.nextIds.loan += 1;
-    const paymentMonthly = annuityPayment(principal, quote.annualRate, cmd.payload.termMonths);
-    draft.loans[id] = {
-      id,
+    const { id, paymentMonthly } = createLoan(draft, {
       companyId: cmd.companyId,
       principal,
-      outstanding: principal,
-      paymentMonthly,
       annualRate: quote.annualRate,
       termMonths: cmd.payload.termMonths,
-      takenDay: ctx.day,
-      paymentsMade: 0,
-    };
-    draft.loanIds.push(id);
+      day: ctx.day,
+    });
     post(draft.ledger, {
       day: ctx.day,
       companyId: cmd.companyId,
@@ -66,3 +58,26 @@ export const takeLoan = {
     });
   },
 };
+
+/** Tạo bản ghi khoản vay (không ghi sổ, không event): dùng chung cho TakeLoan và RefinanceLoan. */
+export function createLoan(
+  draft: GameState,
+  terms: { companyId: string; principal: Money; annualRate: number; termMonths: number; day: number },
+): { id: string; paymentMonthly: Money } {
+  const id = formatId('loan', draft.nextIds.loan);
+  draft.nextIds.loan += 1;
+  const paymentMonthly = annuityPayment(terms.principal, terms.annualRate, terms.termMonths);
+  draft.loans[id] = {
+    id,
+    companyId: terms.companyId,
+    principal: terms.principal,
+    outstanding: terms.principal,
+    paymentMonthly,
+    annualRate: terms.annualRate,
+    termMonths: terms.termMonths,
+    takenDay: terms.day,
+    paymentsMade: 0,
+  };
+  draft.loanIds.push(id);
+  return { id, paymentMonthly };
+}

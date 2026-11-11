@@ -30,7 +30,7 @@ import type { JournalLine, Ledger } from '../types/ledger';
 import type { GameState, Store } from '../types/state';
 import { emptyMonthToDate } from '../store';
 import { cashTrend, forecastNetCash, topExpenses } from './forecast';
-import { installment } from './loans';
+import { creditLineMax, installment } from './loans';
 import { dailyRate } from './macro';
 import { accrueMonthlyTax } from './tax';
 
@@ -151,6 +151,8 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
 
   // M2: khấu hao từng cửa hàng đang mở (và văn phòng, M1.6).
   let depreciation = ZERO;
+  /** Khấu hao từng cửa hàng tháng này, cho P&L theo cửa hàng (biến cục bộ, không nằm trong state). */
+  const storeDepreciation = new Map<string, Money>();
   for (const s of openStores) {
     const d = depreciationForMonth(
       s.capex,
@@ -160,6 +162,7 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
     );
     s.accumDep = add(s.accumDep, d);
     depreciation = add(depreciation, d);
+    storeDepreciation.set(s.id, d);
   }
   if (company.office) {
     const o = company.office;
@@ -204,8 +207,13 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
     loan.paymentsMade += 1;
   }
 
-  // M4: lãi thấu chi trên tổng số dư cuối ngày.
-  const overdraftRate = dailyRate(draft.macro.policyRateAnnual + scenario.finance.overdraftSpread);
+  // M4: lãi thấu chi trên tổng số dư cuối ngày; có hạn mức tín dụng (§19.1) thì spread giảm, cộng phí cam kết.
+  const creditLine = company.creditLine;
+  const overdraftSpread =
+    creditLine.limit > 0
+      ? scenario.finance.overdraftSpread - scenario.finance.creditLine.spreadDiscount
+      : scenario.finance.overdraftSpread;
+  const overdraftRate = dailyRate(draft.macro.policyRateAnnual + overdraftSpread);
   pay(ledger, {
     companyId,
     day,
@@ -218,6 +226,13 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
     ],
   });
   company.overdraft.dailyBalanceSum = ZERO;
+  pay(ledger, {
+    companyId,
+    day,
+    memo: memo('phí cam kết hạn mức tín dụng'),
+    debits: [{ account: ACC.InterestExpense, amount: fromFloatCents(creditLine.commitmentFeeAccrued) }],
+  });
+  creditLine.commitmentFeeAccrued = 0;
 
   // M5–M6: thuế (lợi nhuận trước thuế không phụ thuộc bút toán thuế nên đọc trước khi ghi thuế).
   const ops = {
@@ -255,6 +270,12 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
   const revenue3m = sum(history.slice(-3).map((s) => s.pnl.revenue));
   company.overdraft.limit =
     revenue3m > scenario.finance.overdraftFloor ? revenue3m : scenario.finance.overdraftFloor;
+  if (creditLine.limit > 0) {
+    // Hạn mức tín dụng thay hạn mức mặc định; vượt mức tối đa mới thì cắt xuống (§19.1).
+    const max = creditLineMax(scenario.finance, revenue3m);
+    if (creditLine.limit > max) creditLine.limit = max;
+    company.overdraft.limit = creditLine.limit;
+  }
 
   // 4: distress / bankrupt hoặc cảnh báo sớm.
   const balances = currentBalances(ledger, companyId);
@@ -286,6 +307,7 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
   // Chuyển mtd sang lastMonth và reset cộng dồn.
   for (const s of stores) {
     const lastMonth = {
+      month,
       demand: s.mtd.demand,
       served: s.mtd.served,
       capacity: s.mtd.capacity,
@@ -294,6 +316,7 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
       cogs: s.mtd.cogs,
       wages: fromFloatCents(s.mtd.wagesAccrued),
       rent: fromFloatCents(s.mtd.rentAccrued),
+      depreciation: storeDepreciation.get(s.id) ?? ZERO,
     };
     if (s.status === 'open') {
       const contribution = lastMonth.revenue - lastMonth.cogs - lastMonth.wages - lastMonth.rent;

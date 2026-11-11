@@ -42,6 +42,8 @@ interface CompanyBase {
   departments: { [D in Department]: { readonly openedDay: number } | null };
   /** Cent float cộng dồn trong tháng, ghi sổ và reset khi chốt tháng (§15). */
   officeAccrued: OfficeAccrued;
+  /** Hạn mức tín dụng của phòng Tài chính (§19.1); limit 0 = dùng thấu chi §7.2. Phí cam kết là cent float. */
+  creditLine: { limit: Money; commitmentFeeAccrued: number };
 }
 
 export interface Office {
@@ -95,6 +97,8 @@ export interface StoreMonthToDate {
 
 /** Kết quả tháng trước của một cửa hàng (tiền đã làm tròn như khi ghi sổ). */
 export interface StoreLastMonth {
+  /** Tháng (monthOf) của số liệu; −1 khi chưa có tháng nào. */
+  readonly month: number;
   readonly demand: number;
   readonly served: number;
   readonly capacity: number;
@@ -103,6 +107,8 @@ export interface StoreLastMonth {
   readonly cogs: Money;
   readonly wages: Money;
   readonly rent: Money;
+  /** Khấu hao của cửa hàng trong tháng (M1.6, cho P&L theo cửa hàng). */
+  readonly depreciation: Money;
 }
 
 export interface StoreDayRecord {

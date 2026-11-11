@@ -238,6 +238,12 @@ export const scenarioSchema = z
           }
         }),
       earlyRepaymentFee: unit,
+      creditLine: z.strictObject({
+        revenueMultiple: nonNegative,
+        maxLeverage: positive,
+        spreadDiscount: nonNegative,
+        commitmentFeeAnnual: unit,
+      }),
     }),
     city,
     companies: z.array(company).min(1),

@@ -10,7 +10,10 @@ import {
   monthOf,
   MONTHS_PER_YEAR,
   mul,
+  financeAdvice,
   officeView,
+  storePnl,
+  sub,
   selectors,
   storeCapex,
   type CompanyStatus,
@@ -21,7 +24,9 @@ import {
   type MonthlyStatements,
   type QualityTier,
   type StoreRow,
+  type FinanceAdvice,
   type OfficeView,
+  type StorePnl,
 } from '@game/sim-core';
 import { computeAlerts, type Alert } from './alerts';
 import { buildInspection, type InspectionView } from './inspection';
@@ -50,6 +55,24 @@ export interface CompanyView {
   readonly storeCount: number;
   readonly avgPrice: Money | null;
   readonly marketShare: number;
+}
+
+export interface FinanceView {
+  readonly open: boolean;
+  readonly advice: FinanceAdvice;
+  /** P&L theo cửa hàng của tháng đã chốt gần nhất. */
+  readonly storePnl: StorePnl | null;
+  /** 24 tháng gần nhất, cũ → mới. */
+  readonly trend: readonly TrendPoint[];
+}
+
+export interface TrendPoint {
+  readonly month: number;
+  readonly revenue: Money;
+  readonly ebitda: Money;
+  readonly netIncome: Money;
+  /** Tiền mặt − thấu chi cuối tháng. */
+  readonly netCash: Money;
 }
 
 export interface LoanView {
@@ -108,11 +131,14 @@ export interface Snapshot {
   readonly inspection: InspectionView | null;
   /** Văn phòng và phòng ban của người chơi (economic-model §15). */
   readonly office: OfficeView;
+  /** Phòng Tài chính (economic-model §19.1); chi tiết chỉ có khi phòng đã mở. */
+  readonly finance: FinanceView;
   /** Lệnh của người chơi đã vào hàng đợi, áp dụng ở đầu ngày kế tiếp. */
   readonly pending: PendingView;
 }
 
 const STATEMENT_MONTHS = 12;
+const TREND_MONTHS = 24;
 const EVENT_LIMIT = 50;
 const PUBLIC_EVENTS: ReadonlySet<GameEvent['kind']> = new Set([
   'storeOpened',
@@ -244,6 +270,7 @@ export function buildSnapshot(
         : buildInspection(state, content, inspectedStoreId, pending.stores[inspectedStoreId]),
     pending,
     office,
+    finance: financeView(state, content, pid),
   };
 }
 
@@ -253,4 +280,23 @@ export function shouldPause(prev: GameState, next: GameState): boolean {
   return next.events
     .slice(prev.events.length)
     .some((e) => (e.kind === 'distress' || e.kind === 'bankrupt') && e.companyId === pid);
+}
+
+function financeView(state: GameState, content: LoadedContent, pid: string): FinanceView {
+  const advice = financeAdvice(state, content, pid);
+  if (!advice) throw new Error(`missing player company ${pid}`);
+  const history = state.statements[pid] ?? [];
+  const last = history[history.length - 1];
+  return {
+    open: state.companies[pid]?.departments.finance !== null,
+    advice,
+    storePnl: last ? storePnl(state, pid, last.month) : null,
+    trend: history.slice(-TREND_MONTHS).map((m) => ({
+      month: m.month,
+      revenue: m.pnl.revenue,
+      ebitda: m.pnl.ebitda,
+      netIncome: m.pnl.netIncome,
+      netCash: sub(m.balanceSheet.cash, m.balanceSheet.overdraft),
+    })),
+  };
 }

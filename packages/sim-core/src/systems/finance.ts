@@ -4,6 +4,7 @@ import { currentBalances } from '../ledger/balances';
 import { post } from '../ledger/post';
 import { add, ZERO } from '../money';
 import type { System } from '../types/context';
+import { dailyRate } from './macro';
 
 export const financeDailySystem: System = (draft, ctx) => {
   for (const companyId of draft.companyIds) {
@@ -26,5 +27,11 @@ export const financeDailySystem: System = (draft, ctx) => {
     }
     const overdraft = currentBalances(draft.ledger, companyId)[ACC.Overdraft];
     company.overdraft.dailyBalanceSum = add(company.overdraft.dailyBalanceSum, overdraft);
+    // Phí cam kết trên phần hạn mức tín dụng chưa dùng (§19.1); không có hạn mức thì bỏ qua.
+    const { limit } = company.creditLine;
+    if (limit > overdraft) {
+      company.creditLine.commitmentFeeAccrued +=
+        (limit - overdraft) * dailyRate(ctx.content.scenario.finance.creditLine.commitmentFeeAnnual);
+    }
   }
 };

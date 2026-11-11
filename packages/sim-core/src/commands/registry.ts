@@ -4,6 +4,7 @@ import type { SimContext, System } from '../types/context';
 import type { GameState } from '../types/state';
 import { closeStore } from './closeStore';
 import { isRecord, reject } from './common';
+import { refinanceLoan, setCreditLine } from './finance';
 import { closeDepartment, leaseOffice, openDepartment, releaseOffice } from './office';
 import { openStore } from './openStore';
 import { repayLoan } from './repayLoan';
@@ -48,6 +49,10 @@ export function validateCommand(state: GameState, ctx: SimContext, cmd: Command)
       return openDepartment.validate(state, ctx, cmd);
     case 'CloseDepartment':
       return closeDepartment.validate(state, ctx, cmd);
+    case 'RefinanceLoan':
+      return refinanceLoan.validate(state, ctx, cmd);
+    case 'SetCreditLine':
+      return setCreditLine.validate(state, ctx, cmd);
   }
 }
 
@@ -80,6 +85,10 @@ export function applyCommand(draft: GameState, ctx: SimContext, cmd: Command): v
       return openDepartment.apply(draft, ctx, cmd);
     case 'CloseDepartment':
       return closeDepartment.apply(draft, ctx, cmd);
+    case 'RefinanceLoan':
+      return refinanceLoan.apply(draft, ctx, cmd);
+    case 'SetCreditLine':
+      return setCreditLine.apply(draft, ctx, cmd);
   }
 }
 

@@ -4,14 +4,7 @@ import { ACC, DEPARTMENT_ACCOUNT } from '../ledger/accounts';
 import { pay } from '../ledger/payments';
 import { post } from '../ledger/post';
 import { money, mul, sub, toDisplay, ZERO, type Money } from '../money';
-import {
-  DEPARTMENT_LABEL,
-  departmentOpeningCost,
-  noDepartments,
-  officeCapex,
-  officeRent,
-  openDepartments,
-} from '../office';
+import { DEPARTMENT_LABEL, departmentOpeningCost, officeCapex, officeRent, openDepartments } from '../office';
 import type { Validation } from '../types/commands';
 import { DEPARTMENTS, OFFICE_SIZES, type Department, type OfficeSize } from '../types/content';
 import type { SimContext } from '../types/context';
@@ -26,6 +19,7 @@ import {
   spendingPower,
   type CommandOf,
 } from './common';
+import { defaultOverdraftLimit } from './finance';
 
 const SIZES: ReadonlySet<unknown> = new Set(OFFICE_SIZES);
 const DEPTS: ReadonlySet<unknown> = new Set(DEPARTMENTS);
@@ -59,12 +53,21 @@ export function disposeOffice(
   post(ledger, { day, companyId, memo, refId: 'office', lines });
 }
 
-/** Đóng mọi phòng (khi trả văn phòng): khoản cộng dồn vẫn ghi ở chốt tháng. */
-function closeAllDepartments(draft: GameState, company: Company, day: number): void {
-  for (const dept of openDepartments(company)) {
-    draft.events.push({ day, kind: 'departmentClosed', companyId: company.id, dept });
+/**
+ * Đóng một phòng: chức năng tắt, chính sách do phòng đặt về mặc định M1 (economic-model §15.2).
+ * Khoản cộng dồn tới hôm nay vẫn ghi ở chốt tháng.
+ */
+function closeOne(draft: GameState, ctx: SimContext, company: Company, dept: Department): void {
+  company.departments[dept] = null;
+  if (dept === 'finance' && company.creditLine.limit > 0) {
+    company.creditLine.limit = ZERO;
+    company.overdraft.limit = defaultOverdraftLimit(draft, ctx, company.id);
   }
-  company.departments = noDepartments();
+  draft.events.push({ day: ctx.day, kind: 'departmentClosed', companyId: company.id, dept });
+}
+
+function closeAllDepartments(draft: GameState, ctx: SimContext, company: Company): void {
+  for (const dept of openDepartments(company)) closeOne(draft, ctx, company, dept);
 }
 
 export const leaseOffice = {
@@ -133,7 +136,7 @@ export const releaseOffice = {
       debits: [{ account: ACC.OfficeRent, amount: mul(office.rentMonthly, LEASE_TERMINATION_MONTHS) }],
     });
     company.office = null;
-    closeAllDepartments(draft, company, ctx.day);
+    closeAllDepartments(draft, ctx, company);
     draft.events.push({ day: ctx.day, kind: 'officeReleased', companyId: company.id });
   },
 };
@@ -182,13 +185,6 @@ export const closeDepartment = {
   },
 
   apply(draft: GameState, ctx: SimContext, cmd: CommandOf<'CloseDepartment'>): void {
-    const company = getCompany(draft, cmd.companyId);
-    company.departments[cmd.payload.dept] = null;
-    draft.events.push({
-      day: ctx.day,
-      kind: 'departmentClosed',
-      companyId: company.id,
-      dept: cmd.payload.dept,
-    });
+    closeOne(draft, ctx, getCompany(draft, cmd.companyId), cmd.payload.dept);
   },
 };

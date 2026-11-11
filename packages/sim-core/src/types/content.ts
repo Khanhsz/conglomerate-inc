@@ -145,6 +145,15 @@ export interface FinanceParams {
   /** Tăng dần theo maxLeverage; leverage vượt bậc cuối → từ chối khoản vay. */
   readonly loanSpreads: readonly LoanSpreadTier[];
   readonly earlyRepaymentFee: number;
+  /** M1.6 (economic-model §19.1). */
+  readonly creditLine: CreditLineParams;
+}
+
+export interface CreditLineParams {
+  readonly revenueMultiple: number;
+  readonly maxLeverage: number;
+  readonly spreadDiscount: number;
+  readonly commitmentFeeAnnual: number;
 }
 
 export interface DistrictDef {

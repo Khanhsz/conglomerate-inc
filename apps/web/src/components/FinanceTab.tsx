@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
 import { pct, usd } from '../format';
+import { FinanceDept } from './FinanceDept';
 import { Slider } from './Slider';
 
 const PNL_ROWS: readonly (readonly [keyof PnL, string, boolean?])[] = [
@@ -36,6 +37,7 @@ export function FinanceTab({ snap }: { snap: Snapshot }) {
   const companyId = snap.player.id;
   return (
     <section className="finance">
+      <FinanceDept snap={snap} />
       <h3>Báo cáo kết quả kinh doanh (12 tháng gần nhất)</h3>
       {snap.statements.length === 0 ? (
         <p className="muted">Chưa có tháng nào được chốt sổ (chốt vào cuối mỗi 30 ngày).</p>

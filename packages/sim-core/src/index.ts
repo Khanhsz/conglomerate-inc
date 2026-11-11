@@ -25,9 +25,27 @@ export {
   type WhatIfResult,
 } from './selectors/inspect';
 export { officeView, type DepartmentStatus, type LeaseOption, type OfficeView } from './selectors/office';
+export {
+  financeAdvice,
+  storePnl,
+  type AdviceCode,
+  type FinanceAdvice,
+  type LoanTier,
+  type RefinanceOption,
+  type StorePnl,
+  type StorePnlLines,
+  type StorePnlRow,
+} from './selectors/finance';
 export { storeCapex } from './commands/openStore';
 export { aiPolicy, aiTargetPrice, decideMonthly, targetPrice, type AiPolicy } from './systems/ai';
-export { annuityPayment, loanQuote, type LoanQuote } from './systems/loans';
+export {
+  annuityPayment,
+  creditLineMax,
+  currentLeverage,
+  loanQuote,
+  revenueTrailing3m,
+  type LoanQuote,
+} from './systems/loans';
 export {
   distanceKm,
   expectedDemand,

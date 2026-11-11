@@ -5,9 +5,12 @@ import {
   MAX_STAFF_PER_STORE,
   PRICE_BAND,
   WAGE_BAND,
+  creditLineMax,
+  revenueTrailing3m,
   type GameState,
   type LoadedContent,
 } from '@game/sim-core';
+import { playerId } from './snapshot';
 
 export interface Range {
   readonly min: number;
@@ -25,9 +28,12 @@ export interface Limits {
   readonly marketing: Range;
   /** Cent, bước $1,000; ngân hàng có thể từ chối khoản vay theo leverage. */
   readonly loan: Range;
+  /** Cent, bước $1,000: [0, 2 × doanh thu 3 tháng] (economic-model §19.1). */
+  readonly creditLine: Range;
 }
 
 const WAGE_STEP = 1_000;
+const CREDIT_STEP = 100_000;
 
 export function sliderLimits(state: GameState, content: LoadedContent): Limits {
   const pref = content.industry.referencePrice * state.macro.priceIndex;
@@ -46,5 +52,13 @@ export function sliderLimits(state: GameState, content: LoadedContent): Limits {
     staff: { min: content.industry.minStaffPerStore, max: MAX_STAFF_PER_STORE, step: 1 },
     marketing: { min: 0, max: MAX_MARKETING_BUDGET_MONTHLY, step: 1_000 },
     loan: { min: 100_000, max: 50_000_000, step: 100_000 },
+    creditLine: {
+      min: 0,
+      max:
+        Math.floor(
+          creditLineMax(content.scenario.finance, revenueTrailing3m(state, playerId(state))) / CREDIT_STEP,
+        ) * CREDIT_STEP,
+      step: CREDIT_STEP,
+    },
   };
 }

@@ -69,6 +69,16 @@ export type Command =
       readonly type: 'CloseDepartment';
       readonly companyId: CompanyId;
       readonly payload: { readonly dept: Department };
+    }
+  | {
+      readonly type: 'RefinanceLoan';
+      readonly companyId: CompanyId;
+      readonly payload: { readonly loanId: string; readonly termMonths: number };
+    }
+  | {
+      readonly type: 'SetCreditLine';
+      readonly companyId: CompanyId;
+      readonly payload: { readonly limit: Money };
     };
 
 export type CommandType = Command['type'];
@@ -87,6 +97,8 @@ export const COMMAND_TYPES = [
   'ReleaseOffice',
   'OpenDepartment',
   'CloseDepartment',
+  'RefinanceLoan',
+  'SetCreditLine',
 ] as const satisfies readonly CommandType[];
 
 export type Validation = { readonly ok: true } | { readonly ok: false; readonly reason: string };

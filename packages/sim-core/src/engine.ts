@@ -55,6 +55,7 @@ function newCompany(def: CompanyDef, content: LoadedContent): Company {
     office: null,
     departments: noDepartments(),
     officeAccrued: emptyOfficeAccrued(),
+    creditLine: { limit: ZERO, commitmentFeeAccrued: 0 },
   };
   return def.kind === 'ai'
     ? {

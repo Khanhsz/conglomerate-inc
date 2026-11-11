@@ -25,6 +25,14 @@ const opened: GameState = runDays(
 
 describe('sliderLimits (A5): slider ends are exactly what validateCommand accepts', () => {
   const limits = sliderLimits(opened, content);
+
+  it('credit line: max is 2 × revenue of the last 3 months floored to $1,000, at least the overdraft floor', () => {
+    const revenue3m = (opened.statements['player'] ?? []).slice(-3).reduce((a, m) => a + m.pnl.revenue, 0);
+    const exact = Math.max(content.scenario.finance.overdraftFloor, Math.round(2 * revenue3m));
+    expect(limits.creditLine.step).toBe(100_000);
+    expect(limits.creditLine.max).toBeLessThanOrEqual(exact);
+    expect(limits.creditLine.max).toBeGreaterThan(exact - limits.creditLine.step);
+  });
   const ok = (cmd: Command) => validateCommand(opened, content, cmd).ok;
   const price = (p: number): Command => ({
     type: 'SetPrice',

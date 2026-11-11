@@ -8,7 +8,7 @@ import type { SimContext } from '../types/context';
 import type { GameState, Loan } from '../types/state';
 import { companyProblem, OK, reject, spendingPower, type CommandOf } from './common';
 
-function earlyFee(loan: Loan, content: LoadedContent) {
+export function earlyFee(loan: Loan, content: LoadedContent) {
   return pct(loan.outstanding, content.scenario.finance.earlyRepaymentFee);
 }
 

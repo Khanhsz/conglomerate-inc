@@ -471,6 +471,8 @@ A_{c,e,s} ← A + (1 − A) × lift_{e,s} − δ × A + γ × Σ_j served_j / ci
 - `RefinanceLoan { loanId, termMonths }` (cần `finance`): áp như `RepayLoan` (§7.1, có phí) rồi `TakeLoan` với gốc = gốc còn lại + phí, theo spread hiện tại. Validate như hai lệnh gộp lại.
 - `SetCreditLine { limit }` (cần `finance`):
   - `limit ≤ max(overdraftFloor, creditLine.revenueMultiple × revenue_trailing3m)` và leverage ≤ `creditLine.maxLeverage`;
+  - leverage = (Loans + Overdraft) / EBITDA năm; EBITDA năm ≤ 0 thì không cấp (không đo được khả năng trả nợ);
+  - hạn mức áp dụng cho lãi thấu chi của cả tháng nếu đang có lúc chốt tháng;
   - khi đặt, hạn mức thấu chi §7.2 = `limit` thay công thức mặc định; mỗi lần chốt tháng xét lại, và nếu vượt mức tối đa mới thì cắt xuống;
   - lãi thấu chi dùng `overdraftSpread − creditLine.spreadDiscount`;
   - phí cam kết mỗi ngày `(limit − overdraft) × dailyRate(creditLine.commitmentFeeAnnual)`, cộng dồn, cuối tháng ghi InterestExpense.

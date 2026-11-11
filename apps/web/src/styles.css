@@ -675,3 +675,63 @@ dl.kv dd {
   gap: 8px;
   align-items: center;
 }
+.good {
+  color: var(--good);
+}
+.chart .line-c {
+  fill: none;
+  stroke: var(--company-1);
+  stroke-width: 2;
+}
+.legend {
+  display: inline-flex;
+  gap: 10px;
+  margin-left: 10px;
+}
+.legend .key::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+  background: var(--company-0);
+}
+.legend .key.line-b::before {
+  background: var(--company-3);
+}
+.legend .key.line-c::before {
+  background: var(--company-1);
+}
+.finance-dept {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.finance-dept h3 {
+  margin: 8px 0 0;
+}
+.kv-row {
+  display: contents;
+}
+.kv-row.subtotal dt,
+.kv-row.subtotal dd {
+  font-weight: 700;
+  color: var(--text);
+}
+dl.corporate,
+dl.advisor {
+  max-width: 420px;
+}
+.advice {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+.card.locked {
+  margin-bottom: 12px;
+  border-style: dashed;
+}

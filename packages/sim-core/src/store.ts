@@ -16,5 +16,16 @@ export function emptyMonthToDate(): StoreMonthToDate {
 }
 
 export function emptyLastMonth(): StoreLastMonth {
-  return { demand: 0, served: 0, capacity: 0, days: 0, revenue: ZERO, cogs: ZERO, wages: ZERO, rent: ZERO };
+  return {
+    month: -1,
+    demand: 0,
+    served: 0,
+    capacity: 0,
+    days: 0,
+    revenue: ZERO,
+    cogs: ZERO,
+    wages: ZERO,
+    rent: ZERO,
+    depreciation: ZERO,
+  };
 }

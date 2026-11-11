@@ -2,7 +2,7 @@
 import { ACC } from '../ledger/accounts';
 import { currentBalances } from '../ledger/balances';
 import { fromFloatCents, type Money, mul } from '../money';
-import type { LoadedContent } from '../types/content';
+import type { FinanceParams, LoadedContent } from '../types/content';
 import type { GameState, Loan } from '../types/state';
 
 /** payment = round(P·r / (1 − (1 + r)^−n)), r = rate / 12 (lãi đơn theo tháng, có chủ đích). */
@@ -51,4 +51,33 @@ export function installment(loan: Loan): { interest: Money; principal: Money } {
   const scheduled = Math.max(0, loan.paymentMonthly - interest);
   const principal = last ? loan.outstanding : fromFloatCents(Math.min(loan.outstanding, scheduled));
   return { interest, principal };
+}
+
+/** Hạn mức tín dụng tối đa = max(sàn thấu chi, revenueMultiple × doanh thu 3 tháng) (economic-model §19.1). */
+export function creditLineMax(finance: FinanceParams, revenue3m: Money): Money {
+  const byRevenue = mul(revenue3m, finance.creditLine.revenueMultiple);
+  return byRevenue > finance.overdraftFloor ? byRevenue : finance.overdraftFloor;
+}
+
+/** Doanh thu 3 tháng đã chốt gần nhất (cùng nguồn với hạn mức thấu chi §7.2). */
+export function revenueTrailing3m(state: GameState, companyId: string): Money {
+  let total = 0;
+  for (const s of (state.statements[companyId] ?? []).slice(-3)) total += s.pnl.revenue;
+  return fromFloatCents(total);
+}
+
+/**
+ * Leverage hiện tại = (Loans + Overdraft + thêm) / EBITDA năm.
+ * null nếu chưa có tháng nào hoặc EBITDA năm ≤ 0 (không đo được khả năng trả nợ, mọi hạn mức đều không cấp).
+ */
+export function currentLeverage(state: GameState, companyId: string, extraDebt = 0): number | null {
+  const history = state.statements[companyId] ?? [];
+  if (history.length === 0) return null;
+  const recent = history.slice(-12);
+  let ebitda = 0;
+  for (const s of recent) ebitda += s.pnl.ebitda;
+  const b = currentBalances(state.ledger, companyId);
+  const annual = (ebitda * 12) / recent.length;
+  if (annual <= 0) return null;
+  return (b[ACC.Loans] + b[ACC.Overdraft] + extraDebt) / annual;
 }

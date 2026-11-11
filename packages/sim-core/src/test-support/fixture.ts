@@ -111,6 +111,7 @@ const scenario: ScenarioContent = {
       { maxLeverage: 3, spread: 0.05 },
     ],
     earlyRepaymentFee: 0.01,
+    creditLine: { revenueMultiple: 2, maxLeverage: 2, spreadDiscount: 0.02, commitmentFeeAnnual: 0.005 },
   },
   city: {
     name: 'Testville',
