@@ -7,6 +7,14 @@ export const signedUsd = (m: Money): string => (m > 0 ? `+${toDisplay(m)}` : toD
 export const pct = (x: number | null, digits = 1): string =>
   x === null ? '—' : `${(x * 100).toFixed(digits)}%`;
 export const int = (n: number): string => Math.round(n).toLocaleString('en-US');
+/** Nhãn trục gọn từ số cent: $950, $12.3k, −$1.2M. Chỉ để hiển thị, không dùng cho tính toán. */
+export function compactUsd(cents: number): string {
+  const dollars = Math.abs(cents) / 100;
+  const sign = cents < 0 ? '−' : '';
+  if (dollars >= 1_000_000) return `${sign}$${(dollars / 1_000_000).toFixed(1)}M`;
+  if (dollars >= 1_000) return `${sign}$${(dollars / 1_000).toFixed(1)}k`;
+  return `${sign}$${Math.round(dollars)}`;
+}
 /** Nhãn tháng: N1·T1 = năm 1, tháng 1. */
 export const monthLabel = (m: number): string => `N${Math.floor(m / 12) + 1}·T${(m % 12) + 1}`;
 

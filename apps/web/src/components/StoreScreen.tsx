@@ -1,7 +1,10 @@
+import { DAYS_PER_MONTH } from '@game/sim-core';
 import { useState } from 'react';
+import type { InspectionView } from '../sim/inspection';
 import type { Snapshot } from '../sim/snapshot';
 import { STORE_TABS, useUi, type StoreTab } from '../store';
-import { int, signedUsd, usd } from '../format';
+import { int, monthLabel, signedUsd, usd } from '../format';
+import { ColumnChart } from './ColumnChart';
 import { MomTable } from './MomTable';
 import { storeAdvice } from './advisors';
 import { AdvisorStrip, KpiPair } from './Parts';
@@ -83,6 +86,7 @@ function StoreFinance({ snap, storeId }: { snap: Snapshot; storeId: string }) {
   const historyMom = view?.storeId === storeId ? view.historyMom : null;
   return (
     <section className="hq-section">
+      {view?.storeId === storeId && <StoreMonthSummary view={view} />}
       <h3>Kết quả tháng này so với tháng trước</h3>
       {historyMom === null ? (
         <p className="muted">Chưa có tháng nào chốt sổ.</p>
@@ -169,5 +173,61 @@ function StoreKpis({ snap, storeId }: { snap: Snapshot; storeId: string }) {
         },
       ]}
     />
+  );
+}
+
+const CHART_MONTHS = 5;
+
+/** Tháng đang chạy (chưa chốt sổ) ở hai ô nổi bật, rồi doanh thu và lợi nhuận 5 tháng đã chốt gần nhất. */
+function StoreMonthSummary({ view }: { view: InspectionView }) {
+  const mtd = view.monthToDate;
+  const months = view.history.slice(-CHART_MONTHS);
+  const last = view.history[view.history.length - 1];
+  const profitable = mtd.contribution >= 0;
+  return (
+    <>
+      <div className="mtd-tiles" data-testid="store-mtd">
+        <div className="mtd-tile series-1-edge">
+          <span className="mtd-label">Doanh thu tháng này</span>
+          <strong className="mtd-value" data-testid="mtd-revenue" data-cents={mtd.revenue}>
+            {usd(mtd.revenue)}
+          </strong>
+          <span className="mtd-sub">
+            {monthLabel(mtd.month)} · {mtd.days}/{DAYS_PER_MONTH} ngày · chưa chốt sổ
+          </span>
+          {last && <span className="mtd-sub muted">Cả tháng trước: {usd(last.revenue)}</span>}
+        </div>
+        <div className="mtd-tile series-2-edge">
+          <span className="mtd-label">Lợi nhuận tháng này</span>
+          <strong className="mtd-value" data-testid="mtd-profit" data-cents={mtd.contribution}>
+            {usd(mtd.contribution)}
+          </strong>
+          <span className="mtd-sub">
+            <span className={profitable ? 'chip chip-ok' : 'chip chip-bad'}>
+              {profitable ? 'Đang lãi' : 'Đang lỗ'}
+            </span>
+            <span> nếu chốt sổ hôm nay</span>
+          </span>
+          {last && <span className="mtd-sub muted">Cả tháng trước: {usd(last.contribution)}</span>}
+        </div>
+      </div>
+      {months.length > 0 ? (
+        <ColumnChart
+          title={`Doanh thu và lợi nhuận ${months.length} tháng gần nhất (đã chốt sổ)`}
+          labels={months.map((m) => monthLabel(m.month))}
+          series={[
+            { label: 'Doanh thu', cls: 'series-1', values: months.map((m) => m.revenue) },
+            { label: 'Lợi nhuận', cls: 'series-2', values: months.map((m) => m.contribution) },
+          ]}
+          testId="store-month-chart"
+        />
+      ) : (
+        <p className="muted small">Biểu đồ 5 tháng hiện khi có tháng đầu tiên chốt sổ.</p>
+      )}
+      <p className="small muted">
+        Lợi nhuận = lãi đóng góp của cửa hàng: doanh thu trừ giá vốn, lương (gồm đào tạo, phúc lợi, thưởng),
+        thuê và tiện ích; chưa trừ khấu hao và chi phí trụ sở.
+      </p>
+    </>
   );
 }

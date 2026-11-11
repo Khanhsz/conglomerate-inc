@@ -369,6 +369,7 @@ Chính sách công ty: `company.hrPolicy = { wageRatio: number | null, trainingL
 ### 16.4 Thưởng hiệu suất
 - `bonusRate ∈ [0, hrPolicies.bonusRateMax]`, đề xuất max 0.2.
 - Ở chốt tháng, sau bước ghi lương và thuê, mỗi cửa hàng nhận `bonus_j = round(bonusRate × max(0, contribution_j))`, ghi vào Wages. `contribution_j` tính như luật AI §9.3: doanh thu − giá vốn − lương − thuê **trước thưởng**, kể cả đào tạo và phúc lợi.
+- **Tháng đang chạy (chỉ hiển thị, tab Tài chính của cửa hàng):** doanh thu và lãi đóng góp của tháng chưa chốt sổ là đúng số chốt tháng sẽ ghi nếu tháng kết thúc hôm nay: các khoản cộng dồn làm tròn như khi ghi sổ, thưởng tính theo `bonusRate` hiện tại trên lãi đóng góp trước thưởng. Chốt tháng và màn hình dùng chung một hàm (`storeMonthCosts` trong `sim-core/src/store.ts`) nên hai con số không lệch nhau. Không ghi bút toán nào.
 - Morale tháng sau: `wageRatio_eff = (wageMonthly_j + bonusPerHead_j) / (marketWageMonthly × priceIndex)`, với `bonusPerHead_j = bonus_j(tháng trước) / staff_j`.
 - Khi `bonusRate = 0` thì `wageRatio_eff = wageRatio` (§4.2).
 

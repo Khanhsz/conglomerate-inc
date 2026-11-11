@@ -23,8 +23,8 @@ import { currentBalances } from '../ledger/balances';
 import { pay } from '../ledger/payments';
 import { post } from '../ledger/post';
 import { buildMonthlyStatements, monthPnl } from '../ledger/statements';
-import { add, fromFloatCents, money, type Money, mul, pct, sub, sum, ZERO } from '../money';
-import { storeContribution } from '../store';
+import { add, fromFloatCents, money, type Money, mul, sub, sum, ZERO } from '../money';
+import { storeContribution, storeMonthCosts } from '../store';
 import type { CompanyId } from '../types/content';
 import type { SimContext, System } from '../types/context';
 import type { JournalLine, Ledger } from '../types/ledger';
@@ -147,20 +147,7 @@ function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): 
   // Chính sách mặc định: mọi khoản = 0, không ghi bút toán nào.
   const hrCosts = new Map<string, { training: Money; benefits: Money; bonus: Money }>();
   for (const s of stores) {
-    const training = fromFloatCents(s.mtd.trainingAccrued);
-    const benefits = fromFloatCents(s.mtd.benefitsAccrued);
-    const beforeBonus = sub(
-      s.mtd.revenue,
-      sum([
-        s.mtd.cogs,
-        fromFloatCents(s.mtd.wagesAccrued),
-        fromFloatCents(s.mtd.rentAccrued),
-        training,
-        benefits,
-        storeAmenities(s),
-      ]),
-    );
-    const bonus = beforeBonus > 0 ? pct(beforeBonus, company.hrPolicy.bonusRate) : ZERO;
+    const { training, benefits, bonus } = storeMonthCosts(s.mtd, company.hrPolicy.bonusRate);
     hrCosts.set(s.id, { training, benefits, bonus });
     s.bonusPerHead = s.staff > 0 ? bonus / s.staff : 0;
   }

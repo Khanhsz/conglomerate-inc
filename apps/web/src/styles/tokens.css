@@ -14,6 +14,9 @@
   --warn-bg: #fff6e5;
   --err-bg: #fdeceb;
   --scrim: rgba(16, 24, 40, 0.5);
+  /* Series biểu đồ cột (doanh thu, lợi nhuận): đã qua validate_palette (CVD, độ sáng, tương phản). */
+  --series-1: #2459d6;
+  --series-2: #c4660a;
   --company-0: #2459d6;
   --company-1: #8a3ffc;
   --company-2: #c4660a;
@@ -46,6 +49,8 @@
     --warn-bg: #2e2412;
     --err-bg: #34191a;
     --scrim: rgba(0, 0, 0, 0.6);
+    --series-1: #5b87ee;
+    --series-2: #d9772f;
     --company-0: #6d97f5;
     --company-1: #b692f6;
     --company-2: #f38744;
@@ -69,6 +74,8 @@
   --warn-bg: #2e2412;
   --err-bg: #34191a;
   --scrim: rgba(0, 0, 0, 0.6);
+  --series-1: #5b87ee;
+  --series-2: #d9772f;
   --company-0: #6d97f5;
   --company-1: #b692f6;
   --company-2: #f38744;

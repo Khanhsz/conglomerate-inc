@@ -12,7 +12,7 @@ export * from './ledger/post';
 export * from './ledger/statements';
 export * from './money';
 export * from './office';
-export { storeContribution } from './store';
+export { storeContribution, storeMonthCosts, storeMonthToDate, type StoreMonthCosts } from './store';
 export * from './hr';
 export * from './rng';
 export { selectors, type MarketShares, type StoreRow } from './selectors';
