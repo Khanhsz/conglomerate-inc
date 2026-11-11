@@ -1306,3 +1306,19 @@ button.close {
   background-clip: text;
   color: transparent;
 }
+
+/* Nội dung màn hình: cột được co lại, bảng rộng cuộn trong khung riêng thay vì đẩy trang rộng ra (lỗi tab Marketing/Tài chính trên điện thoại). */
+.screen-body,
+.hq-section,
+.hr,
+.finance-dept {
+  grid-template-columns: minmax(0, 1fr);
+}
+.screen-body > *,
+.hq-section > *,
+.hr > *,
+.finance-dept > *,
+.finance > * {
+  min-width: 0;
+  max-width: 100%;
+}
