@@ -26,6 +26,8 @@ test('price slider previews the estimate while dragging and commits on release',
   await page.getByTestId(`open-store-${id}`).click();
   await expect(page.locator('.store-detail')).toBeVisible();
   await expect(page.getByTestId('gap-summary')).toBeVisible();
+  await expect(page.getByTestId('store-reviews')).toContainText('Phục vụ');
+  await expect(page.getByTestId('area-share')).toContainText('Không mua');
 
   const slider = page.getByTestId('slider-price');
   const priceCell = page.getByTestId(`price-${id}`);

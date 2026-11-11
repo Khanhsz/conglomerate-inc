@@ -46,6 +46,15 @@ export {
   type StaffStatus,
   type TrainingOption,
 } from './selectors/hr';
+export {
+  areaShares,
+  REVIEW_CRITERIA,
+  storeReviews,
+  toStars,
+  type AreaShare,
+  type ReviewCriterion,
+  type StoreReviews,
+} from './selectors/storeView';
 export { storeCapex } from './commands/openStore';
 export { aiPolicy, aiTargetPrice, decideMonthly, targetPrice, type AiPolicy } from './systems/ai';
 export {

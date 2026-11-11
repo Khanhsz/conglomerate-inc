@@ -6,6 +6,7 @@ import { storeAdvice } from './advisors';
 import { AdvisorStrip, KpiPair } from './Parts';
 import { StorePlan } from './Plans';
 import { ScreenShell } from './ScreenShell';
+import { StoreCustomers } from './StoreCustomers';
 import { StoreDetail } from './StoreDetail';
 
 const LABEL: { readonly [T in StoreTab]: string } = {
@@ -51,6 +52,7 @@ export function StoreScreen({ snap, storeId, tab }: { snap: Snapshot; storeId: s
         lost={snap.inspection?.storeId === storeId ? snap.inspection.report.lostToday : 0}
       />
       {tab === 'ops' && <StoreKpis snap={snap} storeId={storeId} />}
+      {tab === 'ops' && <StoreCustomers snap={snap} />}
       {tab === 'ops' && <StoreDetail snap={snap} />}
       {tab === 'product' && (
         <section className="hq-section">

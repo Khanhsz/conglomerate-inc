@@ -191,7 +191,15 @@ export function Donut({
 }
 
 /** Sao 1–5, bước nửa sao (spec M1.7: sao = 1 + 4x). */
-export function StarRating({ stars, label }: { stars: number; label: string }) {
+export function StarRating({
+  stars,
+  label,
+  showValue = true,
+}: {
+  stars: number;
+  label: string;
+  showValue?: boolean;
+}) {
   const full = Math.floor(stars);
   const half = stars - full >= 0.5;
   return (
@@ -201,7 +209,7 @@ export function StarRating({ stars, label }: { stars: number; label: string }) {
           ★
         </span>
       ))}
-      <b>{stars.toFixed(1)}</b>
+      {showValue && <b>{stars.toFixed(1)}</b>}
     </span>
   );
 }

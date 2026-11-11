@@ -1254,3 +1254,32 @@ button.close {
   font-size: 10px;
   fill: var(--accent);
 }
+
+/* M1.7 U4: khách hàng */
+.customers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+.reviews-overall {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: baseline;
+}
+.reviews-overall > strong {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.reviews-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.reviews-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}

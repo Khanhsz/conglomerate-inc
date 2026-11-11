@@ -12,8 +12,12 @@ import {
   type StoreLastMonth,
   type WhatIfChange,
   type WhatIfResult,
+  areaShares,
   storeContribution,
+  storeReviews,
   sub,
+  type AreaShare,
+  type StoreReviews,
   sum,
 } from '@game/sim-core';
 import { playerId } from './snapshot';
@@ -31,6 +35,9 @@ export interface InspectionView {
   })[];
   /** Lãi đóng góp tháng gần nhất trừ tháng trước đó (null khi chưa đủ 2 tháng). */
   readonly contributionDelta: Money | null;
+  /** Đánh giá sao và thị phần khu vực (M1.7 U4). */
+  readonly reviews: StoreReviews | null;
+  readonly area: readonly AreaShare[];
   readonly morale: number;
   readonly skill: number;
 }
@@ -49,6 +56,8 @@ export function buildInspection(
   const last = h[h.length - 1];
   return {
     contributionDelta: prev && last ? sub(storeContribution(last), storeContribution(prev)) : null,
+    reviews: storeReviews(state, content, storeId),
+    area: areaShares(state, content, storeId) ?? [],
     storeId,
     report: inspectStore(state, content, storeId),
     current: whatIf(state, content, storeId, pending),
