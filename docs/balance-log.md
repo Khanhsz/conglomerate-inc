@@ -74,3 +74,22 @@ Mỗi vòng chỉnh tham số ghi một mục. Không chỉnh công thức ở �
   | `priceCurve` (25 điểm) | 1.72 ms | 0.11 ms |
   | `buildSnapshot`, màn hình cửa hàng | 3.4 ms | 0.61 ms |
 - Nguồn cải thiện: ADR-0002 (tick không qua immer), giới hạn event (#54), đường cong giá tính LSE một lần mỗi ô, worker gửi snapshot tối đa ~10 lần/giây.
+
+### Atlas — mốc đầu tiên, 2026-11-12 (chưa hiệu chỉnh, chưa có mục tiêu)
+
+- Scenario `atlas` (M1.8): 7 thành phố, 225 địa điểm, đối thủ sinh từ seed, có rút lui và gia nhập. Mọi tham số của `rivalGenerator`, `competition` và 7 thành phố là đề xuất ban đầu (#62).
+- Lệnh: `pnpm balance -- --scenario atlas --seeds 6 --years 3 --bots none` (27 s với 4 worker).
+- Đối thủ, trung vị của 6 run, người chơi đứng yên:
+  | Năm | Đang hoạt động | Bị loại (cộng dồn) | Gia nhập (cộng dồn) | Cửa hàng | Thị phần ngành | Đối thủ lỗ EBITDA cả năm | Biên EBITDA basic / standard / premium |
+  |---|---|---|---|---|---|---|---|
+  | 1 | 30 | 0 | 8.5 | 168.5 | 25.5% | 29.1% | 2.3% / 22.5% / 27.3% |
+  | 2 | 31.5 | 4 | 15 | 260.5 | 47.6% | 32.9% | −1.5% / 16.7% / 26.4% |
+  | 3 | 32 | 7 | 18 | 296.5 | 53.1% | 28.6% | −4.1% / 13.7% / 26.9% |
+- Bot người chơi (smoke, 2 seed × 2 năm): `random` phá sản 100%; `sensible` sống, vốn chủ trung vị ~$362k; `aggressiveDebt` vốn chủ ~$1.76M với 24 cửa hàng.
+- Nhận xét:
+  - vòng đời đối thủ hoạt động: có đối thủ bị loại và đối thủ mới vào thay ở mọi seed;
+  - bậc `basic` gần như không có lãi, `premium` lãi cao nhất (cùng vấn đề cấu trúc với bản 3×3, #49);
+  - gia nhập do "thị trường hấp dẫn" xảy ra nhiều: số đối thủ tiến sát trần 5 mỗi thành phố ngay trong năm 1;
+  - `aggressiveDebt` thắng lớn, nên vay để mở rộng nhanh đang là chiến lược quá mạnh trên atlas.
+- Việc còn mở: balance-analyst đề xuất bộ mục tiêu cho atlas và thay đổi tham số, người dùng duyệt (bước 7 của spec M1.8). Lần chạy đầu của balance-analyst bị dừng vì hết hạn mức sử dụng, chưa có kết quả.
+- Hiệu năng: năm 1 / 2 / 3 mất 4.0 / 7.1 / 8.9 ms mỗi ngày mô phỏng (mục tiêu ≤ 10 ms); bench M1 giữ ~0.55 s.
