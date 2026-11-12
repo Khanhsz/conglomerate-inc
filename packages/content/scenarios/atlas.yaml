@@ -1,0 +1,313 @@
+# Scenario atlas (M1.8): 7 thành phố, mỗi nơi 30–35 địa điểm chia 3 khu (budget / central / premium).
+# FILE SINH TỰ ĐỘNG từ packages/content/src/atlas.ts. Không sửa tay: sửa bảng trong atlas.ts rồi chạy `pnpm content:atlas`.
+id: atlas
+industry: coffee
+seed: 42
+
+macro:
+  inflationAnnual: 0.03
+  policyRateAnnual: 0.04
+  incomeIndex: 1.0
+  priceIndex: 1.0
+  corporateTaxRate: 0.20
+  marketWageMonthly: 220000      # $2,200
+
+finance:
+  overdraftFloor: 2000000        # $20,000
+  overdraftSpread: 0.08
+  loanSpreads:
+    - { maxLeverage: 1, spread: 0.02 }
+    - { maxLeverage: 2, spread: 0.035 }
+    - { maxLeverage: 3, spread: 0.05 }
+  earlyRepaymentFee: 0.01
+  creditLine:
+    revenueMultiple: 2
+    maxLeverage: 2
+    spreadDiscount: 0.02
+    commitmentFeeAnnual: 0.005
+
+cities:
+  # Riverton: thủ phủ, cân bằng. 32 địa điểm, 761,000 dân.
+  - id: riverton
+    name: "Riverton"
+    gridW: 7
+    gridH: 6
+    districtSizeKm: 2
+    sameDistrictKm: 0.5
+    districts:
+      - { id: rv-b1, x: 0, y: 0, zone: budget, pop: 25000, mix: { students: 0.37, office: 0.18, premium: 0.05, other: 0.40 }, rentMonthly: 515000, fitOutCost: 10400000 }
+      - { id: rv-b2, x: 1, y: 0, zone: budget, pop: 23000, mix: { students: 0.37, office: 0.21, premium: 0.05, other: 0.37 }, rentMonthly: 465000, fitOutCost: 11200000 }
+      - { id: rv-c1, x: 2, y: 0, zone: central, pop: 32000, mix: { students: 0.11, office: 0.59, premium: 0.11, other: 0.19 }, rentMonthly: 725000, fitOutCost: 14200000 }
+      - { id: rv-c2, x: 3, y: 0, zone: central, pop: 30500, mix: { students: 0.13, office: 0.58, premium: 0.11, other: 0.18 }, rentMonthly: 745000, fitOutCost: 12700000 }
+      - { id: rv-p1, x: 4, y: 0, zone: premium, pop: 16500, mix: { students: 0.07, office: 0.25, premium: 0.35, other: 0.33 }, rentMonthly: 940000, fitOutCost: 14800000 }
+      - { id: rv-p2, x: 5, y: 0, zone: premium, pop: 14500, mix: { students: 0.07, office: 0.27, premium: 0.36, other: 0.30 }, rentMonthly: 905000, fitOutCost: 14500000 }
+      - { id: rv-b3, x: 0, y: 1, zone: budget, pop: 22000, mix: { students: 0.35, office: 0.20, premium: 0.05, other: 0.40 }, rentMonthly: 550000, fitOutCost: 11100000 }
+      - { id: rv-c3, x: 1, y: 1, zone: central, pop: 30000, mix: { students: 0.12, office: 0.59, premium: 0.11, other: 0.18 }, rentMonthly: 940000, fitOutCost: 14000000 }
+      - { id: rv-c4, x: 2, y: 1, zone: central, pop: 30500, mix: { students: 0.12, office: 0.57, premium: 0.13, other: 0.18 }, rentMonthly: 745000, fitOutCost: 12700000 }
+      - { id: rv-c5, x: 3, y: 1, zone: central, pop: 27000, mix: { students: 0.12, office: 0.58, premium: 0.12, other: 0.18 }, rentMonthly: 755000, fitOutCost: 13800000 }
+      - { id: rv-p3, x: 4, y: 1, zone: premium, pop: 16000, mix: { students: 0.09, office: 0.28, premium: 0.35, other: 0.28 }, rentMonthly: 910000, fitOutCost: 14600000 }
+      - { id: rv-p4, x: 5, y: 1, zone: premium, pop: 14500, mix: { students: 0.09, office: 0.28, premium: 0.34, other: 0.29 }, rentMonthly: 890000, fitOutCost: 15000000 }
+      - { id: rv-p5, x: 6, y: 1, zone: premium, pop: 20000, mix: { students: 0.08, office: 0.31, premium: 0.33, other: 0.28 }, rentMonthly: 970000, fitOutCost: 14100000 }
+      - { id: rv-b4, x: 0, y: 2, zone: budget, pop: 25500, mix: { students: 0.38, office: 0.19, premium: 0.05, other: 0.38 }, rentMonthly: 455000, fitOutCost: 10800000 }
+      - { id: rv-c6, x: 1, y: 2, zone: central, pop: 27500, mix: { students: 0.11, office: 0.59, premium: 0.13, other: 0.17 }, rentMonthly: 905000, fitOutCost: 13400000 }
+      - { id: rv-c7, x: 2, y: 2, zone: central, pop: 29500, mix: { students: 0.11, office: 0.60, premium: 0.11, other: 0.18 }, rentMonthly: 740000, fitOutCost: 13800000 }
+      - { id: rv-c8, x: 3, y: 2, zone: central, pop: 29000, mix: { students: 0.13, office: 0.56, premium: 0.13, other: 0.18 }, rentMonthly: 855000, fitOutCost: 13800000 }
+      - { id: rv-p6, x: 5, y: 2, zone: premium, pop: 19500, mix: { students: 0.08, office: 0.28, premium: 0.33, other: 0.31 }, rentMonthly: 995000, fitOutCost: 14400000 }
+      - { id: rv-p7, x: 6, y: 2, zone: premium, pop: 14000, mix: { students: 0.09, office: 0.26, premium: 0.35, other: 0.30 }, rentMonthly: 1015000, fitOutCost: 14500000 }
+      - { id: rv-b5, x: 0, y: 3, zone: budget, pop: 23500, mix: { students: 0.35, office: 0.21, premium: 0.05, other: 0.39 }, rentMonthly: 470000, fitOutCost: 10500000 }
+      - { id: rv-b6, x: 1, y: 3, zone: budget, pop: 25000, mix: { students: 0.35, office: 0.21, premium: 0.05, other: 0.39 }, rentMonthly: 505000, fitOutCost: 11200000 }
+      - { id: rv-c9, x: 2, y: 3, zone: central, pop: 26000, mix: { students: 0.11, office: 0.60, premium: 0.12, other: 0.17 }, rentMonthly: 870000, fitOutCost: 13300000 }
+      - { id: rv-c10, x: 3, y: 3, zone: central, pop: 31500, mix: { students: 0.12, office: 0.59, premium: 0.11, other: 0.18 }, rentMonthly: 855000, fitOutCost: 13500000 }
+      - { id: rv-b7, x: 4, y: 3, zone: budget, pop: 25500, mix: { students: 0.34, office: 0.21, premium: 0.05, other: 0.40 }, rentMonthly: 440000, fitOutCost: 10900000 }
+      - { id: rv-p8, x: 5, y: 3, zone: premium, pop: 17000, mix: { students: 0.08, office: 0.29, premium: 0.36, other: 0.27 }, rentMonthly: 945000, fitOutCost: 15100000 }
+      - { id: rv-b8, x: 1, y: 4, zone: budget, pop: 26000, mix: { students: 0.37, office: 0.21, premium: 0.05, other: 0.37 }, rentMonthly: 440000, fitOutCost: 10700000 }
+      - { id: rv-b9, x: 2, y: 4, zone: budget, pop: 22500, mix: { students: 0.33, office: 0.20, premium: 0.05, other: 0.42 }, rentMonthly: 510000, fitOutCost: 10900000 }
+      - { id: rv-b10, x: 3, y: 4, zone: budget, pop: 25500, mix: { students: 0.36, office: 0.19, premium: 0.04, other: 0.41 }, rentMonthly: 460000, fitOutCost: 10900000 }
+      - { id: rv-b11, x: 4, y: 4, zone: budget, pop: 24500, mix: { students: 0.33, office: 0.21, premium: 0.06, other: 0.40 }, rentMonthly: 500000, fitOutCost: 11200000 }
+      - { id: rv-b12, x: 5, y: 4, zone: budget, pop: 23500, mix: { students: 0.37, office: 0.18, premium: 0.05, other: 0.40 }, rentMonthly: 450000, fitOutCost: 11400000 }
+      - { id: rv-b13, x: 2, y: 5, zone: budget, pop: 23000, mix: { students: 0.36, office: 0.20, premium: 0.05, other: 0.39 }, rentMonthly: 510000, fitOutCost: 11300000 }
+      - { id: rv-b14, x: 3, y: 5, zone: budget, pop: 21000, mix: { students: 0.35, office: 0.19, premium: 0.05, other: 0.41 }, rentMonthly: 485000, fitOutCost: 11200000 }
+  # Port Azure: cảng, khu bình dân lớn. 34 địa điểm, 831,000 dân.
+  - id: port-azure
+    name: "Port Azure"
+    gridW: 7
+    gridH: 6
+    districtSizeKm: 2
+    sameDistrictKm: 0.5
+    districts:
+      - { id: pa-b1, x: 2, y: 0, zone: budget, pop: 24500, mix: { students: 0.34, office: 0.16, premium: 0.05, other: 0.45 }, rentMonthly: 495000, fitOutCost: 9500000 }
+      - { id: pa-b2, x: 3, y: 0, zone: budget, pop: 27500, mix: { students: 0.30, office: 0.20, premium: 0.04, other: 0.46 }, rentMonthly: 435000, fitOutCost: 10800000 }
+      - { id: pa-b3, x: 4, y: 0, zone: budget, pop: 24000, mix: { students: 0.30, office: 0.18, premium: 0.04, other: 0.48 }, rentMonthly: 510000, fitOutCost: 10800000 }
+      - { id: pa-b4, x: 5, y: 0, zone: budget, pop: 22500, mix: { students: 0.33, office: 0.18, premium: 0.04, other: 0.45 }, rentMonthly: 425000, fitOutCost: 10700000 }
+      - { id: pa-b5, x: 6, y: 0, zone: budget, pop: 26000, mix: { students: 0.30, office: 0.19, premium: 0.05, other: 0.46 }, rentMonthly: 525000, fitOutCost: 10400000 }
+      - { id: pa-b6, x: 1, y: 1, zone: budget, pop: 23500, mix: { students: 0.30, office: 0.17, premium: 0.05, other: 0.48 }, rentMonthly: 495000, fitOutCost: 10300000 }
+      - { id: pa-b7, x: 2, y: 1, zone: budget, pop: 27500, mix: { students: 0.31, office: 0.17, premium: 0.04, other: 0.48 }, rentMonthly: 510000, fitOutCost: 10500000 }
+      - { id: pa-b8, x: 3, y: 1, zone: budget, pop: 25500, mix: { students: 0.31, office: 0.20, premium: 0.04, other: 0.45 }, rentMonthly: 450000, fitOutCost: 10600000 }
+      - { id: pa-c1, x: 4, y: 1, zone: central, pop: 27000, mix: { students: 0.12, office: 0.55, premium: 0.11, other: 0.22 }, rentMonthly: 820000, fitOutCost: 12600000 }
+      - { id: pa-c2, x: 5, y: 1, zone: central, pop: 27500, mix: { students: 0.11, office: 0.54, premium: 0.11, other: 0.24 }, rentMonthly: 720000, fitOutCost: 13700000 }
+      - { id: pa-p1, x: 6, y: 1, zone: premium, pop: 16000, mix: { students: 0.07, office: 0.24, premium: 0.33, other: 0.36 }, rentMonthly: 970000, fitOutCost: 13900000 }
+      - { id: pa-b9, x: 1, y: 2, zone: budget, pop: 22500, mix: { students: 0.32, office: 0.16, premium: 0.05, other: 0.47 }, rentMonthly: 460000, fitOutCost: 9600000 }
+      - { id: pa-b10, x: 2, y: 2, zone: budget, pop: 21000, mix: { students: 0.30, office: 0.17, premium: 0.05, other: 0.48 }, rentMonthly: 485000, fitOutCost: 9900000 }
+      - { id: pa-c3, x: 3, y: 2, zone: central, pop: 27500, mix: { students: 0.12, office: 0.58, premium: 0.11, other: 0.19 }, rentMonthly: 885000, fitOutCost: 13100000 }
+      - { id: pa-c4, x: 4, y: 2, zone: central, pop: 33500, mix: { students: 0.12, office: 0.53, premium: 0.11, other: 0.24 }, rentMonthly: 715000, fitOutCost: 12600000 }
+      - { id: pa-p2, x: 5, y: 2, zone: premium, pop: 19500, mix: { students: 0.07, office: 0.26, premium: 0.34, other: 0.33 }, rentMonthly: 880000, fitOutCost: 14200000 }
+      - { id: pa-p3, x: 6, y: 2, zone: premium, pop: 21000, mix: { students: 0.07, office: 0.27, premium: 0.30, other: 0.36 }, rentMonthly: 780000, fitOutCost: 14200000 }
+      - { id: pa-b11, x: 0, y: 3, zone: budget, pop: 21500, mix: { students: 0.33, office: 0.18, premium: 0.04, other: 0.45 }, rentMonthly: 445000, fitOutCost: 10100000 }
+      - { id: pa-b12, x: 1, y: 3, zone: budget, pop: 23500, mix: { students: 0.33, office: 0.17, premium: 0.04, other: 0.46 }, rentMonthly: 495000, fitOutCost: 10700000 }
+      - { id: pa-b13, x: 2, y: 3, zone: budget, pop: 22500, mix: { students: 0.32, office: 0.17, premium: 0.04, other: 0.47 }, rentMonthly: 525000, fitOutCost: 10000000 }
+      - { id: pa-c5, x: 3, y: 3, zone: central, pop: 29000, mix: { students: 0.11, office: 0.55, premium: 0.11, other: 0.23 }, rentMonthly: 685000, fitOutCost: 13600000 }
+      - { id: pa-c6, x: 4, y: 3, zone: central, pop: 32000, mix: { students: 0.11, office: 0.56, premium: 0.11, other: 0.22 }, rentMonthly: 715000, fitOutCost: 12500000 }
+      - { id: pa-p4, x: 5, y: 3, zone: premium, pop: 19500, mix: { students: 0.08, office: 0.25, premium: 0.32, other: 0.35 }, rentMonthly: 945000, fitOutCost: 14400000 }
+      - { id: pa-p5, x: 6, y: 3, zone: premium, pop: 18500, mix: { students: 0.07, office: 0.26, premium: 0.31, other: 0.36 }, rentMonthly: 795000, fitOutCost: 14400000 }
+      - { id: pa-b14, x: 0, y: 4, zone: budget, pop: 26500, mix: { students: 0.35, office: 0.17, premium: 0.04, other: 0.44 }, rentMonthly: 475000, fitOutCost: 10200000 }
+      - { id: pa-b15, x: 1, y: 4, zone: budget, pop: 27000, mix: { students: 0.31, office: 0.18, premium: 0.05, other: 0.46 }, rentMonthly: 515000, fitOutCost: 10700000 }
+      - { id: pa-b16, x: 2, y: 4, zone: budget, pop: 22000, mix: { students: 0.29, office: 0.19, premium: 0.04, other: 0.48 }, rentMonthly: 455000, fitOutCost: 9700000 }
+      - { id: pa-c7, x: 3, y: 4, zone: central, pop: 26000, mix: { students: 0.11, office: 0.55, premium: 0.12, other: 0.22 }, rentMonthly: 690000, fitOutCost: 13600000 }
+      - { id: pa-c8, x: 4, y: 4, zone: central, pop: 29000, mix: { students: 0.12, office: 0.53, premium: 0.12, other: 0.23 }, rentMonthly: 765000, fitOutCost: 12500000 }
+      - { id: pa-p6, x: 5, y: 4, zone: premium, pop: 19000, mix: { students: 0.08, office: 0.24, premium: 0.32, other: 0.36 }, rentMonthly: 785000, fitOutCost: 14500000 }
+      - { id: pa-b17, x: 1, y: 5, zone: budget, pop: 21000, mix: { students: 0.30, office: 0.16, premium: 0.05, other: 0.49 }, rentMonthly: 455000, fitOutCost: 10300000 }
+      - { id: pa-b18, x: 2, y: 5, zone: budget, pop: 21500, mix: { students: 0.32, office: 0.19, premium: 0.05, other: 0.44 }, rentMonthly: 475000, fitOutCost: 10800000 }
+      - { id: pa-b19, x: 3, y: 5, zone: budget, pop: 24000, mix: { students: 0.31, office: 0.19, premium: 0.04, other: 0.46 }, rentMonthly: 445000, fitOutCost: 9700000 }
+      - { id: pa-c9, x: 4, y: 5, zone: central, pop: 32000, mix: { students: 0.10, office: 0.56, premium: 0.11, other: 0.23 }, rentMonthly: 880000, fitOutCost: 13600000 }
+  # Highmont: du lịch, khu cao cấp lớn. 30 địa điểm, 568,000 dân.
+  - id: highmont
+    name: "Highmont"
+    gridW: 7
+    gridH: 6
+    districtSizeKm: 2
+    sameDistrictKm: 0.5
+    districts:
+      - { id: hm-p1, x: 1, y: 0, zone: premium, pop: 15500, mix: { students: 0.06, office: 0.21, premium: 0.45, other: 0.28 }, rentMonthly: 1105000, fitOutCost: 16200000 }
+      - { id: hm-p2, x: 2, y: 0, zone: premium, pop: 14000, mix: { students: 0.06, office: 0.21, premium: 0.46, other: 0.27 }, rentMonthly: 1035000, fitOutCost: 15600000 }
+      - { id: hm-p3, x: 3, y: 0, zone: premium, pop: 15000, mix: { students: 0.07, office: 0.24, premium: 0.42, other: 0.27 }, rentMonthly: 1010000, fitOutCost: 17300000 }
+      - { id: hm-p4, x: 5, y: 0, zone: premium, pop: 17000, mix: { students: 0.06, office: 0.22, premium: 0.48, other: 0.24 }, rentMonthly: 1095000, fitOutCost: 15800000 }
+      - { id: hm-p5, x: 6, y: 0, zone: premium, pop: 15500, mix: { students: 0.07, office: 0.23, premium: 0.44, other: 0.26 }, rentMonthly: 1030000, fitOutCost: 17700000 }
+      - { id: hm-p6, x: 0, y: 1, zone: premium, pop: 14000, mix: { students: 0.07, office: 0.22, premium: 0.46, other: 0.25 }, rentMonthly: 920000, fitOutCost: 17000000 }
+      - { id: hm-p7, x: 1, y: 1, zone: premium, pop: 16000, mix: { students: 0.07, office: 0.23, premium: 0.44, other: 0.26 }, rentMonthly: 1025000, fitOutCost: 16400000 }
+      - { id: hm-p8, x: 2, y: 1, zone: premium, pop: 15000, mix: { students: 0.07, office: 0.26, premium: 0.43, other: 0.24 }, rentMonthly: 1110000, fitOutCost: 16900000 }
+      - { id: hm-p9, x: 3, y: 1, zone: premium, pop: 14000, mix: { students: 0.06, office: 0.23, premium: 0.44, other: 0.27 }, rentMonthly: 1130000, fitOutCost: 17700000 }
+      - { id: hm-c1, x: 4, y: 1, zone: central, pop: 24500, mix: { students: 0.12, office: 0.52, premium: 0.19, other: 0.17 }, rentMonthly: 965000, fitOutCost: 16100000 }
+      - { id: hm-c2, x: 5, y: 1, zone: central, pop: 22000, mix: { students: 0.11, office: 0.54, premium: 0.17, other: 0.18 }, rentMonthly: 1000000, fitOutCost: 16500000 }
+      - { id: hm-p10, x: 1, y: 2, zone: premium, pop: 17000, mix: { students: 0.07, office: 0.22, premium: 0.45, other: 0.26 }, rentMonthly: 1135000, fitOutCost: 16000000 }
+      - { id: hm-p11, x: 2, y: 2, zone: premium, pop: 14000, mix: { students: 0.06, office: 0.23, premium: 0.46, other: 0.25 }, rentMonthly: 980000, fitOutCost: 17600000 }
+      - { id: hm-c3, x: 3, y: 2, zone: central, pop: 25500, mix: { students: 0.13, office: 0.53, premium: 0.17, other: 0.17 }, rentMonthly: 990000, fitOutCost: 14800000 }
+      - { id: hm-c4, x: 4, y: 2, zone: central, pop: 22000, mix: { students: 0.12, office: 0.55, premium: 0.15, other: 0.18 }, rentMonthly: 835000, fitOutCost: 15200000 }
+      - { id: hm-c5, x: 5, y: 2, zone: central, pop: 20500, mix: { students: 0.12, office: 0.56, premium: 0.16, other: 0.16 }, rentMonthly: 860000, fitOutCost: 15700000 }
+      - { id: hm-b1, x: 6, y: 2, zone: budget, pop: 17000, mix: { students: 0.35, office: 0.18, premium: 0.07, other: 0.40 }, rentMonthly: 615000, fitOutCost: 13200000 }
+      - { id: hm-c6, x: 2, y: 3, zone: central, pop: 25500, mix: { students: 0.10, office: 0.55, premium: 0.17, other: 0.18 }, rentMonthly: 820000, fitOutCost: 15100000 }
+      - { id: hm-c7, x: 3, y: 3, zone: central, pop: 25500, mix: { students: 0.11, office: 0.54, premium: 0.18, other: 0.17 }, rentMonthly: 960000, fitOutCost: 15400000 }
+      - { id: hm-c8, x: 4, y: 3, zone: central, pop: 22500, mix: { students: 0.13, office: 0.53, premium: 0.17, other: 0.17 }, rentMonthly: 785000, fitOutCost: 15500000 }
+      - { id: hm-b2, x: 5, y: 3, zone: budget, pop: 18500, mix: { students: 0.37, office: 0.20, premium: 0.08, other: 0.35 }, rentMonthly: 610000, fitOutCost: 11800000 }
+      - { id: hm-b3, x: 6, y: 3, zone: budget, pop: 17500, mix: { students: 0.33, office: 0.19, premium: 0.08, other: 0.40 }, rentMonthly: 530000, fitOutCost: 12700000 }
+      - { id: hm-b4, x: 1, y: 4, zone: budget, pop: 17500, mix: { students: 0.33, office: 0.21, premium: 0.07, other: 0.39 }, rentMonthly: 495000, fitOutCost: 12600000 }
+      - { id: hm-c9, x: 2, y: 4, zone: central, pop: 27000, mix: { students: 0.10, office: 0.57, premium: 0.16, other: 0.17 }, rentMonthly: 840000, fitOutCost: 15200000 }
+      - { id: hm-c10, x: 3, y: 4, zone: central, pop: 21000, mix: { students: 0.10, office: 0.56, premium: 0.17, other: 0.17 }, rentMonthly: 1030000, fitOutCost: 16600000 }
+      - { id: hm-b5, x: 4, y: 4, zone: budget, pop: 18000, mix: { students: 0.31, office: 0.21, premium: 0.08, other: 0.40 }, rentMonthly: 540000, fitOutCost: 13100000 }
+      - { id: hm-b6, x: 5, y: 4, zone: budget, pop: 18500, mix: { students: 0.33, office: 0.18, premium: 0.08, other: 0.41 }, rentMonthly: 515000, fitOutCost: 13000000 }
+      - { id: hm-b7, x: 2, y: 5, zone: budget, pop: 19500, mix: { students: 0.36, office: 0.20, premium: 0.07, other: 0.37 }, rentMonthly: 500000, fitOutCost: 12100000 }
+      - { id: hm-b8, x: 3, y: 5, zone: budget, pop: 17000, mix: { students: 0.33, office: 0.20, premium: 0.07, other: 0.40 }, rentMonthly: 510000, fitOutCost: 12100000 }
+      - { id: hm-b9, x: 4, y: 5, zone: budget, pop: 21500, mix: { students: 0.31, office: 0.20, premium: 0.08, other: 0.41 }, rentMonthly: 545000, fitOutCost: 12200000 }
+  # Campus Vale: đại học, rất đông sinh viên. 31 địa điểm, 637,000 dân.
+  - id: campus-vale
+    name: "Campus Vale"
+    gridW: 7
+    gridH: 6
+    districtSizeKm: 2
+    sameDistrictKm: 0.5
+    districts:
+      - { id: cv-b1, x: 0, y: 0, zone: budget, pop: 20000, mix: { students: 0.51, office: 0.16, premium: 0.04, other: 0.29 }, rentMonthly: 470000, fitOutCost: 9800000 }
+      - { id: cv-b2, x: 1, y: 0, zone: budget, pop: 19500, mix: { students: 0.51, office: 0.15, premium: 0.03, other: 0.31 }, rentMonthly: 480000, fitOutCost: 10300000 }
+      - { id: cv-b3, x: 2, y: 0, zone: budget, pop: 22500, mix: { students: 0.46, office: 0.15, premium: 0.04, other: 0.35 }, rentMonthly: 490000, fitOutCost: 9600000 }
+      - { id: cv-b4, x: 3, y: 0, zone: budget, pop: 23500, mix: { students: 0.47, office: 0.16, premium: 0.04, other: 0.33 }, rentMonthly: 460000, fitOutCost: 9100000 }
+      - { id: cv-b5, x: 0, y: 1, zone: budget, pop: 20000, mix: { students: 0.47, office: 0.15, premium: 0.04, other: 0.34 }, rentMonthly: 410000, fitOutCost: 9100000 }
+      - { id: cv-b6, x: 1, y: 1, zone: budget, pop: 22500, mix: { students: 0.48, office: 0.15, premium: 0.04, other: 0.33 }, rentMonthly: 400000, fitOutCost: 10300000 }
+      - { id: cv-b7, x: 2, y: 1, zone: budget, pop: 19000, mix: { students: 0.49, office: 0.16, premium: 0.04, other: 0.31 }, rentMonthly: 490000, fitOutCost: 10300000 }
+      - { id: cv-c1, x: 3, y: 1, zone: central, pop: 22000, mix: { students: 0.21, office: 0.50, premium: 0.11, other: 0.18 }, rentMonthly: 755000, fitOutCost: 12800000 }
+      - { id: cv-c2, x: 4, y: 1, zone: central, pop: 28500, mix: { students: 0.19, office: 0.54, premium: 0.10, other: 0.17 }, rentMonthly: 705000, fitOutCost: 11500000 }
+      - { id: cv-b8, x: 0, y: 2, zone: budget, pop: 22000, mix: { students: 0.50, office: 0.15, premium: 0.04, other: 0.31 }, rentMonthly: 475000, fitOutCost: 10000000 }
+      - { id: cv-b9, x: 1, y: 2, zone: budget, pop: 19500, mix: { students: 0.52, office: 0.14, premium: 0.04, other: 0.30 }, rentMonthly: 400000, fitOutCost: 9100000 }
+      - { id: cv-c3, x: 2, y: 2, zone: central, pop: 24500, mix: { students: 0.21, office: 0.52, premium: 0.10, other: 0.17 }, rentMonthly: 760000, fitOutCost: 11400000 }
+      - { id: cv-c4, x: 3, y: 2, zone: central, pop: 27000, mix: { students: 0.20, office: 0.53, premium: 0.11, other: 0.16 }, rentMonthly: 810000, fitOutCost: 12300000 }
+      - { id: cv-c5, x: 4, y: 2, zone: central, pop: 26000, mix: { students: 0.19, office: 0.54, premium: 0.12, other: 0.15 }, rentMonthly: 660000, fitOutCost: 11500000 }
+      - { id: cv-p1, x: 5, y: 2, zone: premium, pop: 17500, mix: { students: 0.13, office: 0.24, premium: 0.36, other: 0.27 }, rentMonthly: 805000, fitOutCost: 13600000 }
+      - { id: cv-b10, x: 1, y: 3, zone: budget, pop: 21000, mix: { students: 0.47, office: 0.17, premium: 0.04, other: 0.32 }, rentMonthly: 405000, fitOutCost: 9400000 }
+      - { id: cv-c6, x: 2, y: 3, zone: central, pop: 24500, mix: { students: 0.19, office: 0.52, premium: 0.11, other: 0.18 }, rentMonthly: 650000, fitOutCost: 11300000 }
+      - { id: cv-c7, x: 3, y: 3, zone: central, pop: 22000, mix: { students: 0.21, office: 0.51, premium: 0.10, other: 0.18 }, rentMonthly: 820000, fitOutCost: 11500000 }
+      - { id: cv-c8, x: 4, y: 3, zone: central, pop: 23000, mix: { students: 0.18, office: 0.55, premium: 0.10, other: 0.17 }, rentMonthly: 830000, fitOutCost: 11600000 }
+      - { id: cv-p2, x: 5, y: 3, zone: premium, pop: 15500, mix: { students: 0.14, office: 0.27, premium: 0.31, other: 0.28 }, rentMonthly: 845000, fitOutCost: 12300000 }
+      - { id: cv-p3, x: 6, y: 3, zone: premium, pop: 15500, mix: { students: 0.15, office: 0.25, premium: 0.30, other: 0.30 }, rentMonthly: 825000, fitOutCost: 12700000 }
+      - { id: cv-b11, x: 1, y: 4, zone: budget, pop: 18500, mix: { students: 0.48, office: 0.15, premium: 0.05, other: 0.32 }, rentMonthly: 440000, fitOutCost: 10300000 }
+      - { id: cv-b12, x: 2, y: 4, zone: budget, pop: 19000, mix: { students: 0.52, office: 0.15, premium: 0.03, other: 0.30 }, rentMonthly: 500000, fitOutCost: 10100000 }
+      - { id: cv-c9, x: 3, y: 4, zone: central, pop: 26000, mix: { students: 0.19, office: 0.55, premium: 0.11, other: 0.15 }, rentMonthly: 635000, fitOutCost: 11300000 }
+      - { id: cv-p4, x: 4, y: 4, zone: premium, pop: 17500, mix: { students: 0.14, office: 0.25, premium: 0.31, other: 0.30 }, rentMonthly: 805000, fitOutCost: 13100000 }
+      - { id: cv-p5, x: 5, y: 4, zone: premium, pop: 12500, mix: { students: 0.14, office: 0.26, premium: 0.35, other: 0.25 }, rentMonthly: 750000, fitOutCost: 12600000 }
+      - { id: cv-p6, x: 6, y: 4, zone: premium, pop: 17500, mix: { students: 0.13, office: 0.25, premium: 0.34, other: 0.28 }, rentMonthly: 885000, fitOutCost: 12200000 }
+      - { id: cv-b13, x: 2, y: 5, zone: budget, pop: 23000, mix: { students: 0.50, office: 0.15, premium: 0.04, other: 0.31 }, rentMonthly: 490000, fitOutCost: 9400000 }
+      - { id: cv-b14, x: 3, y: 5, zone: budget, pop: 22000, mix: { students: 0.52, office: 0.15, premium: 0.04, other: 0.29 }, rentMonthly: 480000, fitOutCost: 9300000 }
+      - { id: cv-p7, x: 4, y: 5, zone: premium, pop: 13000, mix: { students: 0.13, office: 0.24, premium: 0.33, other: 0.30 }, rentMonthly: 730000, fitOutCost: 12200000 }
+      - { id: cv-p8, x: 5, y: 5, zone: premium, pop: 12500, mix: { students: 0.13, office: 0.24, premium: 0.32, other: 0.31 }, rentMonthly: 780000, fitOutCost: 13000000 }
+  # Ironbridge: công nghiệp, thuê rẻ. 33 địa điểm, 763,500 dân.
+  - id: ironbridge
+    name: "Ironbridge"
+    gridW: 7
+    gridH: 6
+    districtSizeKm: 2
+    sameDistrictKm: 0.5
+    districts:
+      - { id: ib-b1, x: 0, y: 0, zone: budget, pop: 20500, mix: { students: 0.34, office: 0.16, premium: 0.03, other: 0.47 }, rentMonthly: 395000, fitOutCost: 8500000 }
+      - { id: ib-b2, x: 1, y: 0, zone: budget, pop: 22000, mix: { students: 0.33, office: 0.17, premium: 0.03, other: 0.47 }, rentMonthly: 410000, fitOutCost: 8200000 }
+      - { id: ib-b3, x: 2, y: 0, zone: budget, pop: 22000, mix: { students: 0.32, office: 0.18, premium: 0.03, other: 0.47 }, rentMonthly: 380000, fitOutCost: 8200000 }
+      - { id: ib-b4, x: 4, y: 0, zone: budget, pop: 24500, mix: { students: 0.32, office: 0.18, premium: 0.03, other: 0.47 }, rentMonthly: 385000, fitOutCost: 8700000 }
+      - { id: ib-b5, x: 5, y: 0, zone: budget, pop: 21500, mix: { students: 0.30, office: 0.17, premium: 0.03, other: 0.50 }, rentMonthly: 385000, fitOutCost: 9100000 }
+      - { id: ib-b6, x: 6, y: 0, zone: budget, pop: 23500, mix: { students: 0.32, office: 0.19, premium: 0.03, other: 0.46 }, rentMonthly: 360000, fitOutCost: 8800000 }
+      - { id: ib-b7, x: 0, y: 1, zone: budget, pop: 21000, mix: { students: 0.31, office: 0.17, premium: 0.03, other: 0.49 }, rentMonthly: 415000, fitOutCost: 8100000 }
+      - { id: ib-b8, x: 1, y: 1, zone: budget, pop: 20500, mix: { students: 0.33, office: 0.16, premium: 0.03, other: 0.48 }, rentMonthly: 405000, fitOutCost: 8100000 }
+      - { id: ib-c1, x: 2, y: 1, zone: central, pop: 30000, mix: { students: 0.13, office: 0.56, premium: 0.08, other: 0.23 }, rentMonthly: 750000, fitOutCost: 10100000 }
+      - { id: ib-c2, x: 3, y: 1, zone: central, pop: 28500, mix: { students: 0.11, office: 0.58, premium: 0.08, other: 0.23 }, rentMonthly: 580000, fitOutCost: 11400000 }
+      - { id: ib-c3, x: 4, y: 1, zone: central, pop: 30500, mix: { students: 0.11, office: 0.54, premium: 0.09, other: 0.26 }, rentMonthly: 655000, fitOutCost: 11400000 }
+      - { id: ib-b9, x: 5, y: 1, zone: budget, pop: 25000, mix: { students: 0.31, office: 0.16, premium: 0.03, other: 0.50 }, rentMonthly: 425000, fitOutCost: 9100000 }
+      - { id: ib-b10, x: 6, y: 1, zone: budget, pop: 20500, mix: { students: 0.33, office: 0.17, premium: 0.03, other: 0.47 }, rentMonthly: 415000, fitOutCost: 8900000 }
+      - { id: ib-b11, x: 0, y: 2, zone: budget, pop: 23000, mix: { students: 0.32, office: 0.19, premium: 0.03, other: 0.46 }, rentMonthly: 435000, fitOutCost: 8300000 }
+      - { id: ib-c4, x: 1, y: 2, zone: central, pop: 28000, mix: { students: 0.12, office: 0.58, premium: 0.08, other: 0.22 }, rentMonthly: 620000, fitOutCost: 10900000 }
+      - { id: ib-c5, x: 2, y: 2, zone: central, pop: 28500, mix: { students: 0.12, office: 0.54, premium: 0.08, other: 0.26 }, rentMonthly: 700000, fitOutCost: 10600000 }
+      - { id: ib-c6, x: 3, y: 2, zone: central, pop: 31000, mix: { students: 0.12, office: 0.56, premium: 0.07, other: 0.25 }, rentMonthly: 610000, fitOutCost: 11100000 }
+      - { id: ib-c7, x: 4, y: 2, zone: central, pop: 30000, mix: { students: 0.11, office: 0.61, premium: 0.08, other: 0.20 }, rentMonthly: 745000, fitOutCost: 11000000 }
+      - { id: ib-b12, x: 5, y: 2, zone: budget, pop: 24000, mix: { students: 0.31, office: 0.19, premium: 0.03, other: 0.47 }, rentMonthly: 390000, fitOutCost: 9100000 }
+      - { id: ib-b13, x: 0, y: 3, zone: budget, pop: 26000, mix: { students: 0.33, office: 0.19, premium: 0.03, other: 0.45 }, rentMonthly: 390000, fitOutCost: 8500000 }
+      - { id: ib-b14, x: 1, y: 3, zone: budget, pop: 25000, mix: { students: 0.34, office: 0.18, premium: 0.03, other: 0.45 }, rentMonthly: 430000, fitOutCost: 8700000 }
+      - { id: ib-c8, x: 2, y: 3, zone: central, pop: 26500, mix: { students: 0.13, office: 0.57, premium: 0.08, other: 0.22 }, rentMonthly: 590000, fitOutCost: 10500000 }
+      - { id: ib-c9, x: 3, y: 3, zone: central, pop: 24500, mix: { students: 0.11, office: 0.59, premium: 0.09, other: 0.21 }, rentMonthly: 705000, fitOutCost: 10400000 }
+      - { id: ib-p1, x: 4, y: 3, zone: premium, pop: 17000, mix: { students: 0.08, office: 0.29, premium: 0.26, other: 0.37 }, rentMonthly: 690000, fitOutCost: 11600000 }
+      - { id: ib-p2, x: 5, y: 3, zone: premium, pop: 15000, mix: { students: 0.08, office: 0.30, premium: 0.24, other: 0.38 }, rentMonthly: 675000, fitOutCost: 11700000 }
+      - { id: ib-b15, x: 1, y: 4, zone: budget, pop: 21500, mix: { students: 0.30, office: 0.18, premium: 0.03, other: 0.49 }, rentMonthly: 400000, fitOutCost: 8700000 }
+      - { id: ib-b16, x: 2, y: 4, zone: budget, pop: 22000, mix: { students: 0.33, office: 0.17, premium: 0.03, other: 0.47 }, rentMonthly: 410000, fitOutCost: 9100000 }
+      - { id: ib-p3, x: 3, y: 4, zone: premium, pop: 19500, mix: { students: 0.08, office: 0.28, premium: 0.27, other: 0.37 }, rentMonthly: 800000, fitOutCost: 12400000 }
+      - { id: ib-p4, x: 4, y: 4, zone: premium, pop: 19500, mix: { students: 0.07, office: 0.25, premium: 0.25, other: 0.43 }, rentMonthly: 720000, fitOutCost: 11100000 }
+      - { id: ib-p5, x: 5, y: 4, zone: premium, pop: 15500, mix: { students: 0.07, office: 0.29, premium: 0.24, other: 0.40 }, rentMonthly: 815000, fitOutCost: 11400000 }
+      - { id: ib-b17, x: 2, y: 5, zone: budget, pop: 22000, mix: { students: 0.33, office: 0.17, premium: 0.03, other: 0.47 }, rentMonthly: 395000, fitOutCost: 8100000 }
+      - { id: ib-p6, x: 3, y: 5, zone: premium, pop: 19500, mix: { students: 0.08, office: 0.28, premium: 0.23, other: 0.41 }, rentMonthly: 700000, fitOutCost: 11700000 }
+      - { id: ib-p7, x: 4, y: 5, zone: premium, pop: 15500, mix: { students: 0.08, office: 0.28, premium: 0.26, other: 0.38 }, rentMonthly: 710000, fitOutCost: 11100000 }
+  # Silverlake: tài chính, văn phòng đông, thuê đắt. 35 địa điểm, 966,000 dân.
+  - id: silverlake
+    name: "Silverlake"
+    gridW: 7
+    gridH: 6
+    districtSizeKm: 2
+    sameDistrictKm: 0.5
+    districts:
+      - { id: sl-p1, x: 0, y: 0, zone: premium, pop: 21000, mix: { students: 0.08, office: 0.34, premium: 0.33, other: 0.25 }, rentMonthly: 1230000, fitOutCost: 19000000 }
+      - { id: sl-p2, x: 1, y: 0, zone: premium, pop: 21000, mix: { students: 0.07, office: 0.33, premium: 0.31, other: 0.29 }, rentMonthly: 1280000, fitOutCost: 17700000 }
+      - { id: sl-c1, x: 2, y: 0, zone: central, pop: 31500, mix: { students: 0.11, office: 0.63, premium: 0.10, other: 0.16 }, rentMonthly: 1035000, fitOutCost: 17100000 }
+      - { id: sl-c2, x: 3, y: 0, zone: central, pop: 28000, mix: { students: 0.09, office: 0.68, premium: 0.09, other: 0.14 }, rentMonthly: 1105000, fitOutCost: 17600000 }
+      - { id: sl-c3, x: 4, y: 0, zone: central, pop: 31500, mix: { students: 0.10, office: 0.67, premium: 0.09, other: 0.14 }, rentMonthly: 995000, fitOutCost: 18800000 }
+      - { id: sl-c4, x: 5, y: 0, zone: central, pop: 33000, mix: { students: 0.09, office: 0.69, premium: 0.09, other: 0.13 }, rentMonthly: 1120000, fitOutCost: 16400000 }
+      - { id: sl-b1, x: 6, y: 0, zone: budget, pop: 23000, mix: { students: 0.35, office: 0.24, premium: 0.05, other: 0.36 }, rentMonthly: 720000, fitOutCost: 14800000 }
+      - { id: sl-p3, x: 0, y: 1, zone: premium, pop: 20500, mix: { students: 0.06, office: 0.37, premium: 0.31, other: 0.26 }, rentMonthly: 1290000, fitOutCost: 17800000 }
+      - { id: sl-p4, x: 1, y: 1, zone: premium, pop: 19000, mix: { students: 0.07, office: 0.34, premium: 0.34, other: 0.25 }, rentMonthly: 1070000, fitOutCost: 18000000 }
+      - { id: sl-c5, x: 2, y: 1, zone: central, pop: 30000, mix: { students: 0.10, office: 0.66, premium: 0.10, other: 0.14 }, rentMonthly: 1090000, fitOutCost: 18700000 }
+      - { id: sl-c6, x: 3, y: 1, zone: central, pop: 31000, mix: { students: 0.09, office: 0.68, premium: 0.09, other: 0.14 }, rentMonthly: 965000, fitOutCost: 17600000 }
+      - { id: sl-c7, x: 4, y: 1, zone: central, pop: 35500, mix: { students: 0.11, office: 0.64, premium: 0.10, other: 0.15 }, rentMonthly: 945000, fitOutCost: 18500000 }
+      - { id: sl-c8, x: 5, y: 1, zone: central, pop: 36500, mix: { students: 0.10, office: 0.64, premium: 0.10, other: 0.16 }, rentMonthly: 1065000, fitOutCost: 17400000 }
+      - { id: sl-b2, x: 6, y: 1, zone: budget, pop: 25500, mix: { students: 0.35, office: 0.25, premium: 0.05, other: 0.35 }, rentMonthly: 720000, fitOutCost: 14300000 }
+      - { id: sl-p5, x: 0, y: 2, zone: premium, pop: 18500, mix: { students: 0.07, office: 0.33, premium: 0.31, other: 0.29 }, rentMonthly: 1105000, fitOutCost: 19800000 }
+      - { id: sl-c9, x: 1, y: 2, zone: central, pop: 32000, mix: { students: 0.10, office: 0.67, premium: 0.09, other: 0.14 }, rentMonthly: 1040000, fitOutCost: 17900000 }
+      - { id: sl-c10, x: 4, y: 2, zone: central, pop: 33500, mix: { students: 0.10, office: 0.64, premium: 0.10, other: 0.16 }, rentMonthly: 970000, fitOutCost: 18200000 }
+      - { id: sl-c11, x: 5, y: 2, zone: central, pop: 36500, mix: { students: 0.09, office: 0.66, premium: 0.10, other: 0.15 }, rentMonthly: 1195000, fitOutCost: 18600000 }
+      - { id: sl-b3, x: 6, y: 2, zone: budget, pop: 26000, mix: { students: 0.30, office: 0.28, premium: 0.05, other: 0.37 }, rentMonthly: 715000, fitOutCost: 13300000 }
+      - { id: sl-p6, x: 0, y: 3, zone: premium, pop: 22500, mix: { students: 0.07, office: 0.35, premium: 0.31, other: 0.27 }, rentMonthly: 1325000, fitOutCost: 17900000 }
+      - { id: sl-c12, x: 1, y: 3, zone: central, pop: 35500, mix: { students: 0.11, office: 0.65, premium: 0.09, other: 0.15 }, rentMonthly: 1150000, fitOutCost: 18300000 }
+      - { id: sl-c13, x: 4, y: 3, zone: central, pop: 29500, mix: { students: 0.09, office: 0.67, premium: 0.09, other: 0.15 }, rentMonthly: 1160000, fitOutCost: 17300000 }
+      - { id: sl-b4, x: 5, y: 3, zone: budget, pop: 24000, mix: { students: 0.34, office: 0.24, premium: 0.05, other: 0.37 }, rentMonthly: 705000, fitOutCost: 14500000 }
+      - { id: sl-b5, x: 6, y: 3, zone: budget, pop: 24000, mix: { students: 0.29, office: 0.27, premium: 0.04, other: 0.40 }, rentMonthly: 570000, fitOutCost: 13900000 }
+      - { id: sl-p7, x: 0, y: 4, zone: premium, pop: 17500, mix: { students: 0.08, office: 0.34, premium: 0.31, other: 0.27 }, rentMonthly: 1105000, fitOutCost: 17600000 }
+      - { id: sl-p8, x: 1, y: 4, zone: premium, pop: 20500, mix: { students: 0.07, office: 0.33, premium: 0.30, other: 0.30 }, rentMonthly: 1105000, fitOutCost: 19800000 }
+      - { id: sl-c14, x: 2, y: 4, zone: central, pop: 36500, mix: { students: 0.10, office: 0.64, premium: 0.11, other: 0.15 }, rentMonthly: 1100000, fitOutCost: 17900000 }
+      - { id: sl-c15, x: 3, y: 4, zone: central, pop: 36000, mix: { students: 0.10, office: 0.68, premium: 0.09, other: 0.13 }, rentMonthly: 905000, fitOutCost: 17200000 }
+      - { id: sl-b6, x: 4, y: 4, zone: budget, pop: 30000, mix: { students: 0.30, office: 0.26, premium: 0.05, other: 0.39 }, rentMonthly: 645000, fitOutCost: 14500000 }
+      - { id: sl-b7, x: 5, y: 4, zone: budget, pop: 26500, mix: { students: 0.36, office: 0.24, premium: 0.05, other: 0.35 }, rentMonthly: 670000, fitOutCost: 13900000 }
+      - { id: sl-b8, x: 6, y: 4, zone: budget, pop: 30000, mix: { students: 0.30, office: 0.25, premium: 0.04, other: 0.41 }, rentMonthly: 610000, fitOutCost: 14500000 }
+      - { id: sl-p9, x: 1, y: 5, zone: premium, pop: 23000, mix: { students: 0.07, office: 0.35, premium: 0.31, other: 0.27 }, rentMonthly: 1320000, fitOutCost: 19000000 }
+      - { id: sl-b9, x: 2, y: 5, zone: budget, pop: 28500, mix: { students: 0.35, office: 0.26, premium: 0.05, other: 0.34 }, rentMonthly: 635000, fitOutCost: 14800000 }
+      - { id: sl-b10, x: 3, y: 5, zone: budget, pop: 24500, mix: { students: 0.35, office: 0.25, premium: 0.04, other: 0.36 }, rentMonthly: 625000, fitOutCost: 13700000 }
+      - { id: sl-b11, x: 4, y: 5, zone: budget, pop: 24000, mix: { students: 0.30, office: 0.26, premium: 0.04, other: 0.40 }, rentMonthly: 665000, fitOutCost: 14800000 }
+  # Sunfield: đô thị mới, dân thưa. 30 địa điểm, 514,500 dân.
+  - id: sunfield
+    name: "Sunfield"
+    gridW: 7
+    gridH: 6
+    districtSizeKm: 2
+    sameDistrictKm: 0.5
+    districts:
+      - { id: sf-b1, x: 1, y: 0, zone: budget, pop: 17500, mix: { students: 0.35, office: 0.19, premium: 0.05, other: 0.41 }, rentMonthly: 380000, fitOutCost: 9600000 }
+      - { id: sf-b2, x: 2, y: 0, zone: budget, pop: 19000, mix: { students: 0.35, office: 0.21, premium: 0.05, other: 0.39 }, rentMonthly: 435000, fitOutCost: 8500000 }
+      - { id: sf-c1, x: 4, y: 0, zone: central, pop: 18000, mix: { students: 0.12, office: 0.56, premium: 0.13, other: 0.19 }, rentMonthly: 705000, fitOutCost: 12100000 }
+      - { id: sf-c2, x: 5, y: 0, zone: central, pop: 23500, mix: { students: 0.12, office: 0.59, premium: 0.12, other: 0.17 }, rentMonthly: 765000, fitOutCost: 11600000 }
+      - { id: sf-b3, x: 0, y: 1, zone: budget, pop: 17000, mix: { students: 0.34, office: 0.20, premium: 0.04, other: 0.42 }, rentMonthly: 425000, fitOutCost: 8600000 }
+      - { id: sf-b4, x: 1, y: 1, zone: budget, pop: 17500, mix: { students: 0.37, office: 0.19, premium: 0.05, other: 0.39 }, rentMonthly: 410000, fitOutCost: 8900000 }
+      - { id: sf-b5, x: 2, y: 1, zone: budget, pop: 19000, mix: { students: 0.37, office: 0.21, premium: 0.05, other: 0.37 }, rentMonthly: 465000, fitOutCost: 9300000 }
+      - { id: sf-c3, x: 3, y: 1, zone: central, pop: 23000, mix: { students: 0.12, office: 0.59, premium: 0.11, other: 0.18 }, rentMonthly: 770000, fitOutCost: 10900000 }
+      - { id: sf-c4, x: 4, y: 1, zone: central, pop: 24000, mix: { students: 0.11, office: 0.59, premium: 0.11, other: 0.19 }, rentMonthly: 710000, fitOutCost: 12100000 }
+      - { id: sf-c5, x: 5, y: 1, zone: central, pop: 22000, mix: { students: 0.12, office: 0.59, premium: 0.11, other: 0.18 }, rentMonthly: 605000, fitOutCost: 11300000 }
+      - { id: sf-p1, x: 6, y: 1, zone: premium, pop: 14500, mix: { students: 0.09, office: 0.28, premium: 0.35, other: 0.28 }, rentMonthly: 745000, fitOutCost: 12800000 }
+      - { id: sf-b6, x: 0, y: 2, zone: budget, pop: 16000, mix: { students: 0.36, office: 0.20, premium: 0.05, other: 0.39 }, rentMonthly: 470000, fitOutCost: 8600000 }
+      - { id: sf-b7, x: 1, y: 2, zone: budget, pop: 17500, mix: { students: 0.38, office: 0.19, premium: 0.06, other: 0.37 }, rentMonthly: 435000, fitOutCost: 9700000 }
+      - { id: sf-c6, x: 2, y: 2, zone: central, pop: 19500, mix: { students: 0.12, office: 0.55, premium: 0.14, other: 0.19 }, rentMonthly: 720000, fitOutCost: 12300000 }
+      - { id: sf-c7, x: 3, y: 2, zone: central, pop: 22000, mix: { students: 0.12, office: 0.59, premium: 0.12, other: 0.17 }, rentMonthly: 775000, fitOutCost: 11400000 }
+      - { id: sf-c8, x: 4, y: 2, zone: central, pop: 18000, mix: { students: 0.12, office: 0.58, premium: 0.11, other: 0.19 }, rentMonthly: 780000, fitOutCost: 12300000 }
+      - { id: sf-p2, x: 5, y: 2, zone: premium, pop: 13500, mix: { students: 0.08, office: 0.29, premium: 0.35, other: 0.28 }, rentMonthly: 700000, fitOutCost: 13100000 }
+      - { id: sf-p3, x: 6, y: 2, zone: premium, pop: 13000, mix: { students: 0.07, office: 0.28, premium: 0.35, other: 0.30 }, rentMonthly: 735000, fitOutCost: 12800000 }
+      - { id: sf-b8, x: 1, y: 3, zone: budget, pop: 18500, mix: { students: 0.33, office: 0.21, premium: 0.05, other: 0.41 }, rentMonthly: 435000, fitOutCost: 9600000 }
+      - { id: sf-b9, x: 2, y: 3, zone: budget, pop: 16000, mix: { students: 0.34, office: 0.21, premium: 0.05, other: 0.40 }, rentMonthly: 365000, fitOutCost: 8900000 }
+      - { id: sf-c9, x: 3, y: 3, zone: central, pop: 23500, mix: { students: 0.13, office: 0.59, premium: 0.11, other: 0.17 }, rentMonthly: 640000, fitOutCost: 11200000 }
+      - { id: sf-p4, x: 4, y: 3, zone: premium, pop: 14000, mix: { students: 0.08, office: 0.27, premium: 0.34, other: 0.31 }, rentMonthly: 850000, fitOutCost: 13000000 }
+      - { id: sf-p5, x: 5, y: 3, zone: premium, pop: 11000, mix: { students: 0.08, office: 0.25, premium: 0.35, other: 0.32 }, rentMonthly: 690000, fitOutCost: 12600000 }
+      - { id: sf-p6, x: 6, y: 3, zone: premium, pop: 10500, mix: { students: 0.08, office: 0.28, premium: 0.37, other: 0.27 }, rentMonthly: 755000, fitOutCost: 11900000 }
+      - { id: sf-b10, x: 2, y: 4, zone: budget, pop: 15500, mix: { students: 0.36, office: 0.21, premium: 0.05, other: 0.38 }, rentMonthly: 415000, fitOutCost: 8800000 }
+      - { id: sf-b11, x: 3, y: 4, zone: budget, pop: 18000, mix: { students: 0.33, office: 0.20, premium: 0.05, other: 0.42 }, rentMonthly: 400000, fitOutCost: 9000000 }
+      - { id: sf-p7, x: 4, y: 4, zone: premium, pop: 12000, mix: { students: 0.07, office: 0.27, premium: 0.35, other: 0.31 }, rentMonthly: 695000, fitOutCost: 12400000 }
+      - { id: sf-p8, x: 5, y: 4, zone: premium, pop: 14500, mix: { students: 0.08, office: 0.27, premium: 0.34, other: 0.31 }, rentMonthly: 745000, fitOutCost: 11800000 }
+      - { id: sf-b12, x: 3, y: 5, zone: budget, pop: 15000, mix: { students: 0.31, office: 0.20, premium: 0.05, other: 0.44 }, rentMonthly: 415000, fitOutCost: 8800000 }
+      - { id: sf-p9, x: 4, y: 5, zone: premium, pop: 11500, mix: { students: 0.08, office: 0.26, premium: 0.33, other: 0.33 }, rentMonthly: 820000, fitOutCost: 12100000 }
+
+companies:
+  - { id: player, name: "Founder Co.", kind: player, startingCash: 25000000, initialStores: [] }

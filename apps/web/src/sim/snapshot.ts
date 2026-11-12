@@ -31,8 +31,9 @@ import {
   type StorePnl,
   marketingEffect,
   meanAwareness,
-  worldDistricts,
+  worldOf,
   type CityDef,
+  type Zone,
   type MarketingEffect,
 } from '@game/sim-core';
 import { computeAlerts, type Alert } from './alerts';
@@ -42,10 +43,25 @@ import { monthOverMonth, type FinanceMom } from './mom';
 import { pendingChanges, type PendingView } from './pending';
 import type { Speed } from './protocol';
 
+/** Một thành phố của scenario (ADR-0003); chi tiết địa điểm chỉ có cho thành phố đang xem. */
+export interface CitySummary {
+  readonly id: string;
+  readonly name: string;
+  readonly pop: number;
+  /** Id mọi địa điểm của thành phố, để UI tra "địa điểm này thuộc thành phố nào". */
+  readonly districtIds: readonly string[];
+  /** Số cửa hàng đang mở của người chơi và số đối thủ đang có cửa hàng ở đây. */
+  readonly ownStores: number;
+  readonly rivals: number;
+}
+
 export interface DistrictView {
   readonly id: string;
+  /** Vị trí trong danh sách địa điểm của cả thế giới (chỉ số ô nhận biết). */
+  readonly index: number;
   readonly x: number;
   readonly y: number;
+  readonly zone: Zone;
   readonly pop: number;
   /** Thuê và capex nếu mở cửa hàng hôm nay (đã nhân CPI). */
   readonly rentMonthly: Money;
@@ -120,6 +136,12 @@ export interface Snapshot {
     readonly marketingBudgetMonthly: Money;
     readonly qualityTier: QualityTier;
   };
+  /** Seed và scenario của ván đang chơi. */
+  readonly seed: number;
+  readonly scenarioId: string;
+  /** Mọi thành phố của scenario, theo thứ tự chuẩn. */
+  readonly cities: readonly CitySummary[];
+  /** Thành phố đang xem trên bản đồ. */
   readonly city: {
     readonly id: string;
     readonly name: string;
@@ -157,7 +179,7 @@ export interface Snapshot {
   readonly marketing: {
     readonly open: boolean;
     readonly view: MarketingEffect;
-    /** Nhận biết trung bình của từng quận (theo cơ cấu dân cư của quận), thứ tự như `districts`. */
+    /** Nhận biết trung bình từng địa điểm của thành phố đang xem (theo cơ cấu dân cư), thứ tự như `districts`. */
     readonly byDistrict: readonly number[];
   };
   /** Lệnh của người chơi đã vào hàng đợi, áp dụng ở đầu ngày kế tiếp. */
@@ -185,6 +207,7 @@ export function buildSnapshot(
   content: LoadedContent,
   speed: Speed,
   inspectedStoreId: string | null = null,
+  viewedCityId: string | null = null,
 ): Snapshot {
   const pid = playerId(state);
   const player = state.companies[pid];
@@ -203,15 +226,36 @@ export function buildSnapshot(
     return s && s.status === 'open' ? [s] : [];
   });
 
-  const city = viewedCity(content);
+  const world = worldOf(content);
+  const city = viewedCity(content, viewedCityId);
+  const cities = world.cities.map((c, k): CitySummary => {
+    let ownStores = 0;
+    const rivals = new Set<string>();
+    for (const s of openStores) {
+      const at = world.indexOf.get(s.districtId);
+      if (at === undefined || world.cityOf[at] !== k) continue;
+      if (s.companyId === pid) ownStores += 1;
+      else rivals.add(s.companyId);
+    }
+    return {
+      id: c.id,
+      name: c.name,
+      pop: world.cityPop[k] ?? 0,
+      districtIds: c.districts.map((d) => d.id),
+      ownStores,
+      rivals: rivals.size,
+    };
+  });
   const districts = city.districts.map((d): DistrictView => {
     const counts: Record<string, number> = {};
     for (const s of openStores)
       if (s.districtId === d.id) counts[s.companyId] = (counts[s.companyId] ?? 0) + 1;
     return {
       id: d.id,
+      index: world.indexOf.get(d.id) ?? 0,
       x: d.x,
       y: d.y,
+      zone: d.zone,
       pop: d.pop,
       rentMonthly: mul(d.rentMonthly, state.macro.priceIndex),
       capex: storeCapex(state, d),
@@ -277,6 +321,9 @@ export function buildSnapshot(
       marketingBudgetMonthly: player.marketingBudgetMonthly,
       qualityTier: player.qualityTier,
     },
+    seed: state.seed,
+    scenarioId: scenario.id,
+    cities,
     city: { id: city.id, name: city.name, gridW: city.gridW, gridH: city.gridH },
     rules: {
       minStaffPerStore: content.industry.minStaffPerStore,
@@ -301,7 +348,7 @@ export function buildSnapshot(
     office,
     finance: financeView(state, content, pid),
     hr: hrSection(state, content, pid),
-    marketing: marketingSection(state, content, pid),
+    marketing: marketingSection(state, content, pid, city),
   };
 }
 
@@ -337,17 +384,24 @@ function financeView(state: GameState, content: LoadedContent, pid: string): Fin
   };
 }
 
-/** Thành phố đang xem; hiện là thành phố đầu tiên của scenario. */
-function viewedCity(content: LoadedContent): CityDef {
-  const city = content.scenario.cities[0];
+/** Thành phố đang xem; id lạ hoặc null thì là thành phố đầu tiên của scenario. */
+function viewedCity(content: LoadedContent, cityId: string | null): CityDef {
+  const city = content.scenario.cities.find((c) => c.id === cityId) ?? content.scenario.cities[0];
   if (!city) throw new Error('scenario has no city');
   return city;
 }
 
-function marketingSection(state: GameState, content: LoadedContent, pid: string): Snapshot['marketing'] {
+function marketingSection(
+  state: GameState,
+  content: LoadedContent,
+  pid: string,
+  city: CityDef,
+): Snapshot['marketing'] {
   const view = marketingEffect(state, content, pid);
   const S = view.segmentIds.length;
-  const byDistrict = worldDistricts(content).map((d, e) => {
+  const world = worldOf(content);
+  const byDistrict = city.districts.map((d) => {
+    const e = world.indexOf.get(d.id) ?? 0;
     let weighted = 0;
     let share = 0;
     view.segmentIds.forEach((segmentId, s) => {

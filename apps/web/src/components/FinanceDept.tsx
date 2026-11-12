@@ -12,6 +12,7 @@ import { monthLabel, pct, usd } from '../format';
 import { DeptLocked } from './DeptLocked';
 import { Slider } from './Slider';
 import { TrendChart } from './TrendChart';
+import { placeName } from '../sim/places';
 
 function adviceText(code: AdviceCode, a: FinanceAdvice): string {
   switch (code) {
@@ -178,7 +179,7 @@ function StorePnlTable({ snap }: { snap: Snapshot }) {
             {pnl.stores.map((r) => (
               <tr key={r.storeId}>
                 <td>
-                  {r.districtId.toUpperCase()}{' '}
+                  {placeName(snap.cities, r.districtId)}{' '}
                   <span className="muted small">{r.status === 'closed' ? '(đã đóng)' : ''}</span>
                 </td>
                 {STORE_COLUMNS.map(([k]) => (

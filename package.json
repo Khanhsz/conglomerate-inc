@@ -18,6 +18,7 @@
     "dev": "pnpm --filter @game/web dev",
     "e2e": "pnpm --filter @game/web build && playwright test -c apps/web/playwright.config.ts",
     "bench": "tsx packages/balance/src/bench.ts",
+    "content:atlas": "tsx packages/content/src/build-atlas.ts",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm balance:smoke",
     "check:all": "pnpm check && pnpm e2e"
   },

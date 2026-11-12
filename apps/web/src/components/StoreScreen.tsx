@@ -13,6 +13,7 @@ import { ScreenShell } from './ScreenShell';
 import { AmenityCards } from './AmenityCards';
 import { StoreCustomers } from './StoreCustomers';
 import { StoreDetail } from './StoreDetail';
+import { placeName } from '../sim/places';
 
 const LABEL: { readonly [T in StoreTab]: string } = {
   ops: 'Vận hành',
@@ -38,7 +39,7 @@ export function StoreScreen({ snap, storeId, tab }: { snap: Snapshot; storeId: s
   }
   return (
     <ScreenShell
-      title={`Cửa hàng quận ${row.districtId.toUpperCase()}`}
+      title={`Cửa hàng quận ${placeName(snap.cities, row.districtId)}`}
       subtitle={`${storeId} · ${int(row.servedToday)} khách hôm nay · phục vụ ${row.serviceLevel.toFixed(2)}`}
       testId="store-screen"
       tabs={STORE_TABS.map((id) => ({ id, label: LABEL[id] }))}

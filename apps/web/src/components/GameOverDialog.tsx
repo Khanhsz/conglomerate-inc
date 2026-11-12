@@ -1,10 +1,10 @@
 import type { Snapshot } from '../sim/snapshot';
 import { usd } from '../format';
-import { useUi } from '../store';
+import { randomSeed, useUi } from '../store';
 
 /** Phá sản = game over, kèm báo cáo nguyên nhân (economic-model §8). */
 export function GameOverDialog({ snap }: { snap: Snapshot }) {
-  const send = useUi((s) => s.send);
+  const newGame = useUi((s) => s.newGame);
   const e = snap.gameOver;
   if (!e) return null;
   return (
@@ -24,7 +24,7 @@ export function GameOverDialog({ snap }: { snap: Snapshot }) {
           ))}
         </ol>
         <p>Dự báo tiền ròng sau 3 tháng theo xu hướng: {usd(e.cashForecast3m)}</p>
-        <button className="primary" onClick={() => send({ type: 'init' })}>
+        <button className="primary" onClick={() => newGame({ seed: randomSeed() })}>
           Chơi lại
         </button>
       </div>

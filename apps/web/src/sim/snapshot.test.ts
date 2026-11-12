@@ -107,6 +107,39 @@ describe('buildSnapshot', () => {
     expect(later.view.channels.find((x) => x.channel === 'flyers')?.monthlySpend).toBe(30_000);
   });
 
+  it('m1-default has one city; atlas has seven and details only the viewed one (M1.8)', () => {
+    expect(snap.cities.map((c) => c.id)).toEqual(['riverton']);
+    expect(snap.scenarioId).toBe('m1-default');
+    expect(snap.seed).toBe(42);
+    expect(snap.districts.every((d) => d.zone === 'central')).toBe(true);
+
+    const atlas = loadGameContent('atlas');
+    const opened = runDays(
+      enqueue(createGame(atlas, { seed: 7 }), {
+        type: 'OpenStore',
+        companyId: 'player',
+        payload: { districtId: 'ib-b1' },
+      }),
+      atlas,
+      1,
+    );
+    const first = buildSnapshot(opened, atlas, 0);
+    expect(first.seed).toBe(7);
+    expect(first.cities).toHaveLength(7);
+    expect(first.city.id).toBe('riverton');
+    expect(first.districts).toHaveLength(32);
+    expect(first.cities.find((c) => c.id === 'ironbridge')?.ownStores).toBe(1);
+    const other = buildSnapshot(opened, atlas, 0, null, 'ironbridge');
+    expect(other.city).toMatchObject({ id: 'ironbridge', gridW: 7 });
+    expect(other.districts).toHaveLength(33);
+    // Chỉ số trong thế giới: Ironbridge đứng sau 4 thành phố (32 + 34 + 30 + 31 địa điểm).
+    expect(other.districts[0]).toMatchObject({ id: 'ib-b1', index: 127, zone: 'budget' });
+    expect(other.districts[0]?.stores).toEqual([{ companyId: 'player', count: 1 }]);
+    expect(other.marketing.byDistrict).toHaveLength(33);
+    // id thành phố lạ → thành phố đầu tiên
+    expect(buildSnapshot(opened, atlas, 0, null, 'nowhere').city.id).toBe('riverton');
+  });
+
   it('keeps only the last 12 months of statements and 50 events', () => {
     const s = runDays(s0, content, 15 * 30);
     const later = buildSnapshot(s, content, 0);

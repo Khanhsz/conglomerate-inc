@@ -6,6 +6,7 @@ import { segmentName } from '../labels';
 import { DayChart, PriceCurve } from './Charts';
 import { Stepper } from './Parts';
 import { Slider } from './Slider';
+import { districtLabel } from '../sim/places';
 
 const PART_LABEL: Record<UtilityPart, string> = {
   quality: 'chất lượng',
@@ -159,12 +160,12 @@ export function StoreDetail({ snap }: { snap: Snapshot }) {
         </p>
         <p>
           Đến từ quận:{' '}
-          {report.byOrigin.map((o) => `${o.districtId.toUpperCase()} ${int(o.demand)}`).join(' · ')}.
+          {report.byOrigin.map((o) => `${districtLabel(o.districtId)} ${int(o.demand)}`).join(' · ')}.
           {report.lostToday > 0.5 && <> Hôm nay mất {int(report.lostToday)} khách vì hết công suất.</>}
         </p>
         {focus?.rival ? (
           <p data-testid="gap-summary">
-            Ở nhóm khách lớn nhất ({segmentName(focus.segmentId)} quận {focus.originId.toUpperCase()}), đối
+            Ở nhóm khách lớn nhất ({segmentName(focus.segmentId)} quận {districtLabel(focus.originId)}), đối
             thủ mạnh nhất là <b>{names[focus.rival.companyId] ?? focus.rival.companyId}</b>
             {focus.gaps.length > 0 ? (
               <>
@@ -188,7 +189,7 @@ export function StoreDetail({ snap }: { snap: Snapshot }) {
             {report.rivals
               .map(
                 (r) =>
-                  `${names[r.companyId] ?? r.companyId} ở ${r.districtId.toUpperCase()} (${int(r.overlap)}/ngày)`,
+                  `${names[r.companyId] ?? r.companyId} ở ${districtLabel(r.districtId)} (${int(r.overlap)}/ngày)`,
               )
               .join(' · ')}
           </p>

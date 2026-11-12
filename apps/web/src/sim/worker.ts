@@ -6,11 +6,15 @@
 import { createGame, enqueue, step, validateCommand, whatIf, type GameState } from '@game/sim-core';
 import { computeAlerts, newAlertKeys, type Alert, type AlertKind } from './alerts';
 import { loadGameContent } from './content';
+import { DEFAULT_SCENARIO, type ScenarioId } from './scenarios';
 import type { FromWorker, Speed, ToWorker } from './protocol';
 import { buildSnapshot, playerId, shouldPause } from './snapshot';
 
-const content = loadGameContent();
+let scenarioId: ScenarioId = DEFAULT_SCENARIO;
+let content = loadGameContent(scenarioId);
 let state: GameState = createGame(content);
+/** Thành phố đang xem trên bản đồ; null = thành phố đầu tiên của scenario. */
+let viewedCity: string | null = null;
 let speed: Speed = 0;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let inspected: string | null = null;
@@ -28,7 +32,7 @@ function send(message: FromWorker): void {
 /** Dựng và gửi snapshot (đọc state hiện tại, không đổi gì). */
 function publish(): void {
   lastPublishAt = performance.now();
-  send({ type: 'snapshot', snapshot: buildSnapshot(state, content, speed, inspected) });
+  send({ type: 'snapshot', snapshot: buildSnapshot(state, content, speed, inspected, viewedCity) });
 }
 
 /** Cảnh báo mới thuộc loại người chơi chọn thì tạm dừng; xét mỗi tick dù snapshot có được gửi hay không. */
@@ -57,10 +61,16 @@ function tick(): void {
 function handle(message: ToWorker): void {
   switch (message.type) {
     case 'init':
+      scenarioId = message.scenario ?? scenarioId;
+      content = loadGameContent(scenarioId);
       state = createGame(content, message.seed === undefined ? {} : { seed: message.seed });
       speed = 0;
       inspected = null;
+      viewedCity = message.cityId ?? null;
       lastAlerts = computeAlerts(state);
+      break;
+    case 'viewCity':
+      viewedCity = message.cityId;
       break;
     case 'command': {
       // Kiểm tra ngay để báo lỗi tức thì; lệnh hợp lệ vào hàng đợi và áp dụng ở đầu tick kế tiếp.

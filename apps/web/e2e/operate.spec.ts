@@ -14,7 +14,7 @@ async function drag(slider: Locator, position: number, release: boolean): Promis
 }
 
 test('price slider previews the estimate while dragging and commits on release', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scenario=m1-default&seed=42');
   await page.getByTestId('district-c').click();
   await page.getByTestId('open-store').click();
   await page.getByTestId('speed-16').click();

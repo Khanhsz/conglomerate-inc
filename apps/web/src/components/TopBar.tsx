@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { SPEEDS, type Speed } from '../sim/protocol';
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
 import { usd } from '../format';
+import { NewGameDialog } from './NewGameDialog';
 
 const SPEED_LABEL: Record<Speed, string> = { 0: '⏸ Tạm dừng', 1: '1×', 4: '4×', 16: '16×' };
 
 export function TopBar({ snap }: { snap: Snapshot }) {
   const send = useUi((s) => s.send);
+  const [newGameOpen, setNewGameOpen] = useState(false);
   const { calendar, player } = snap;
   return (
     <header className="topbar" data-day={calendar.day}>
@@ -36,6 +39,18 @@ export function TopBar({ snap }: { snap: Snapshot }) {
       {snap.pendingCommands > 0 && (
         <span className="muted">{snap.pendingCommands} lệnh chờ tick kế tiếp</span>
       )}
+      <span className="muted small game-seed" data-testid="game-seed" data-seed={snap.seed}>
+        Seed {snap.seed}
+      </span>
+      <button
+        type="button"
+        className="link small"
+        data-testid="new-game"
+        onClick={() => setNewGameOpen(true)}
+      >
+        Ván mới…
+      </button>
+      {newGameOpen && <NewGameDialog current={snap.scenarioId} onClose={() => setNewGameOpen(false)} />}
     </header>
   );
 }

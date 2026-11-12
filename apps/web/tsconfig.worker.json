@@ -16,7 +16,9 @@
     "src/sim/inspection.ts",
     "src/sim/limits.ts",
     "src/sim/pending.ts",
-    "src/sim/mom.ts"
+    "src/sim/mom.ts",
+    "src/sim/scenarios.ts",
+    "src/sim/places.ts"
   ],
   "references": [
     {

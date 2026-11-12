@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('lease an office, open a department, see slots used and close it again', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scenario=m1-default&seed=42');
   await page.getByTestId('open-hq').click();
   await page.getByTestId('tab-office').click();
   await page.getByTestId('office-district').selectOption('nw');

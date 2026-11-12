@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('HR department: roster is visible, policies unlock once the department is open', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scenario=m1-default&seed=42');
   await page.getByTestId('district-c').click();
   await page.getByTestId('open-store').click();
   await page.getByTestId('open-hq').click();

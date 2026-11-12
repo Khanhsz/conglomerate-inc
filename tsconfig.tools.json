@@ -21,6 +21,8 @@
     "apps/web/src/sim/inspection.ts",
     "apps/web/src/sim/limits.ts",
     "apps/web/src/sim/pending.ts",
-    "apps/web/src/sim/mom.ts"
+    "apps/web/src/sim/mom.ts",
+    "apps/web/src/sim/scenarios.ts",
+    "apps/web/src/sim/places.ts"
   ]
 }

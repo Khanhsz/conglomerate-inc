@@ -1,6 +1,7 @@
 /** Cảnh báo vận hành (M1.5 A4), tính từ state ở worker. Hàm thuần. */
 import { ACC, currentBalances, storeContribution, toDisplay, type GameState } from '@game/sim-core';
 import { playerId } from './snapshot';
+import { districtLabel } from './places';
 
 export type AlertKind =
   'overloaded' | 'underused' | 'negativeContribution' | 'lowMorale' | 'rivalNearby' | 'cashForecast';
@@ -39,7 +40,7 @@ export function computeAlerts(state: GameState): Alert[] {
     const known = myDistricts.get(s.districtId);
     if (!known || s.openedDay < known.openedDay)
       myDistricts.set(s.districtId, { id, openedDay: s.openedDay });
-    const district = s.districtId.toUpperCase();
+    const district = districtLabel(s.districtId);
     const week = s.recentDays.slice(-WEEK);
     const turnedAway = week.filter((d) => d.served < d.demand * 0.98).length;
     if (turnedAway >= OVERLOAD_DAYS) {
@@ -96,7 +97,7 @@ export function computeAlerts(state: GameState): Alert[] {
         kind: 'rivalNearby',
         severity: 'warning',
         storeId: mine.id,
-        message: `${name} vừa mở cửa hàng ở quận ${e.districtId.toUpperCase()}, nơi bạn có cửa hàng (ngày ${e.day}).`,
+        message: `${name} vừa mở cửa hàng ở quận ${districtLabel(e.districtId)}, nơi bạn có cửa hàng (ngày ${e.day}).`,
       });
     }
   }

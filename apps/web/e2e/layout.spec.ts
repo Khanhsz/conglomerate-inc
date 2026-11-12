@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 test.use({ viewport: { width: 390, height: 844 } });
 
 test('phone: no horizontal page scroll on any HQ or store tab', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scenario=m1-default&seed=42');
   await page.getByTestId('district-c').click();
   await page.getByTestId('open-store').click();
   await page.getByTestId('speed-16').click();

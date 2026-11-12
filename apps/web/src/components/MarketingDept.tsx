@@ -6,6 +6,7 @@ import { useUi } from '../store';
 import { pct, usd } from '../format';
 import { segmentName } from '../labels';
 import { Stepper } from './Parts';
+import { districtLabel } from '../sim/places';
 
 const ALL = 'all';
 /** Trọng số từ mức này trở lên được coi là "mạnh với" phân khúc đó. */
@@ -32,7 +33,9 @@ export function MarketingDept({ snap }: { snap: Snapshot }) {
 
   const S = view.segmentIds.length;
   const s = view.segmentIds.indexOf(segment);
-  const value = (e: number) => (s < 0 ? (byDistrict[e] ?? 0) : (view.awareness[e * S + s] ?? 0));
+  /** `e`: vị trí trong `snap.districts`; ô nhận biết dùng chỉ số trong cả thế giới (`index`). */
+  const value = (e: number) =>
+    s < 0 ? (byDistrict[e] ?? 0) : (view.awareness[(snap.districts[e]?.index ?? 0) * S + s] ?? 0);
   const columns = Math.max(...snap.districts.map((d) => d.x)) + 1;
 
   return (
@@ -70,7 +73,7 @@ export function MarketingDept({ snap }: { snap: Snapshot }) {
               style={{ gridColumn: d.x + 1, gridRow: d.y + 1, background: heat(value(e)) }}
               onClick={() => setPicked(d.id)}
             >
-              <span className="heat-id">{d.id.toUpperCase()}</span>
+              <span className="heat-id">{districtLabel(d.id)}</span>
               <strong>{pct(value(e), 0)}</strong>
               <span className="heat-stores">{stores > 0 ? `◆ ${stores}` : ' '}</span>
             </button>
@@ -166,7 +169,7 @@ function ChannelCard({
       </p>
       <Stepper
         id={`channel-${channel.channel}`}
-        label={channel.scope === 'city' ? 'Ngân sách / tháng' : `Quận ${district.toUpperCase()} / tháng`}
+        label={channel.scope === 'city' ? 'Ngân sách / tháng' : `Quận ${districtLabel(district)} / tháng`}
         value={pending ?? current}
         {...snap.limits.channelBudget}
         format={(v) => usd(money(v))}
@@ -184,7 +187,7 @@ function ChannelCard({
       {channel.scope === 'district' && (
         <p className="small muted" data-testid={`channel-total-${channel.channel}`}>
           {elsewhere.length > 0
-            ? `Quận khác: ${elsewhere.map((b) => `${b.target.toUpperCase()} ${usd(b.monthly)}`).join(' · ')}. `
+            ? `Quận khác: ${elsewhere.map((b) => `${districtLabel(b.target)} ${usd(b.monthly)}`).join(' · ')}. `
             : ''}
           Tổng kênh: {usd(channel.monthlySpend)}/tháng
         </p>

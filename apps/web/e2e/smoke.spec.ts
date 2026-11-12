@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('open a store in district C, run 2 months at 16×, see revenue in the P&L', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scenario=m1-default&seed=42');
   await page.getByTestId('district-c').click();
   await page.getByTestId('open-store').click();
   await page.getByTestId('speed-16').click();

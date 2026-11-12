@@ -5,6 +5,7 @@ import { pct, usd } from '../format';
 import { LEVEL_NAME } from '../labels';
 import { DeptLocked } from './DeptLocked';
 import { Slider } from './Slider';
+import { placeName } from '../sim/places';
 
 const STATUS: { readonly [S in StaffStatus]: readonly [string, string] } = {
   ok: ['Ổn', 'ok'],
@@ -164,7 +165,7 @@ export function HrDept({ snap }: { snap: Snapshot }) {
                 const [label, tone] = STATUS[r.status];
                 return (
                   <tr key={r.storeId}>
-                    <td>{r.districtId.toUpperCase()}</td>
+                    <td>{placeName(snap.cities, r.districtId)}</td>
                     <td className="num">{r.staff}</td>
                     <td className="num">
                       {usd(r.wageMonthly)}

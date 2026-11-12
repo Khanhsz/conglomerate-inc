@@ -161,3 +161,63 @@ button.close {
     grid-template-columns: 1fr;
   }
 }
+
+/* M1.8: nhiều thành phố. Dải chọn thành phố, lưới có ô trống, màu nền theo khu. */
+.city-chips {
+  margin-bottom: 8px;
+}
+.city-own {
+  font-size: 0.85em;
+}
+.city-grid.dense .district {
+  min-height: 52px;
+  padding: 4px 3px;
+  align-items: center;
+  text-align: center;
+  font-size: 12px;
+}
+.city-grid.dense .glyphs {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+.district.zone-central,
+.zone-swatch.zone-central {
+  background: color-mix(in srgb, var(--series-1) 9%, var(--panel));
+}
+.district.zone-premium,
+.zone-swatch.zone-premium {
+  background: color-mix(in srgb, var(--series-2) 13%, var(--panel));
+}
+.district.zone-budget,
+.zone-swatch.zone-budget {
+  background: var(--panel);
+}
+.zone-tag {
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.zone-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+.zone-legend {
+  margin-top: 6px;
+  font-size: 12px;
+}
+.game-seed {
+  font-variant-numeric: tabular-nums;
+}
+.dialog.new-game {
+  display: grid;
+  gap: 10px;
+}
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+}

@@ -14,6 +14,7 @@ import { hqAdvice } from './advisors';
 import { AdvisorStrip, KpiPair, type Kpi, type Role } from './Parts';
 import { ScreenShell } from './ScreenShell';
 import { Slider } from './Slider';
+import { placeName } from '../sim/places';
 
 const LABEL: { readonly [T in HqTab]: string } = {
   office: 'Văn phòng',
@@ -35,7 +36,7 @@ export function HqScreen({ snap, tab }: { snap: Snapshot; tab: HqTab }) {
       title="Trụ sở"
       subtitle={
         office
-          ? `Văn phòng ${OFFICE_SIZE_LABEL[office.size]} · quận ${office.districtId.toUpperCase()}`
+          ? `Văn phòng ${OFFICE_SIZE_LABEL[office.size]} · quận ${placeName(snap.cities, office.districtId)}`
           : 'Chưa thuê văn phòng'
       }
       testId="hq-screen"

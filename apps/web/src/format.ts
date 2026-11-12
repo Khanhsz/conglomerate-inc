@@ -1,5 +1,6 @@
 /** Định dạng hiển thị. Tiền luôn qua toDisplay của sim-core; UI không làm toán tiền. */
 import { DEPARTMENT_LABEL, OFFICE_SIZE_LABEL, toDisplay, type GameEvent, type Money } from '@game/sim-core';
+import { districtLabel } from './sim/places';
 
 export const usd = (m: Money): string => toDisplay(m);
 /** Chênh lệch có dấu: +$1.00 / −$1.00. */
@@ -33,7 +34,7 @@ export function eventText(e: GameEvent, names: Readonly<Record<string, string>>,
     case 'commandRejected':
       return `✗ ${who(e.companyId)}: lệnh ${e.commandType} bị từ chối — ${e.reason}`;
     case 'storeOpened':
-      return `${who(e.companyId)} mở cửa hàng ${e.storeId} ở quận ${e.districtId}`;
+      return `${who(e.companyId)} mở cửa hàng ${e.storeId} ở ${districtLabel(e.districtId)}`;
     case 'storeClosed':
       return `${who(e.companyId)} đóng cửa hàng ${e.storeId}`;
     case 'distress':
@@ -49,7 +50,7 @@ export function eventText(e: GameEvent, names: Readonly<Record<string, string>>,
     case 'loanRepaid':
       return `${who(e.companyId)} trả sớm ${e.loanId}: gốc ${usd(e.principal)}, phí ${usd(e.fee)}`;
     case 'officeLeased':
-      return `${who(e.companyId)} thuê văn phòng ${OFFICE_SIZE_LABEL[e.size]} ở quận ${e.districtId}`;
+      return `${who(e.companyId)} thuê văn phòng ${OFFICE_SIZE_LABEL[e.size]} ở ${districtLabel(e.districtId)}`;
     case 'officeReleased':
       return `${who(e.companyId)} trả văn phòng`;
     case 'departmentOpened':

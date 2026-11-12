@@ -2,7 +2,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import type { FromWorker, ToWorker } from './sim/protocol';
-import { connect, useUi } from './store';
+import { parseScenarioId } from './sim/scenarios';
+import { connect, randomSeed, useUi } from './store';
 // Thứ tự = thứ tự cascade; giữ nguyên khi thêm file.
 import './styles/tokens.css';
 import './styles/base.css';
@@ -18,10 +19,17 @@ const worker = new Worker(new URL('./sim/worker.ts', import.meta.url), { type: '
 worker.addEventListener('message', (event: MessageEvent<FromWorker>) => useUi.getState().receive(event.data));
 connect((message: ToWorker) => worker.postMessage(message));
 
-const seedParam = new URLSearchParams(location.search).get('seed');
-if (seedParam !== null && Number.isSafeInteger(Number(seedParam))) {
-  useUi.getState().send({ type: 'init', seed: Number(seedParam) });
-}
+// Ván đầu tiên: `?scenario=`, `?seed=`, `?city=` (dùng cho e2e và để chơi lại một ván); không có seed thì ngẫu nhiên.
+const params = new URLSearchParams(location.search);
+const seedParam = params.get('seed');
+const seed = seedParam !== null && Number.isSafeInteger(Number(seedParam)) ? Number(seedParam) : randomSeed();
+const scenario = parseScenarioId(params.get('scenario'));
+const cityId = params.get('city');
+useUi.getState().newGame({
+  seed,
+  ...(scenario === null ? {} : { scenario }),
+  ...(cityId === null ? {} : { cityId }),
+});
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');

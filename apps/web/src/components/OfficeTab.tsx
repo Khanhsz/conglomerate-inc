@@ -4,6 +4,7 @@ import { DEPARTMENT_INFO } from './departments';
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
 import { usd } from '../format';
+import { districtLabel, placeName } from '../sim/places';
 
 export function OfficeTab({ snap }: { snap: Snapshot }) {
   const view = snap.office;
@@ -27,7 +28,7 @@ function LeaseForm({ snap }: { snap: Snapshot }) {
         <select data-testid="office-district" value={district} onChange={(e) => setDistrict(e.target.value)}>
           {snap.districts.map((d) => (
             <option key={d.id} value={d.id}>
-              {d.id.toUpperCase()}
+              {districtLabel(d.id)}
             </option>
           ))}
         </select>
@@ -82,7 +83,7 @@ function OfficeDetail({ snap }: { snap: Snapshot }) {
     <section className="office">
       <header className="office-head">
         <h3>
-          Văn phòng {OFFICE_SIZE_LABEL[size]} · quận {office.districtId.toUpperCase()}
+          Văn phòng {OFFICE_SIZE_LABEL[size]} · quận {placeName(snap.cities, office.districtId)}
         </h3>
         <span className="muted" data-testid="office-slots">
           {office.slotsUsed}/{office.slots} phòng đang dùng

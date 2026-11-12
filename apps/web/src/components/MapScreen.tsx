@@ -6,6 +6,7 @@ import { AlertsPanel } from './AlertsPanel';
 import { CityMap } from './CityMap';
 import { EventsPanel } from './EventsPanel';
 import { CityShareDonut } from './MarketTab';
+import { placeName } from '../sim/places';
 
 /** Trang chủ (M1.7): bản đồ, lối vào Trụ sở, danh sách cửa hàng, cảnh báo và sự kiện. */
 export function MapScreen({ snap }: { snap: Snapshot }) {
@@ -23,7 +24,7 @@ export function MapScreen({ snap }: { snap: Snapshot }) {
             <strong>Trụ sở</strong>
             <span className="small muted">
               {office
-                ? `Văn phòng ${OFFICE_SIZE_LABEL[office.size]} · quận ${office.districtId.toUpperCase()} · ${office.slotsUsed}/${office.slots} phòng`
+                ? `Văn phòng ${OFFICE_SIZE_LABEL[office.size]} · quận ${placeName(snap.cities, office.districtId)} · ${office.slotsUsed}/${office.slots} phòng`
                 : 'Chưa thuê văn phòng · tài chính, nhân sự, marketing'}
             </span>
           </span>
@@ -42,7 +43,8 @@ export function MapScreen({ snap }: { snap: Snapshot }) {
                   <li key={r.id} data-testid={`store-${r.id}`}>
                     <button type="button" data-testid={`open-store-${r.id}`} onClick={() => openStore(r.id)}>
                       <span className="store-name">
-                        Quận {r.districtId.toUpperCase()}
+                        {snap.cities.length > 1 ? '' : 'Quận '}
+                        {placeName(snap.cities, r.districtId)}
                         {p && <span className="pending small"> · có thay đổi chờ</span>}
                       </span>
                       <span className="small muted">

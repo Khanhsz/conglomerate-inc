@@ -3,6 +3,7 @@ import type { WhatIfChange, WhatIfResult } from '@game/sim-core';
 import { create } from 'zustand';
 import { ALERT_KINDS, type AlertKind } from './sim/alerts';
 import type { FromWorker, ToWorker } from './sim/protocol';
+import type { ScenarioId } from './sim/scenarios';
 import type { Snapshot } from './sim/snapshot';
 
 /** Màn hình (M1.7): bản đồ là trang chủ; Trụ sở và Cửa hàng có tab dưới. */
@@ -37,11 +38,22 @@ interface UiState {
   readonly openHq: (tab?: HqTab) => void;
   readonly openStore: (storeId: string, tab?: StoreTab) => void;
   readonly selectDistrict: (id: string) => void;
+  /** Đổi thành phố đang xem trên bản đồ (M1.8). */
+  readonly viewCity: (cityId: string) => void;
+  /** Bắt đầu ván mới với scenario và seed đã chọn; về lại bản đồ. */
+  readonly newGame: (options: { scenario?: ScenarioId; seed: number; cityId?: string }) => void;
   readonly inspect: (storeId: string | null) => void;
   readonly requestPreview: (storeId: string, change: WhatIfChange) => void;
   readonly clearPreview: () => void;
   readonly togglePause: (kind: AlertKind) => void;
   readonly dismissNotice: (id: number) => void;
+}
+
+/** Seed ngẫu nhiên cho ván mới (lớp web; mô phỏng vẫn tất định theo seed). */
+export function randomSeed(): number {
+  const buffer = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(buffer);
+  return buffer[0] ?? 0;
 }
 
 let nextNotice = 1;
@@ -141,6 +153,20 @@ export const useUi = create<UiState>((set, get) => ({
     post({ type: 'inspect', storeId });
   },
   selectDistrict: (id) => set({ selectedDistrict: id }),
+  viewCity: (cityId) => {
+    set({ selectedDistrict: null });
+    post({ type: 'viewCity', cityId });
+  },
+  newGame: (options) => {
+    set({
+      screen: { kind: 'map' },
+      selectedDistrict: null,
+      inspectedStore: null,
+      preview: null,
+      notices: [],
+    });
+    post({ type: 'init', ...options });
+  },
   inspect: (storeId) => {
     set({ inspectedStore: storeId, preview: null });
     post({ type: 'inspect', storeId });
