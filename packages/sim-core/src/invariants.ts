@@ -153,6 +153,26 @@ export function checkInvariants(state: GameState, content: LoadedContent): Invar
     }
 
     const company = state.companies[companyId];
+    // §13.10 (M1.8): hồ sơ đối thủ hợp lệ; công ty đã rút không còn cửa hàng mở.
+    if (company && company.kind === 'ai') {
+      const p = company.profile;
+      const sane =
+        p.markup > 0 &&
+        p.wageRatio > 0 &&
+        isUnit(p.marketingShareOfRevenue) &&
+        p.expansion.cashMultiple >= 0 &&
+        p.closeAfterNegativeMonths >= 1 &&
+        content.scenario.cities.some((c) => c.id === p.homeCityId);
+      if (!sane) out.push({ code: 'range', message: `${companyId}: hồ sơ đối thủ không hợp lệ` });
+    }
+    if (company && company.status === 'exited') {
+      const open = state.storeIds.some((id) => {
+        const store = state.stores[id];
+        return store?.companyId === companyId && store.status === 'open';
+      });
+      if (open)
+        out.push({ code: 'range', message: `${companyId}: đã rút khỏi thị trường nhưng còn cửa hàng mở` });
+    }
     if (company) {
       const bad = company.awareness.find((a) => !isUnit(a));
       if (bad !== undefined) {

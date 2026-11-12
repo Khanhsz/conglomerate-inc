@@ -1,5 +1,6 @@
 /** Định dạng hiển thị. Tiền luôn qua toDisplay của sim-core; UI không làm toán tiền. */
 import { DEPARTMENT_LABEL, OFFICE_SIZE_LABEL, toDisplay, type GameEvent, type Money } from '@game/sim-core';
+import { REACH_LABEL, TIER_STYLE } from './labels';
 import { districtLabel } from './sim/places';
 
 export const usd = (m: Money): string => toDisplay(m);
@@ -57,5 +58,9 @@ export function eventText(e: GameEvent, names: Readonly<Record<string, string>>,
       return `${who(e.companyId)} mở phòng ${DEPARTMENT_LABEL[e.dept]}`;
     case 'departmentClosed':
       return `${who(e.companyId)} đóng phòng ${DEPARTMENT_LABEL[e.dept]}`;
+    case 'competitorEntered':
+      return `Đối thủ mới: ${e.name} (${TIER_STYLE[e.qualityTier]}, ${REACH_LABEL[e.reach]}) gia nhập thị trường`;
+    case 'competitorExited':
+      return `${e.name} rút khỏi thị trường`;
   }
 }

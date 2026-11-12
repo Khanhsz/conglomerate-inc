@@ -57,7 +57,15 @@ export {
   type StoreReviews,
 } from './selectors/storeView';
 export { storeCapex } from './commands/openStore';
-export { aiPolicy, aiTargetPrice, decideMonthly, targetPrice, type AiPolicy } from './systems/ai';
+export { aiPolicy, decideMonthly, rankedDistricts, targetPrice, type AiPolicy } from './systems/ai';
+export {
+  activeChains,
+  generateRival,
+  isOut,
+  presentRivals,
+  profileFromPersonality,
+  type GeneratedRival,
+} from './rivals';
 export {
   annuityPayment,
   creditLineMax,

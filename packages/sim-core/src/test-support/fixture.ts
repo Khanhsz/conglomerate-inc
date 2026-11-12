@@ -112,6 +112,25 @@ const industry: IndustryContent = {
       halfSaturationDaily: money(1_000),
     },
   },
+  rivalGenerator: {
+    tierWeights: { basic: 3, standard: 4, premium: 3 },
+    tiers: {
+      basic: { markup: [3.4, 3.9], wageRatio: [0.9, 1.05], marketingShare: [0.01, 0.03] },
+      standard: { markup: [3.6, 4.1], wageRatio: [1, 1.15], marketingShare: [0.02, 0.05] },
+      premium: { markup: [3.8, 4.3], wageRatio: [1.1, 1.3], marketingShare: [0.04, 0.08] },
+    },
+    chainReachWeights: { regional: 2, national: 1 },
+    reachCities: { local: 1, regional: 2, national: 2 },
+    capital: {
+      local: [40_000_000, 70_000_000],
+      regional: [80_000_000, 140_000_000],
+      national: [150_000_000, 250_000_000],
+    },
+    initialStores: { local: [1, 2], regional: [2, 3], national: [3, 4] },
+    expansion: { maxPaybackMonths: [12, 30], cashMultiple: [1.5, 3.5] },
+    patienceMonths: [2, 5],
+    names: { prefixes: ['Amber', 'Brisk', 'Copper', 'Ember'], suffixes: ['Beans', 'Brew', 'Cafe'] },
+  },
   storeAmenities: {
     wifi: {
       name: 'Wi-Fi miễn phí',
@@ -231,6 +250,23 @@ export function twoCityContent(edit?: (draft: Draft<ContentPair>) => void): Load
         fitOutCost: x.fitOutCost,
       })),
     });
+    edit?.(d);
+  });
+}
+
+/**
+ * Fixture cho đối thủ sinh ngẫu nhiên (M1.8, §20): hai thành phố, dân ×3 để cửa hàng có lãi, có `competition`.
+ */
+export function rivalWorldContent(edit?: (draft: Draft<ContentPair>) => void): LoadedContent {
+  return twoCityContent((d) => {
+    for (const district of d.scenario.cities.flatMap((c) => c.districts)) district.pop *= 3;
+    d.scenario.competition = {
+      initial: { localPerCity: [2, 3], chains: [1, 2] },
+      maxPerCity: 5,
+      exitAfterMonthsWithoutStores: 3,
+      entryDelayMonths: [1, 4],
+      attractive: { margin: 0.25, months: 6 },
+    };
     edit?.(d);
   });
 }

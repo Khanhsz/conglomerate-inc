@@ -238,7 +238,7 @@ Luật công ty:
 - Công ty khai sẵn bằng `personality`: hồ sơ = bảng trên + `aiRules` (`rule = averageRoi`, `closeAfterNegativeMonths` của `aiRules`), nên hành vi không đổi so với M1.
 - Công ty sinh ngẫu nhiên: xem §20.1; `rule = marginalGain`.
 
-**Luật 4b — mở rộng theo lãi biên** (`rule = marginalGain`, thay điều kiện ROI của luật 4; các điều kiện "không distress", "tháng này không đóng cửa hàng", bootstrap và `cashMultiple` giữ nguyên):
+**Luật 4b — mở rộng theo lãi biên** (`rule = marginalGain`, thay điều kiện ROI của luật 4; các điều kiện "không distress", "tháng này không đóng cửa hàng" và `cashMultiple` giữ nguyên). Khác luật 4, cửa hàng đầu tiên cũng phải có lãi biên dương: công ty không còn chỗ nào có lãi thì không mở lại và sẽ rút lui theo §20.2.
 ```
 thành phố được xét = thành phố đang có cửa hàng của công ty
                      + mọi thành phố khác nếu số thành phố đang có cửa hàng < reachCities[reach]

@@ -6,17 +6,15 @@ import {
   validateCommand as validateWithContext,
 } from './commands/registry';
 import { DAYS_PER_MONTH, EVENTS_KEEP } from './constants';
-import { uniformAwareness } from './awareness';
-import { formatId } from './ids';
 import { ACC } from './ledger/accounts';
 import { createLedger, post } from './ledger/post';
-import { mul, ZERO } from './money';
+import { ZERO } from './money';
 import { createRngFactory } from './rng';
-import { defaultHrPolicy, emptyOfficeAccrued, noDepartments } from './office';
+import { blankCompany, initialStoreCommands, profileFromPersonality, seedInitialRivals } from './rivals';
 import { deepFreeze, devChecksEnabled } from './devChecks';
 import { beginTick } from './tick';
 import { worldDistricts } from './world';
-import { aiSystem, aiTargetPrice } from './systems/ai';
+import { aiSystem } from './systems/ai';
 import { brandSystem } from './systems/brand';
 import { demandSystem } from './systems/demand';
 import { financeDailySystem } from './systems/finance';
@@ -46,61 +44,32 @@ function assertContent(state: GameState, content: LoadedContent): void {
 }
 
 function newCompany(def: CompanyDef, content: LoadedContent): Company {
-  const { industry, scenario } = content;
-  const base = {
-    id: def.id,
-    name: def.name,
-    status: 'active' as const,
-    distressMonths: 0,
-    awareness: uniformAwareness(content, industry.brand.initialAwareness),
-    marketingBudgetMonthly: ZERO,
-    marketingAccrued: 0,
-    channelBudgets: [],
-    channelAwareness: [],
-    tax: { preTaxProfitYTD: ZERO, taxBookedYTD: ZERO, lossCarryforward: ZERO },
-    overdraft: { limit: scenario.finance.overdraftFloor, dailyBalanceSum: ZERO },
-    office: null,
-    departments: noDepartments(),
-    officeAccrued: emptyOfficeAccrued(),
-    creditLine: { limit: ZERO, commitmentFeeAccrued: 0 },
-    hrPolicy: defaultHrPolicy(),
+  const base = blankCompany(content, def.id, def.name);
+  if (def.kind !== 'ai') return { ...base, kind: 'player', qualityTier: 'standard' };
+  const profile = profileFromPersonality(content, def.personality);
+  return {
+    ...base,
+    kind: 'ai',
+    personality: def.personality,
+    qualityTier: profile.qualityTier,
+    profile,
+    foundedDay: 0,
+    storelessMonths: 0,
   };
-  return def.kind === 'ai'
-    ? {
-        ...base,
-        kind: 'ai',
-        personality: def.personality,
-        qualityTier: industry.aiPersonalities[def.personality].qualityTier,
-      }
-    : { ...base, kind: 'player', qualityTier: 'standard' };
 }
 
-/** Lệnh dựng cửa hàng ban đầu: OpenStore, rồi với AI là giá target, lương theo personality, aiInitialStaff. */
-function initialStoreCommands(
+/** Lệnh dựng cửa hàng ban đầu: OpenStore, rồi với AI là giá target, lương theo hồ sơ, aiInitialStaff. */
+function scenarioStoreCommands(
   state: GameState,
   content: LoadedContent,
   def: CompanyDef,
   districtId: string,
 ): Command[] {
-  const commands: Command[] = [{ type: 'OpenStore', companyId: def.id, payload: { districtId } }];
-  if (def.kind !== 'ai') return commands;
-  const storeId = formatId('store', state.nextIds.store);
-  const { priceIndex, marketWageMonthly } = state.macro;
-  const personality = content.industry.aiPersonalities[def.personality];
-  commands.push(
-    {
-      type: 'SetPrice',
-      companyId: def.id,
-      payload: { storeId, price: aiTargetPrice(content, def.personality, priceIndex) },
-    },
-    {
-      type: 'SetWage',
-      companyId: def.id,
-      payload: { storeId, wageMonthly: mul(marketWageMonthly, personality.wageRatio * priceIndex) },
-    },
-    { type: 'SetStaff', companyId: def.id, payload: { storeId, staff: content.industry.aiInitialStaff } },
-  );
-  return commands;
+  const company = state.companies[def.id];
+  if (def.kind !== 'ai' || !company || company.kind !== 'ai') {
+    return [{ type: 'OpenStore', companyId: def.id, payload: { districtId } }];
+  }
+  return initialStoreCommands(state, content, def.id, company.profile, districtId);
 }
 
 /**
@@ -110,7 +79,7 @@ function initialStoreCommands(
 export function createGame(content: LoadedContent, opts: { readonly seed?: number } = {}): GameState {
   const { industry, scenario } = content;
   const base: GameState = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     contentRef: { industryId: industry.id, scenarioId: scenario.id, contentVersion: content.contentVersion },
     seed: opts.seed ?? scenario.seed,
     clock: { day: 0 },
@@ -127,7 +96,8 @@ export function createGame(content: LoadedContent, opts: { readonly seed?: numbe
     commandQueue: [],
     events: [],
     eventSeq: 0,
-    nextIds: { store: 1, loan: 1 },
+    market: { targetChains: 0, cities: {} },
+    nextIds: { store: 1, loan: 1, company: 1 },
   };
   const defs = [...scenario.companies].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const ctx = makeContext(base, content);
@@ -151,7 +121,7 @@ export function createGame(content: LoadedContent, opts: { readonly seed?: numbe
     }
     for (const def of defs) {
       for (const districtId of def.initialStores) {
-        for (const cmd of initialStoreCommands(draft, content, def, districtId)) {
+        for (const cmd of scenarioStoreCommands(draft, content, def, districtId)) {
           const verdict = validateWithContext(draft, ctx, cmd);
           if (!verdict.ok) {
             throw new Error(
@@ -162,6 +132,8 @@ export function createGame(content: LoadedContent, opts: { readonly seed?: numbe
         }
       }
     }
+    // M1.8 (§20.5): scenario có `competition` thì sinh đối thủ đầu ván từ seed.
+    seedInitialRivals(draft, ctx);
     draft.eventSeq = draft.events.length;
   });
   return freeze(state, true);

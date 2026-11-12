@@ -8,6 +8,8 @@ export const ID_DIGITS = 6;
 
 /** Giới hạn validate của lệnh (spec §3). */
 export const MAX_STORES_PER_DISTRICT = 3;
+/** Số địa điểm ứng viên được tính lãi biên mỗi lần AI xét mở rộng (luật 4b, §9). */
+export const EXPANSION_CANDIDATES = 5;
 export const MAX_STAFF_PER_STORE = 40;
 /** Giá ∈ [min, max] × Pref hiện tại. */
 export const PRICE_BAND = { min: 0.3, max: 5 } as const;

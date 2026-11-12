@@ -6,9 +6,9 @@ import { ACC } from '../ledger/accounts';
 import { pay } from '../ledger/payments';
 import { money, mul, toDisplay, ZERO, type Money } from '../money';
 import type { Validation } from '../types/commands';
-import type { DistrictDef } from '../types/content';
+import type { DistrictDef, LoadedContent } from '../types/content';
 import type { SimContext } from '../types/context';
-import type { GameState } from '../types/state';
+import type { Company, GameState, Store } from '../types/state';
 import { effectiveNewHireSkill, policyWage } from '../hr';
 import {
   companyProblem,
@@ -22,6 +22,46 @@ import {
 
 export function storeCapex(state: GameState, district: DistrictDef): Money {
   return mul(district.fitOutCost, state.macro.priceIndex);
+}
+
+/** Bản ghi của một cửa hàng vừa mở (giá tham chiếu, staff và tinh thần của cửa hàng mới). Không ghi sổ. */
+export function newStoreRecord(
+  state: GameState,
+  content: LoadedContent,
+  company: Company,
+  district: DistrictDef,
+  id: string,
+  day: number,
+  capex: Money,
+): Store {
+  const { industry } = content;
+  const priceIndex = state.macro.priceIndex;
+  return {
+    id,
+    companyId: company.id,
+    districtId: district.id,
+    openedDay: day,
+    status: 'open',
+    price: mul(industry.referencePrice, priceIndex),
+    staff: industry.newStore.staff,
+    wageMonthly: policyWage(state, company.hrPolicy) ?? mul(state.macro.marketWageMonthly, priceIndex),
+    rentMonthly: mul(district.rentMonthly, priceIndex),
+    rentResetDay: day + RENT_TERM_DAYS,
+    capex,
+    accumDep: ZERO,
+    morale: industry.newStore.morale,
+    skill: effectiveNewHireSkill(content, company),
+    serviceLevel: industry.newStore.serviceLevel,
+    today: { demand: 0, served: 0, lost: 0, capacity: 0 },
+    mtd: emptyMonthToDate(),
+    lastMonth: emptyLastMonth(),
+    negContributionMonths: 0,
+    recentDays: [],
+    history: [],
+    overrides: { wage: false, staff: false },
+    bonusPerHead: 0,
+    amenities: [],
+  };
 }
 
 export const openStore = {
@@ -51,7 +91,6 @@ export const openStore = {
   apply(draft: GameState, ctx: SimContext, cmd: CommandOf<'OpenStore'>): void {
     const district = findDistrict(ctx.content, cmd.payload.districtId);
     if (!district) throw new Error(`apply OpenStore: unknown district ${String(cmd.payload.districtId)}`);
-    const { industry } = ctx.content;
     const id = formatId('store', draft.nextIds.store);
     draft.nextIds.store += 1;
     const capex = storeCapex(draft, district);
@@ -62,34 +101,8 @@ export const openStore = {
       refId: id,
       debits: [{ account: ACC.PPE, amount: capex }],
     });
-    const priceIndex = draft.macro.priceIndex;
     const company = getCompany(draft, cmd.companyId);
-    draft.stores[id] = {
-      id,
-      companyId: cmd.companyId,
-      districtId: district.id,
-      openedDay: ctx.day,
-      status: 'open',
-      price: mul(industry.referencePrice, priceIndex),
-      staff: industry.newStore.staff,
-      wageMonthly: policyWage(draft, company.hrPolicy) ?? mul(draft.macro.marketWageMonthly, priceIndex),
-      rentMonthly: mul(district.rentMonthly, priceIndex),
-      rentResetDay: ctx.day + RENT_TERM_DAYS,
-      capex,
-      accumDep: ZERO,
-      morale: industry.newStore.morale,
-      skill: effectiveNewHireSkill(ctx.content, company),
-      serviceLevel: industry.newStore.serviceLevel,
-      today: { demand: 0, served: 0, lost: 0, capacity: 0 },
-      mtd: emptyMonthToDate(),
-      lastMonth: emptyLastMonth(),
-      negContributionMonths: 0,
-      recentDays: [],
-      history: [],
-      overrides: { wage: false, staff: false },
-      bonusPerHead: 0,
-      amenities: [],
-    };
+    draft.stores[id] = newStoreRecord(draft, ctx.content, company, district, id, ctx.day, capex);
     draft.storeIds.push(id); // id tăng dần và đệm 0 → mảng vẫn đã sort
     draft.events.push({
       day: ctx.day,

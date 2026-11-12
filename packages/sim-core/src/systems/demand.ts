@@ -185,11 +185,16 @@ export function kmToCandidate(world: World, e: number, c: DemandCandidate): numb
   return distanceKm(city, origin, c.district);
 }
 
-/** Cầu kỳ vọng (trước nhiễu) của mọi cửa hàng đang mở (economic-model §3.3). Chỉ đọc state. */
-export function expectedDemand(state: GameState, content: LoadedContent): DemandSnapshot {
+/**
+ * Cầu kỳ vọng (trước nhiễu) của mọi cửa hàng đang mở (economic-model §3.3). Chỉ đọc state.
+ * Có `cityIndex` thì chỉ tính dân của thành phố đó (cửa hàng nơi khác nhận 0): dùng cho ước tính của AI.
+ */
+export function expectedDemand(state: GameState, content: LoadedContent, cityIndex?: number): DemandSnapshot {
   const { industry } = content;
   const world = worldOf(content);
   const candidates = demandCandidates(state, content);
+  const from = cityIndex === undefined ? 0 : (world.cityStart[cityIndex] ?? 0);
+  const to = cityIndex === undefined ? world.districts.length : from + (world.citySize[cityIndex] ?? 0);
 
   const byStore: Record<StoreId, number> = {};
   for (const c of candidates) byStore[c.id] = 0;
@@ -198,7 +203,7 @@ export function expectedDemand(state: GameState, content: LoadedContent): Demand
   const segmentIds = segmentIdsOf(content);
   const S = segmentIds.length;
 
-  for (let e = 0; e < world.districts.length; e++) {
+  for (let e = from; e < to; e++) {
     const origin = world.districts[e];
     const k = world.cityOf[e];
     const city = k === undefined ? undefined : world.cities[k];

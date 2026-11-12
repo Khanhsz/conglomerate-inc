@@ -12,6 +12,7 @@ import type {
   Personality,
   PolicyLevel,
   QualityTier,
+  Reach,
 } from './content';
 import type { Ledger } from './ledger';
 import type { MonthlyStatements } from './statements';
@@ -30,7 +31,8 @@ export interface MacroState {
   marketWageMonthly: Money;
 }
 
-export type CompanyStatus = 'active' | 'distress' | 'bankrupt';
+/** `exited`: đối thủ đã rút khỏi thị trường (M1.8, §20.2); sổ sách giữ nguyên, không còn hoạt động. */
+export type CompanyStatus = 'active' | 'distress' | 'bankrupt' | 'exited';
 
 interface CompanyBase {
   readonly id: CompanyId;
@@ -106,9 +108,34 @@ export interface PlayerCompany extends CompanyBase {
   readonly kind: 'player';
 }
 
+/** Hồ sơ hành vi của một đối thủ (economic-model §9, §20.1). Luật AI chỉ đọc hồ sơ này. */
+export interface RivalProfile {
+  /** `personality`: suy từ bảng kiểu cố định của scenario (M1); `generated`: sinh ngẫu nhiên từ seed. */
+  readonly source: 'personality' | 'generated';
+  readonly qualityTier: QualityTier;
+  readonly markup: number;
+  readonly wageRatio: number;
+  readonly marketingShareOfRevenue: number;
+  readonly expansion: {
+    /** `averageRoi`: luật 4 của M1; `marginalGain`: luật 4b. */
+    readonly rule: 'averageRoi' | 'marginalGain';
+    readonly minMonthlyRoi: number;
+    readonly cashMultiple: number;
+    readonly maxPaybackMonths: number;
+  };
+  readonly closeAfterNegativeMonths: number;
+  readonly reach: Reach;
+  readonly homeCityId: string;
+}
+
 export interface AiCompany extends CompanyBase {
   readonly kind: 'ai';
-  readonly personality: Personality;
+  /** Chỉ có ở công ty khai sẵn trong scenario. */
+  readonly personality?: Personality;
+  readonly profile: RivalProfile;
+  readonly foundedDay: number;
+  /** Số lần chốt tháng liên tiếp không có cửa hàng nào đang mở (§20.2). */
+  storelessMonths: number;
 }
 
 export type Company = PlayerCompany | AiCompany;
@@ -298,6 +325,23 @@ export type GameEvent =
       readonly loanId: LoanId;
       readonly principal: Money;
       readonly fee: Money;
+    }
+  | {
+      /** Đối thủ mới gia nhập một thành phố (M1.8, §20.3). */
+      readonly day: number;
+      readonly kind: 'competitorEntered';
+      readonly companyId: CompanyId;
+      readonly name: string;
+      readonly cityId: string;
+      readonly reach: Reach;
+      readonly qualityTier: QualityTier;
+    }
+  | {
+      /** Đối thủ rút khỏi thị trường sau nhiều tháng không còn cửa hàng (§20.2). */
+      readonly day: number;
+      readonly kind: 'competitorExited';
+      readonly companyId: CompanyId;
+      readonly name: string;
     };
 
 export interface ExpenseItem {
@@ -307,7 +351,7 @@ export interface ExpenseItem {
 }
 
 export interface GameState {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly contentRef: {
     readonly industryId: string;
     readonly scenarioId: string;
@@ -326,9 +370,18 @@ export interface GameState {
   ledger: Ledger;
   statements: Record<CompanyId, MonthlyStatements[]>;
   commandQueue: QueuedCommand[];
+  /**
+   * Thị trường theo thành phố (M1.8, §20.3): số đối thủ mục tiêu và hẹn gia nhập. `cities` rỗng khi scenario
+   * không khai `competition`.
+   */
+  market: {
+    /** Số chuỗi liên thành phố lúc đầu ván. */
+    readonly targetChains: number;
+    cities: Record<string, { readonly targetRivals: number; entryDueDay: number | null }>;
+  };
   /** Chỉ `EVENTS_KEEP` event gần nhất (#54). */
   events: GameEvent[];
   /** Tổng số event đã phát sinh từ đầu game; event cuối của `events` có số thứ tự `eventSeq`. */
   eventSeq: number;
-  nextIds: { store: number; loan: number };
+  nextIds: { store: number; loan: number; company: number };
 }

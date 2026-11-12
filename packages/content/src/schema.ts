@@ -62,6 +62,45 @@ const marketingChannelDef = z.strictObject({
   halfSaturationDaily: moneyCents.refine((v) => v > 0, 'phải > 0'),
 });
 
+/** Dải [thấp, cao] với thấp ≤ cao. */
+const rangeOf = (item: z.ZodNumber) =>
+  z.tuple([item, item]).refine((r) => r[0] <= r[1], 'cần [thấp, cao] với thấp ≤ cao');
+const intRange = (min: number) => rangeOf(z.number().int().min(min));
+const tierRanges = z.strictObject({
+  markup: rangeOf(positive),
+  wageRatio: rangeOf(positive),
+  marketingShare: rangeOf(unit),
+});
+
+/** Dải sinh hồ sơ đối thủ (economic-model §20.1). */
+const rivalGenerator = z.strictObject({
+  tierWeights: z.strictObject({ basic: nonNegative, standard: nonNegative, premium: nonNegative }),
+  tiers: z.strictObject({ basic: tierRanges, standard: tierRanges, premium: tierRanges }),
+  chainReachWeights: z.strictObject({ regional: nonNegative, national: nonNegative }),
+  reachCities: z.strictObject({
+    local: z.number().int().min(1),
+    regional: z.number().int().min(1),
+    national: z.number().int().min(1),
+  }),
+  capital: z.strictObject({ local: intRange(0), regional: intRange(0), national: intRange(0) }),
+  initialStores: z.strictObject({ local: intRange(0), regional: intRange(0), national: intRange(0) }),
+  expansion: z.strictObject({ maxPaybackMonths: intRange(1), cashMultiple: rangeOf(positive) }),
+  patienceMonths: intRange(1),
+  names: z.strictObject({
+    prefixes: z.array(z.string().min(1)).min(1),
+    suffixes: z.array(z.string().min(1)).min(1),
+  }),
+});
+
+/** Ra / vào thị trường (economic-model §20.2–20.5). */
+const competition = z.strictObject({
+  initial: z.strictObject({ localPerCity: intRange(0), chains: intRange(0) }),
+  maxPerCity: z.number().int().min(1),
+  exitAfterMonthsWithoutStores: z.number().int().min(1),
+  entryDelayMonths: intRange(0),
+  attractive: z.strictObject({ margin: z.number(), months: z.number().int().min(1) }),
+});
+
 const hrPolicies = z.strictObject({
   trainingCostPerStaffMonthly: moneyLevels,
   trainingMult: numberLevels(positive, 1),
@@ -150,6 +189,7 @@ export const industrySchema = z
     hrPolicies,
     storeAmenities: z.record(id, storeAmenityDef),
     marketingChannels: z.record(id, marketingChannelDef),
+    rivalGenerator,
   })
   .superRefine((ind, ctx) => {
     const min = ind.minStaffPerStore;
@@ -322,6 +362,8 @@ export const scenarioSchema = z
     /** Nhiều thành phố (M1.8, ADR-0003). */
     cities: z.array(city).min(1).optional(),
     companies: z.array(company).min(1),
+    /** Đối thủ sinh ngẫu nhiên, rút lui, gia nhập (M1.8); không khai = chỉ có công ty khai sẵn. */
+    competition: competition.optional(),
   })
   .superRefine((s, ctx) => {
     if ((s.city === undefined) === (s.cities === undefined)) {

@@ -56,6 +56,10 @@ export function beginTick(state: GameState): GameState {
     ...state,
     clock: { ...state.clock },
     macro: { ...state.macro },
+    market: {
+      targetChains: state.market.targetChains,
+      cities: mapRecord(state.market.cities, Object.keys(state.market.cities), (m) => ({ ...m })),
+    },
     companies: mapRecord(state.companies, state.companyIds, copyCompany),
     companyIds: state.companyIds.slice(),
     stores: mapRecord(state.stores, state.storeIds, copyStore),

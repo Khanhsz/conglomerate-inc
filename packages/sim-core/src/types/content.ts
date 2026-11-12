@@ -129,6 +129,46 @@ export interface ExpansionRule {
   readonly cashMultiple: number;
 }
 
+export const REACHES = ['local', 'regional', 'national'] as const;
+/** Phạm vi hoạt động của một đối thủ (M1.8, §20): một thành phố, vài thành phố, hay cả nước. */
+export type Reach = (typeof REACHES)[number];
+
+/** Dải [thấp, cao], cả hai đầu. */
+export type Range = readonly [number, number];
+
+/** Dải tham số để sinh hồ sơ đối thủ (economic-model §20.1). Mọi giá trị là đề xuất, hiệu chỉnh ở content. */
+export interface RivalGeneratorDef {
+  readonly tierWeights: { readonly [T in QualityTier]: number };
+  readonly tiers: {
+    readonly [T in QualityTier]: {
+      readonly markup: Range;
+      readonly wageRatio: Range;
+      readonly marketingShare: Range;
+    };
+  };
+  /** Trọng số chọn phạm vi cho chuỗi liên thành phố. */
+  readonly chainReachWeights: { readonly regional: number; readonly national: number };
+  /** Số thành phố tối đa theo phạm vi. */
+  readonly reachCities: { readonly [R in Reach]: number };
+  /** Vốn góp ban đầu (cent, trước CPI) theo phạm vi. */
+  readonly capital: { readonly [R in Reach]: Range };
+  /** Số cửa hàng mở ngay khi gia nhập, theo phạm vi. */
+  readonly initialStores: { readonly [R in Reach]: Range };
+  readonly expansion: { readonly maxPaybackMonths: Range; readonly cashMultiple: Range };
+  /** Số tháng lỗ liên tiếp trước khi đóng một cửa hàng. */
+  readonly patienceMonths: Range;
+  readonly names: { readonly prefixes: readonly string[]; readonly suffixes: readonly string[] };
+}
+
+/** Ra / vào thị trường của đối thủ (economic-model §20.2–20.5). Scenario không khai thì không có. */
+export interface CompetitionDef {
+  readonly initial: { readonly localPerCity: Range; readonly chains: Range };
+  readonly maxPerCity: number;
+  readonly exitAfterMonthsWithoutStores: number;
+  readonly entryDelayMonths: Range;
+  readonly attractive: { readonly margin: number; readonly months: number };
+}
+
 /** Luật tháng của AI (economic-model §9). */
 export interface AiRules {
   readonly highUtilization: number;
@@ -174,6 +214,8 @@ export interface IndustryContent {
   readonly storeAmenities: { readonly [id: string]: StoreAmenityDef };
   /** Kênh marketing ngoài `general` (M1.6, §18.2); rỗng = chỉ có `general` như M1. */
   readonly marketingChannels: { readonly [id: string]: MarketingChannelDef };
+  /** Dải sinh hồ sơ đối thủ (M1.8, §20.1). */
+  readonly rivalGenerator: RivalGeneratorDef;
 }
 
 export interface MacroParams {
@@ -261,6 +303,8 @@ export interface ScenarioContent {
   readonly finance: FinanceParams;
   /** Các thành phố (ADR-0003); khách chỉ mua trong thành phố mình sống. Thứ tự này là thứ tự chuẩn của thế giới. */
   readonly cities: readonly CityDef[];
+  /** Đối thủ sinh ngẫu nhiên, rút lui và gia nhập (M1.8, §20); không khai = chỉ có công ty khai sẵn. */
+  readonly competition?: CompetitionDef | undefined;
   readonly companies: readonly CompanyDef[];
 }
 

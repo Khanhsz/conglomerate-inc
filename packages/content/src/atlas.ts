@@ -223,6 +223,14 @@ finance:
 const FOOTER = `
 companies:
   - { id: player, name: "Founder Co.", kind: player, startingCash: 25000000, initialStores: [] }
+
+# Đối thủ sinh từ seed của ván (economic-model §20). Đề xuất ban đầu (#62).
+competition:
+  initial: { localPerCity: [2, 3], chains: [2, 3] }   # mỗi thành phố 2–3 chuỗi địa phương; 2–3 chuỗi liên thành phố
+  maxPerCity: 5
+  exitAfterMonthsWithoutStores: 3
+  entryDelayMonths: [1, 4]
+  attractive: { margin: 0.25, months: 6 }            # biên lãi đóng góp của thành phố trong 6 tháng
 `;
 
 export function buildAtlasYaml(): string {

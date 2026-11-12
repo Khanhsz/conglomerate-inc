@@ -6,6 +6,8 @@
  */
 import {
   AI_PRICE_TICK,
+  DAYS_PER_MONTH,
+  EXPANSION_CANDIDATES,
   MAX_MARKETING_BUDGET_MONTHLY,
   MAX_STAFF_PER_STORE,
   MAX_STORES_PER_DISTRICT,
@@ -13,7 +15,7 @@ import {
   WAGE_BAND,
 } from '../constants';
 import { marketWage, refPrice } from '../commands/common';
-import { storeCapex } from '../commands/openStore';
+import { newStoreRecord, storeCapex } from '../commands/openStore';
 import { ACC } from '../ledger/accounts';
 import { currentBalances } from '../ledger/balances';
 import { fromFloatCents, money, roundHalfAwayFromZero, ZERO, type Money } from '../money';
@@ -21,25 +23,23 @@ import type { Rng } from '../rng';
 import type { Command } from '../types/commands';
 import type { DistrictDef, ExpansionRule, LoadedContent, Personality, QualityTier } from '../types/content';
 import type { System } from '../types/context';
-import type { GameState, Store } from '../types/state';
-import { worldDistricts } from '../world';
+import type { Company, GameState, RivalProfile, Store } from '../types/state';
+import { profileFromPersonality } from '../profile';
+import { worldOf } from '../world';
+import { expectedDemand } from './demand';
 import { productivity } from './operations';
 
-export interface AiPolicy {
-  readonly qualityTier: QualityTier;
-  readonly markup: number;
-  readonly wageRatio: number;
-  readonly marketingShareOfRevenue: number;
-  readonly expansion: ExpansionRule;
-}
+/** Tham số hành vi mà luật tháng đọc: chính là hồ sơ của công ty (economic-model §9). */
+export type AiPolicy = Omit<RivalProfile, 'source'>;
 
+/** Chính sách của một personality M1; `expansion` thay ngưỡng mở rộng (bot của balance runner dùng). */
 export function aiPolicy(
   content: LoadedContent,
   personality: Personality,
   expansion?: ExpansionRule,
 ): AiPolicy {
-  const p = content.industry.aiPersonalities[personality];
-  return { ...p, expansion: expansion ?? content.industry.aiRules.expansion };
+  const profile = profileFromPersonality(content, personality);
+  return expansion ? { ...profile, expansion: { ...profile.expansion, ...expansion } } : profile;
 }
 
 const roundToTick = (cents: number) => roundHalfAwayFromZero(cents / AI_PRICE_TICK) * AI_PRICE_TICK;
@@ -53,12 +53,6 @@ export function targetPrice(
 ): Money {
   const { unitCost, qualityTiers } = content.industry;
   return money(roundToTick(unitCost * qualityTiers[tier].unitCostMultiplier * priceIndex * markup));
-}
-
-/** Giá target của một personality (dùng cho cửa hàng ban đầu). */
-export function aiTargetPrice(content: LoadedContent, personality: Personality, priceIndex: number): Money {
-  const p = content.industry.aiPersonalities[personality];
-  return targetPrice(content, p.qualityTier, p.markup, priceIndex);
 }
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
@@ -133,7 +127,7 @@ function chooseDistrict(
   }
   let best: DistrictDef[] = [];
   let bestScore = -Infinity;
-  for (const d of worldDistricts(content)) {
+  for (const d of worldOf(content).districts) {
     if ((ownCount[d.id] ?? 0) >= MAX_STORES_PER_DISTRICT) continue;
     if (cash < policy.expansion.cashMultiple * storeCapex(state, d)) continue;
     const score = districtPotential(content, d) / (1 + (openCount[d.id] ?? 0));
@@ -141,6 +135,151 @@ function chooseDistrict(
       bestScore = score;
       best = [d];
     } else if (score === bestScore) {
+      best.push(d);
+    }
+  }
+  if (best.length <= 1) return best[0];
+  return best[rng.int(0, best.length - 1)];
+}
+
+/**
+ * Địa điểm công ty còn mở được, xếp theo điểm số luật 4 (Σ N·f / (1 + số cửa hàng đang mở)) giảm dần; bằng điểm
+ * thì theo thứ tự thế giới, riêng nhóm đứng đầu phá hòa bằng rng. Lọc theo thành phố và theo tiền nếu có.
+ */
+export function rankedDistricts(
+  state: GameState,
+  content: LoadedContent,
+  companyId: string,
+  filter: {
+    readonly cities?: ReadonlySet<number>;
+    readonly minCashPerCapex?: number;
+    readonly cash?: number;
+  },
+  rng: Rng,
+): DistrictDef[] {
+  const world = worldOf(content);
+  const openCount: Record<string, number> = {};
+  const ownCount: Record<string, number> = {};
+  for (const id of state.storeIds) {
+    const s = state.stores[id];
+    if (!s || s.status !== 'open') continue;
+    openCount[s.districtId] = (openCount[s.districtId] ?? 0) + 1;
+    if (s.companyId === companyId) ownCount[s.districtId] = (ownCount[s.districtId] ?? 0) + 1;
+  }
+  const scored: { d: DistrictDef; index: number; score: number }[] = [];
+  world.districts.forEach((d, index) => {
+    if (filter.cities && !filter.cities.has(world.cityOf[index] ?? -1)) return;
+    if ((ownCount[d.id] ?? 0) >= MAX_STORES_PER_DISTRICT) return;
+    if (filter.cash !== undefined && filter.cash < (filter.minCashPerCapex ?? 1) * storeCapex(state, d))
+      return;
+    scored.push({ d, index, score: districtPotential(content, d) / (1 + (openCount[d.id] ?? 0)) });
+  });
+  scored.sort((a, b) => b.score - a.score || a.index - b.index);
+  const top = scored[0];
+  if (top) {
+    const ties = scored.filter((x) => x.score === top.score).length;
+    if (ties > 1) {
+      const pick = scored.splice(rng.int(0, ties - 1), 1)[0];
+      if (pick) scored.unshift(pick);
+    }
+  }
+  return scored.map((x) => x.d);
+}
+
+/** Σ cầu kỳ vọng/ngày của các cửa hàng của công ty, chỉ tính dân của thành phố `cityIndex`. */
+function ownDemandInCity(
+  state: GameState,
+  content: LoadedContent,
+  companyId: string,
+  cityIndex: number,
+): number {
+  const { byStore } = expectedDemand(state, content, cityIndex);
+  let total = 0;
+  for (const id of state.storeIds) {
+    const s = state.stores[id];
+    if (s && s.companyId === companyId) total += byStore[id] ?? 0;
+  }
+  return total;
+}
+
+/**
+ * Luật 4b (economic-model §9): mở địa điểm có lãi biên cao nhất trong tối đa `EXPANSION_CANDIDATES` ứng viên,
+ * nếu lãi biên dương và hoàn vốn trong `maxPaybackMonths`. Lãi biên tính cả phần khách lấy từ cửa hàng khác
+ * của chính công ty.
+ */
+function chooseByMarginalGain(
+  state: GameState,
+  content: LoadedContent,
+  company: Company,
+  cash: number,
+  policy: AiPolicy,
+  openStores: readonly Store[],
+  rng: Rng,
+): DistrictDef | undefined {
+  const world = worldOf(content);
+  const { industry } = content;
+  const inCities = new Set<number>();
+  for (const s of openStores) {
+    const at = world.indexOf.get(s.districtId);
+    const k = at === undefined ? undefined : world.cityOf[at];
+    if (k !== undefined) inCities.add(k);
+  }
+  const home = world.cityIndexOf.get(policy.homeCityId) ?? 0;
+  const canEnterNewCity = inCities.size < industry.rivalGenerator.reachCities[policy.reach];
+  const allowed = new Set<number>();
+  world.cities.forEach((_, k) => {
+    if (inCities.size === 0 ? k === home : inCities.has(k) || canEnterNewCity) allowed.add(k);
+  });
+  const candidates = rankedDistricts(
+    state,
+    content,
+    company.id,
+    { cities: allowed, cash, minCashPerCapex: policy.expansion.cashMultiple },
+    rng,
+  ).slice(0, EXPANSION_CANDIDATES);
+  if (candidates.length === 0) return undefined;
+
+  const priceIndex = state.macro.priceIndex;
+  const price = targetPrice(content, policy.qualityTier, policy.markup, priceIndex);
+  const margin =
+    price - industry.unitCost * industry.qualityTiers[policy.qualityTier].unitCostMultiplier * priceIndex;
+  const wage = clamp(policy.wageRatio, WAGE_BAND.min, WAGE_BAND.max) * marketWage(state);
+  const capacity =
+    industry.newStore.staff * industry.customersPerStaffPerDay * productivity(industry.newStore.morale);
+  const baseline = new Map<number, number>();
+
+  let best: DistrictDef[] = [];
+  let bestGain = 0;
+  for (const d of candidates) {
+    const at = world.indexOf.get(d.id);
+    const k = at === undefined ? undefined : world.cityOf[at];
+    if (k === undefined) continue;
+    let base = baseline.get(k);
+    if (base === undefined) {
+      base = ownDemandInCity(state, content, company.id, k);
+      baseline.set(k, base);
+    }
+    // Cửa hàng giả định: như cửa hàng vừa mở, ở giá target của công ty. Không đổi state thật.
+    const id = '~hypothetical';
+    const store = {
+      ...newStoreRecord(state, content, company, d, id, state.clock.day, storeCapex(state, d)),
+      price,
+    };
+    const trial: GameState = {
+      ...state,
+      stores: { ...state.stores, [id]: store },
+      storeIds: [...state.storeIds, id],
+    };
+    const delta = ownDemandInCity(trial, content, company.id, k) - base;
+    const gain =
+      DAYS_PER_MONTH * Math.min(delta, capacity) * margin -
+      d.rentMonthly * priceIndex -
+      industry.newStore.staff * wage;
+    if (gain <= 0 || storeCapex(state, d) / gain > policy.expansion.maxPaybackMonths) continue;
+    if (gain > bestGain) {
+      bestGain = gain;
+      best = [d];
+    } else if (gain === bestGain) {
       best.push(d);
     }
   }
@@ -167,7 +306,7 @@ export function decideMonthly(
   rng: Rng,
 ): Command[] {
   const company = state.companies[companyId];
-  if (!company || company.status === 'bankrupt') return [];
+  if (!company || company.status === 'bankrupt' || company.status === 'exited') return [];
   const commands: Command[] = [];
   const openStores: Store[] = [];
   for (const id of state.storeIds) {
@@ -180,7 +319,7 @@ export function decideMonthly(
   }
 
   for (const store of openStores) {
-    if (store.negContributionMonths >= content.industry.aiRules.closeAfterNegativeMonths) {
+    if (store.negContributionMonths >= policy.closeAfterNegativeMonths) {
       commands.push({ type: 'CloseStore', companyId, payload: { storeId: store.id } });
       continue;
     }
@@ -214,11 +353,17 @@ export function decideMonthly(
   // bootstrap (#48) chỉ khi công ty không có cửa hàng nào từ trước lần quyết định này.
   if (company.status === 'active' && closing === 0) {
     const cash = currentBalances(state.ledger, companyId)[ACC.Cash];
-    const grow =
-      openStores.length === 0 || monthlyRoi(state, companyId, openStores) > policy.expansion.minMonthlyRoi;
-    if (grow) {
-      const district = chooseDistrict(state, content, companyId, cash, policy, rng);
+    if (policy.expansion.rule === 'marginalGain') {
+      // Luật 4b: cả cửa hàng đầu tiên cũng phải có lãi biên dương (công ty không còn chỗ có lãi sẽ rút lui, §20.2).
+      const district = chooseByMarginalGain(state, content, company, cash, policy, openStores, rng);
       if (district) commands.push({ type: 'OpenStore', companyId, payload: { districtId: district.id } });
+    } else {
+      const grow =
+        openStores.length === 0 || monthlyRoi(state, companyId, openStores) > policy.expansion.minMonthlyRoi;
+      if (grow) {
+        const district = chooseDistrict(state, content, companyId, cash, policy, rng);
+        if (district) commands.push({ type: 'OpenStore', companyId, payload: { districtId: district.id } });
+      }
     }
   }
   return commands;
@@ -228,9 +373,15 @@ export function decideMonthly(
 export const aiSystem: System = (draft, ctx) => {
   for (const companyId of draft.companyIds) {
     const company = draft.companies[companyId];
-    if (!company || company.kind !== 'ai' || company.status === 'bankrupt') continue;
-    const policy = aiPolicy(ctx.content, company.personality);
-    for (const command of decideMonthly(draft, ctx.content, companyId, policy, ctx.rng(`ai:${companyId}`))) {
+    if (!company || company.kind !== 'ai' || company.status === 'bankrupt' || company.status === 'exited')
+      continue;
+    for (const command of decideMonthly(
+      draft,
+      ctx.content,
+      companyId,
+      company.profile,
+      ctx.rng(`ai:${companyId}`),
+    )) {
       draft.commandQueue.push({ enqueuedDay: ctx.day, command });
     }
   }

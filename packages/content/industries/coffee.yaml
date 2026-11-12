@@ -162,3 +162,25 @@ marketingChannels:
     segmentWeight: { students: 0.8, office: 0.6, premium: 1.0, other: 0.6 }
     alpha: 0.025
     halfSaturationDaily: 4000     # $40/ngày mỗi quận
+
+
+# M1.8 — dải sinh hồ sơ đối thủ (economic-model §20.1). Mỗi đối thủ rút từng đặc điểm trong dải bằng seed của ván.
+# Đề xuất ban đầu (#62), hiệu chỉnh ở bước cân bằng atlas.
+rivalGenerator:
+  tierWeights: { basic: 3, standard: 4, premium: 3 }
+  tiers:                         # [thấp, cao] cho hệ số giá, lương / thị trường, marketing / doanh thu
+    basic:    { markup: [3.4, 3.9], wageRatio: [0.90, 1.05], marketingShare: [0.01, 0.03] }
+    standard: { markup: [3.6, 4.1], wageRatio: [1.00, 1.15], marketingShare: [0.02, 0.05] }
+    premium:  { markup: [3.8, 4.3], wageRatio: [1.10, 1.30], marketingShare: [0.04, 0.08] }
+  chainReachWeights: { regional: 2, national: 1 }
+  reachCities: { local: 1, regional: 3, national: 7 }
+  capital:                       # vốn góp, cent, trước CPI
+    local:    [40000000, 70000000]      # $400k–$700k
+    regional: [80000000, 140000000]     # $800k–$1.4M
+    national: [150000000, 250000000]    # $1.5M–$2.5M
+  initialStores: { local: [1, 2], regional: [2, 3], national: [3, 4] }
+  expansion: { maxPaybackMonths: [12, 30], cashMultiple: [1.5, 3.5] }
+  patienceMonths: [2, 5]
+  names:
+    prefixes: [Amber, Brisk, Copper, Daybreak, Ember, Fable, Granite, Harbor, Indigo, Juniper, Kettle, Lantern, Maple, Nimbus, Orchard, Pebble, Quill, Rustic, Saffron, Tandem, Umber, Velvet, Willow, Yonder, Zephyr]
+    suffixes: [Beans, Brew, Cafe, Coffee, Cup, Espresso, Grind, House, Kitchen, Lab, Press, Roasters, Room, Works]
