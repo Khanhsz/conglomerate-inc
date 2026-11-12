@@ -5,11 +5,12 @@ import { post } from '../ledger/post';
 import { add, ZERO } from '../money';
 import type { System } from '../types/context';
 import { dailyRate } from './macro';
+import { isOut } from '../companyStatus';
 
 export const financeDailySystem: System = (draft, ctx) => {
   for (const companyId of draft.companyIds) {
     const company = draft.companies[companyId];
-    if (!company || company.status === 'bankrupt') continue;
+    if (!company || isOut(company)) continue;
     const before = currentBalances(draft.ledger, companyId);
     const cash = before[ACC.Cash];
     const owed = before[ACC.Overdraft];

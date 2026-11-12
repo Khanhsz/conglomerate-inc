@@ -4,6 +4,7 @@ import type { CityDef, DistrictDef, LoadedContent, SegmentDef, SegmentId } from 
 import type { System } from '../types/context';
 import type { GameState, StoreId } from '../types/state';
 import { worldOf, type World } from '../world';
+import { isOut } from '../companyStatus';
 
 /** Khoảng cách Manhattan giữa hai quận của cùng một thành phố; cùng quận = sameDistrictKm (economic-model §2). */
 export function distanceKm(city: CityDef, from: DistrictDef, to: DistrictDef): number {
@@ -154,7 +155,7 @@ export function demandCandidates(state: GameState, content: LoadedContent): Dema
     const at = world.indexOf.get(store.districtId);
     const district = at === undefined ? undefined : world.districts[at];
     const city = at === undefined ? undefined : world.cityOf[at];
-    if (!company || company.status === 'bankrupt' || !district || city === undefined) continue;
+    if (!company || isOut(company) || !district || city === undefined) continue;
     candidates.push({
       id,
       companyId: company.id,

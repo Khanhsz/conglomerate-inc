@@ -9,6 +9,7 @@ import type { LoadedContent } from '../types/content';
 import type { System } from '../types/context';
 import type { ChannelAwareness, Company } from '../types/state';
 import { worldOf, type World } from '../world';
+import { isOut } from '../companyStatus';
 
 /** lift = α(1 − exp(−spendDaily / (halfSat × priceIndex))); chi ≤ 0 → 0. */
 export function brandLift(
@@ -143,7 +144,7 @@ export const brandSystem: System = (draft, ctx) => {
   const keep = 1 - brand.decayPerDay;
   for (const companyId of draft.companyIds) {
     const company = draft.companies[companyId];
-    if (!company || company.status === 'bankrupt') continue;
+    if (!company || isOut(company)) continue;
     const spendDaily = company.marketingBudgetMonthly / DAYS_PER_MONTH;
     const generalByCity = generalLiftByCity(
       world,

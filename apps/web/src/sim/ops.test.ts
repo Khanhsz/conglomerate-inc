@@ -15,7 +15,7 @@ import { buildInspection } from './inspection';
 import { channelKey, pendingChanges } from './pending';
 import { sliderLimits } from './limits';
 
-const content = loadGameContent();
+const content = loadGameContent('m1-default');
 const PLAYER_STORE = 'store-000010';
 const opened: GameState = runDays(
   enqueue(createGame(content), { type: 'OpenStore', companyId: 'player', payload: { districtId: 'c' } }),

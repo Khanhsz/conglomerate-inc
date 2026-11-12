@@ -32,6 +32,7 @@ export function companyProblem(
   const company = state.companies[companyId];
   if (!company) return `công ty "${companyId}" không tồn tại`;
   if (company.status === 'bankrupt') return `công ty ${companyId} đã phá sản (bankrupt)`;
+  if (company.status === 'exited') return `công ty ${companyId} đã rút khỏi thị trường (exited)`;
   if (mode === 'active' && company.status !== 'active') {
     return `công ty ${companyId} đang ở trạng thái ${company.status}, không được mở cửa hàng`;
   }

@@ -13,7 +13,7 @@ describe('monthOverMonth (finance tables compare with the previous month)', () =
   });
 
   it('uses the last two closed months; the first month has no comparison', () => {
-    const content = loadGameContent();
+    const content = loadGameContent('m1-default');
     const game = enqueue(createGame(content), {
       type: 'OpenStore',
       companyId: 'player',

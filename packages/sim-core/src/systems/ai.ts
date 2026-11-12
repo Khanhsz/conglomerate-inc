@@ -28,6 +28,7 @@ import { profileFromPersonality } from '../profile';
 import { worldOf } from '../world';
 import { expectedDemand } from './demand';
 import { productivity } from './operations';
+import { isOut } from '../companyStatus';
 
 /** Tham số hành vi mà luật tháng đọc: chính là hồ sơ của công ty (economic-model §9). */
 export type AiPolicy = Omit<RivalProfile, 'source'>;
@@ -306,7 +307,7 @@ export function decideMonthly(
   rng: Rng,
 ): Command[] {
   const company = state.companies[companyId];
-  if (!company || company.status === 'bankrupt' || company.status === 'exited') return [];
+  if (!company || isOut(company)) return [];
   const commands: Command[] = [];
   const openStores: Store[] = [];
   for (const id of state.storeIds) {
@@ -373,8 +374,7 @@ export function decideMonthly(
 export const aiSystem: System = (draft, ctx) => {
   for (const companyId of draft.companyIds) {
     const company = draft.companies[companyId];
-    if (!company || company.kind !== 'ai' || company.status === 'bankrupt' || company.status === 'exited')
-      continue;
+    if (!company || company.kind !== 'ai' || isOut(company)) continue;
     for (const command of decideMonthly(
       draft,
       ctx.content,

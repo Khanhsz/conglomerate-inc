@@ -6,6 +6,7 @@
  */
 import { uniformAwareness } from './awareness';
 import { applyCommand, validateCommand } from './commands/registry';
+import { isOut } from './companyStatus';
 import { formatId } from './ids';
 import { ACC } from './ledger/accounts';
 import { post } from './ledger/post';
@@ -19,6 +20,7 @@ import type { SimContext } from './types/context';
 import type { AiCompany, GameState, RivalProfile } from './types/state';
 import { worldOf } from './world';
 
+export { isOut } from './companyStatus';
 export { profileFromPersonality } from './profile';
 
 /** Vốn sinh ra làm tròn tới $1,000. */
@@ -182,11 +184,6 @@ export function presentRivals(state: GameState, content: LoadedContent): number[
     if (k !== undefined) sets[k]?.add(id);
   }
   return sets.map((s) => s.size);
-}
-
-/** Đã bị loại khỏi thị trường: phá sản hoặc rút lui (§20.2). */
-export function isOut(company: { readonly status: string }): boolean {
-  return company.status === 'bankrupt' || company.status === 'exited';
 }
 
 /** Số chuỗi liên thành phố (regional / national, sinh ngẫu nhiên) còn hoạt động. */

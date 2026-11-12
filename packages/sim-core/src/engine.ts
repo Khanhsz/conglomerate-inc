@@ -17,6 +17,7 @@ import { worldDistricts } from './world';
 import { aiSystem } from './systems/ai';
 import { brandSystem } from './systems/brand';
 import { demandSystem } from './systems/demand';
+import { entrySystem } from './systems/entry';
 import { financeDailySystem } from './systems/finance';
 import { macroSystem } from './systems/macro';
 import { monthCloseSystem } from './systems/monthClose';
@@ -166,6 +167,7 @@ export function step(state: GameState, content: LoadedContent): GameState {
 export function runSystems(draft: GameState, ctx: SimContext): void {
   const eventsBefore = draft.events.length;
   if (ctx.day % DAYS_PER_MONTH === 0 && ctx.day > 0) {
+    entrySystem(draft, ctx);
     aiSystem(draft, ctx);
     monthlyPolicySystem(draft, ctx);
   }

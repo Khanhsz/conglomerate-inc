@@ -99,3 +99,4 @@ export {
 } from './awareness';
 export { marketingEffect, type ChannelEffect, type MarketingEffect } from './selectors/marketing';
 export { cityOfDistrict, districtById, worldDistricts, worldOf, type World } from './world';
+export { cityMargins } from './systems/entry';

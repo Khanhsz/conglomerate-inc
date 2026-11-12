@@ -194,6 +194,8 @@ const PUBLIC_EVENTS: ReadonlySet<GameEvent['kind']> = new Set([
   'storeClosed',
   'distress',
   'bankrupt',
+  'competitorEntered',
+  'competitorExited',
 ]);
 
 export function playerId(state: GameState): string {

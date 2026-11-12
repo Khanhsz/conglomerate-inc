@@ -34,6 +34,7 @@ import { cashTrend, forecastNetCash, topExpenses } from './forecast';
 import { creditLineMax, installment } from './loans';
 import { dailyRate } from './macro';
 import { accrueMonthlyTax } from './tax';
+import { isOut } from '../companyStatus';
 
 /** Khấu hao tháng thứ `monthNumber` (1 = tháng mở): floor(capex/life); tháng thứ `life` lấy phần còn lại; xong thì 0. */
 export function depreciationForMonth(
@@ -96,7 +97,7 @@ function liquidate(draft: GameState, store: Store, day: number): void {
 /** Trả về các cửa hàng cần thanh lý (khi công ty vừa phá sản); việc thanh lý làm sau khi mọi công ty đã chốt. */
 function closeCompany(draft: GameState, ctx: SimContext, companyId: CompanyId): Store[] {
   const company = draft.companies[companyId];
-  if (!company || company.status === 'bankrupt') return [];
+  if (!company || isOut(company)) return [];
   const { industry, scenario } = ctx.content;
   const day = ctx.day;
   const month = monthOf(day);
@@ -398,4 +399,44 @@ export const monthCloseSystem: System = (draft, ctx) => {
     company.office = null;
     company.departments = noDepartments();
   }
+  withdrawStoreless(draft, ctx);
 };
+
+/**
+ * Rút lui (economic-model §20.2): đối thủ không còn cửa hàng nào ở `exitAfterMonthsWithoutStores` lần chốt tháng
+ * liên tiếp thì rời thị trường. Chỉ áp cho AI và chỉ khi scenario khai `competition`.
+ */
+function withdrawStoreless(draft: GameState, ctx: SimContext): void {
+  const competition = ctx.content.scenario.competition;
+  if (!competition) return;
+  const hasOpenStore = new Set<string>();
+  for (const id of draft.storeIds) {
+    const store = draft.stores[id];
+    if (store && store.status === 'open') hasOpenStore.add(store.companyId);
+  }
+  for (const companyId of draft.companyIds) {
+    const company = draft.companies[companyId];
+    if (!company || company.kind !== 'ai' || isOut(company)) continue;
+    if (hasOpenStore.has(companyId)) {
+      company.storelessMonths = 0;
+      continue;
+    }
+    company.storelessMonths += 1;
+    if (company.storelessMonths < competition.exitAfterMonthsWithoutStores) continue;
+    company.status = 'exited';
+    company.marketingBudgetMonthly = ZERO;
+    company.channelBudgets = [];
+    if (company.office) {
+      disposeOffice(
+        draft.ledger,
+        companyId,
+        company.office,
+        draft.clock.day,
+        'Thanh lý văn phòng khi rút lui',
+      );
+      company.office = null;
+      company.departments = noDepartments();
+    }
+    draft.events.push({ day: draft.clock.day, kind: 'competitorExited', companyId, name: company.name });
+  }
+}

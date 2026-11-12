@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { loadGameContent } from './content';
 import { buildSnapshot, shouldPause } from './snapshot';
 
-const content = loadGameContent();
+const content = loadGameContent('m1-default');
 const open: Command = { type: 'OpenStore', companyId: 'player', payload: { districtId: 'c' } };
 
 describe('buildSnapshot', () => {

@@ -7,6 +7,7 @@ import { officeRent } from '../office';
 import { DEPARTMENTS } from '../types/content';
 import type { System } from '../types/context';
 import { districtById } from '../world';
+import { isOut } from '../companyStatus';
 
 export const officeSystem: System = (draft, ctx) => {
   const { industry } = ctx.content;
@@ -14,7 +15,7 @@ export const officeSystem: System = (draft, ctx) => {
   for (const companyId of draft.companyIds) {
     const company = draft.companies[companyId];
     const office = company?.office;
-    if (!company || !office || company.status === 'bankrupt') continue;
+    if (!company || !office || isOut(company)) continue;
     if (ctx.day >= office.rentResetDay) {
       const district = districtById(ctx.content, office.districtId);
       if (district) office.rentMonthly = officeRent(draft, ctx.content, district, office.size);

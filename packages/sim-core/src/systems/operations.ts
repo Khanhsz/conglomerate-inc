@@ -10,6 +10,7 @@ import { add, type Money, mul, ZERO } from '../money';
 import { policyMoraleTarget } from '../hr';
 import type { System } from '../types/context';
 import { districtById } from '../world';
+import { isOut } from '../companyStatus';
 
 /** productivity = 0.7 + 0.6 × morale ∈ [0.7, 1.3] (economic-model §4.1). */
 export function productivity(morale: number): number {
@@ -30,7 +31,7 @@ export const operationsSystem: System = (draft, ctx) => {
 
   for (const companyId of draft.companyIds) {
     const company = draft.companies[companyId];
-    if (!company || company.status === 'bankrupt') continue;
+    if (!company || isOut(company)) continue;
     company.marketingAccrued += company.marketingBudgetMonthly / DAYS_PER_MONTH;
     // Kênh ngoài `general` (§18.2) cộng dồn riêng để không đổi phép tính M1 khi không dùng kênh nào.
     for (const b of company.channelBudgets) company.marketingAccrued += b.monthly / DAYS_PER_MONTH;
@@ -40,7 +41,7 @@ export const operationsSystem: System = (draft, ctx) => {
     const store = draft.stores[id];
     if (!store) continue;
     const company = draft.companies[store.companyId];
-    if (store.status !== 'open' || !company || company.status === 'bankrupt') {
+    if (store.status !== 'open' || !company || isOut(company)) {
       store.today = { demand: 0, served: 0, lost: 0, capacity: 0 };
       continue;
     }
