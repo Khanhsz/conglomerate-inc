@@ -1,0 +1,223 @@
+/* M1.7: bản đồ, màn hình Trụ sở / Cửa hàng, thanh tab. */
+/* M1.7: điều hướng bản đồ → màn hình Trụ sở / Cửa hàng */
+.store-detail {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 0;
+}
+.detail-meta {
+  margin: 0;
+}
+.map-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 1fr);
+  gap: 12px;
+  align-items: start;
+  margin-top: 12px;
+}
+.map-screen > .events {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+.map-side {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.map-side .panel {
+  margin: 0;
+}
+button.hq-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  width: 100%;
+  padding: 12px 14px;
+}
+button.hq-card > span:nth-child(2) {
+  display: grid;
+  gap: 2px;
+}
+.hq-icon {
+  font-size: 26px;
+  line-height: 1;
+  color: var(--accent);
+}
+.store-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.store-list button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+}
+.store-name {
+  font-weight: 600;
+}
+.screen {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.screen-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.screen-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.screen-head p {
+  margin: 2px 0 0;
+}
+button.close {
+  font-size: 18px;
+  line-height: 1;
+  padding: 6px 10px;
+}
+.screen-body {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.tabbar {
+  display: flex;
+  gap: 4px;
+}
+.tabbar button {
+  white-space: nowrap;
+}
+.tabbar button.locked:not([aria-selected='true']) {
+  color: var(--muted);
+  border-style: dashed;
+}
+.hq-section {
+  display: grid;
+  gap: 10px;
+}
+.danger-zone {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+@media (min-width: 960px) {
+  .screen {
+    grid-template-columns: 180px minmax(0, 1fr);
+    grid-template-areas: 'head head' 'tabs body';
+  }
+  .screen-head {
+    grid-area: head;
+  }
+  .tabbar {
+    grid-area: tabs;
+    flex-direction: column;
+    align-self: start;
+    position: sticky;
+    top: 12px;
+  }
+  .tabbar button {
+    text-align: left;
+  }
+  .screen-body {
+    grid-area: body;
+  }
+}
+@media (max-width: 959px) {
+  .tabbar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 20;
+    overflow-x: auto;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    padding: 6px max(16px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px))
+      max(16px, env(safe-area-inset-left, 0px));
+  }
+  .app-hq,
+  .app-store {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (max-width: 860px) {
+  .map-screen {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* M1.8: nhiều thành phố. Dải chọn thành phố, lưới có ô trống, màu nền theo khu. */
+.city-chips {
+  margin-bottom: 8px;
+}
+.city-own {
+  font-size: 0.85em;
+}
+.city-grid.dense .district {
+  min-height: 52px;
+  padding: 4px 3px;
+  align-items: center;
+  text-align: center;
+  font-size: 12px;
+}
+.city-grid.dense .glyphs {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+.district.zone-central,
+.zone-swatch.zone-central {
+  background: color-mix(in srgb, var(--series-1) 9%, var(--panel));
+}
+.district.zone-premium,
+.zone-swatch.zone-premium {
+  background: color-mix(in srgb, var(--series-2) 13%, var(--panel));
+}
+.district.zone-budget,
+.zone-swatch.zone-budget {
+  background: var(--panel);
+}
+.zone-tag {
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.zone-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+.zone-legend {
+  margin-top: 6px;
+  font-size: 12px;
+}
+.game-seed {
+  font-variant-numeric: tabular-nums;
+}
+.dialog.new-game {
+  display: grid;
+  gap: 10px;
+}
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+}

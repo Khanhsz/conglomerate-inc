@@ -1,0 +1,31 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist/worker-types",
+    "tsBuildInfoFile": "dist/worker-types/.tsbuildinfo",
+    "lib": ["ES2022", "WebWorker"],
+    "types": ["vite/client"]
+  },
+  "include": [
+    "src/sim/worker.ts",
+    "src/sim/content.ts",
+    "src/sim/protocol.ts",
+    "src/sim/snapshot.ts",
+    "src/sim/alerts.ts",
+    "src/sim/inspection.ts",
+    "src/sim/limits.ts",
+    "src/sim/pending.ts",
+    "src/sim/mom.ts",
+    "src/sim/scenarios.ts",
+    "src/sim/places.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/sim-core"
+    },
+    {
+      "path": "../../packages/content"
+    }
+  ]
+}

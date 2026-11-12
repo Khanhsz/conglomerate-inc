@@ -1,0 +1,42 @@
+// Hằng số cấu trúc và luật game (economic-model §0, spec §3). Tham số cân bằng nằm trong packages/content.
+export const DAYS_PER_MONTH = 30;
+export const MONTHS_PER_YEAR = 12;
+export const DAYS_PER_YEAR = DAYS_PER_MONTH * MONTHS_PER_YEAR;
+
+/** Độ dài số trong id (`store-000007`): sort theo chuỗi trùng thứ tự tạo. */
+export const ID_DIGITS = 6;
+
+/** Giới hạn validate của lệnh (spec §3). */
+export const MAX_STORES_PER_DISTRICT = 3;
+/** Số địa điểm ứng viên được tính lãi biên mỗi lần AI xét mở rộng (luật 4b, §9). */
+export const EXPANSION_CANDIDATES = 5;
+export const MAX_STAFF_PER_STORE = 40;
+/** Giá ∈ [min, max] × Pref hiện tại. */
+export const PRICE_BAND = { min: 0.3, max: 5 } as const;
+/** Lương ∈ [min, max] × lương thị trường hiện tại. */
+export const WAGE_BAND = { min: 0.5, max: 3 } as const;
+/** $1M, đơn vị cent. */
+export const MAX_MARKETING_BUDGET_MONTHLY = 100_000_000;
+
+/** Hợp đồng thuê gia hạn (và index CPI) mỗi 12 tháng (economic-model §6). */
+export const RENT_TERM_DAYS = DAYS_PER_YEAR;
+/** Phí chấm dứt hợp đồng thuê khi đóng cửa hàng = 3 tháng thuê (economic-model §6.1). */
+export const LEASE_TERMINATION_MONTHS = 3;
+/** AI làm tròn giá tới 5 cent (economic-model §9). */
+export const AI_PRICE_TICK = 5;
+
+/** Kỳ hạn vay cho phép, tháng (economic-model §7.1). */
+export const LOAN_TERMS_MONTHS = [12, 24, 36, 60] as const;
+/** 13 tuần theo lịch 360 ngày, tính bằng tháng (cảnh báo sớm, economic-model §8). */
+export const FORECAST_WARNING_MONTHS = 91 / DAYS_PER_MONTH;
+/** Distress / bankrupt: dự báo 3 tháng; xu hướng lấy trung bình 3 tháng gần nhất (economic-model §8). */
+export const FORECAST_DISTRESS_MONTHS = 3;
+export const FORECAST_TREND_MONTHS = 3;
+/** Số lần chốt tháng liên tiếp ở distress thì phá sản. */
+export const DISTRESS_MONTHS_TO_BANKRUPTCY = 2;
+
+/** Lịch sử giữ trong state cho mỗi cửa hàng (mảng vòng, không phình): 14 ngày, 12 tháng. */
+export const STORE_RECENT_DAYS = 14;
+export const STORE_HISTORY_MONTHS = 12;
+/** Số event gần nhất giữ trong state (#54); `eventSeq` đếm tổng số event đã phát sinh. */
+export const EVENTS_KEEP = 500;

@@ -1,0 +1,8 @@
+dist
+out
+coverage
+pnpm-lock.yaml
+*.md
+.claude
+packages/content/industries
+packages/content/scenarios

@@ -1,0 +1,288 @@
+/* M1.6: văn phòng, phòng ban, phòng Nhân sự. */
+/* M1.6: văn phòng và phòng ban */
+.office {
+  display: grid;
+  gap: 12px;
+}
+.office-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  align-items: baseline;
+}
+.office-head h3 {
+  margin: 0;
+  font-size: 15px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+}
+.office-sizes,
+.departments {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  background: var(--panel);
+}
+.card h3 {
+  margin: 0;
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+}
+.card button {
+  justify-self: start;
+}
+.dept-open {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+dl.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+dl.kv dt {
+  color: var(--muted);
+}
+dl.kv dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.office-costs {
+  max-width: 360px;
+}
+.office-release {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.good {
+  color: var(--good);
+}
+.chart .line-c {
+  fill: none;
+  stroke: var(--company-1);
+  stroke-width: 2;
+}
+.legend {
+  display: inline-flex;
+  gap: 10px;
+  margin-left: 10px;
+}
+.legend .key::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+  background: var(--company-0);
+}
+.legend .key.line-b::before {
+  background: var(--company-3);
+}
+.legend .key.line-c::before {
+  background: var(--company-1);
+}
+.finance-dept {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.finance-dept h3 {
+  margin: 8px 0 0;
+}
+.kv-row {
+  display: contents;
+}
+.kv-row.subtotal dt,
+.kv-row.subtotal dd {
+  font-weight: 700;
+  color: var(--text);
+}
+dl.corporate,
+dl.advisor {
+  max-width: 420px;
+}
+.advice {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+.card.locked {
+  margin-bottom: 12px;
+  border-style: dashed;
+}
+
+/* M1.6 phase 4: phòng Nhân sự */
+.hr {
+  display: grid;
+  gap: 12px;
+}
+.hr-summary {
+  max-width: 520px;
+}
+.hr-policies {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+.levels {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+button.level {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: 6px 8px;
+  min-width: 0;
+}
+button.level span {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+button.level.active {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.chip-ok {
+  color: var(--good);
+  border-color: var(--good);
+}
+.chip-warn {
+  color: var(--warn);
+  border-color: var(--warn);
+  background: var(--warn-bg);
+}
+.chip-bad {
+  color: var(--bad);
+  border-color: var(--bad);
+  background: var(--err-bg);
+}
+.chip-info {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+@media (max-width: 520px) {
+  .levels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.hr-policies .wide {
+  grid-column: 1 / -1;
+}
+.card button.level {
+  justify-self: stretch;
+}
+.hr-policies .wide {
+  order: 1;
+}
+
+/* M1.6 phase 5: phòng Marketing (bản đồ nhận biết, kênh, hiệu quả). */
+.marketing-dept {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip-button {
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.heatmap {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+}
+.heat-cell {
+  display: grid;
+  gap: 1px;
+  justify-items: center;
+  min-width: 0;
+  padding: 8px 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.heat-cell[aria-pressed='true'] {
+  /* Giữ nền theo nhận biết; chỉ viền cho biết quận đang chọn. */
+  color: var(--text);
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--text);
+}
+.heat-id,
+.heat-stores {
+  font-size: 11px;
+}
+.channels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 10px;
+}
+.card.channel {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.card.channel p {
+  margin: 0;
+}
+/* Điện thoại: bảng hiệu quả bỏ cột phụ để ROI luôn nằm trong màn hình. */
+@media (max-width: 600px) {
+  .hide-narrow {
+    display: none;
+  }
+  table.mom.effects thead th.num {
+    white-space: normal;
+  }
+}
+
+/* M1.8: hồ sơ đối thủ. */
+.rivals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 10px;
+  margin: 8px 0;
+}
+.card.rival h3 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+}
+.rival-style {
+  margin: 4px 0 6px;
+  line-height: 1.9;
+}

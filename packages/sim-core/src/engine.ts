@@ -1,0 +1,207 @@
+/** Engine (spec §4–§5, ADR-0001 #5–#7): createGame, enqueue, step, runDays. */
+import { freeze, produce } from 'immer';
+import {
+  applyCommand,
+  applyQueuedCommands,
+  validateCommand as validateWithContext,
+} from './commands/registry';
+import { DAYS_PER_MONTH, EVENTS_KEEP } from './constants';
+import { ACC } from './ledger/accounts';
+import { createLedger, post } from './ledger/post';
+import { ZERO } from './money';
+import { createRngFactory } from './rng';
+import { blankCompany, initialStoreCommands, profileFromPersonality, seedInitialRivals } from './rivals';
+import { deepFreeze, devChecksEnabled } from './devChecks';
+import { beginTick } from './tick';
+import { worldDistricts } from './world';
+import { aiSystem } from './systems/ai';
+import { brandSystem } from './systems/brand';
+import { demandSystem } from './systems/demand';
+import { entrySystem } from './systems/entry';
+import { financeDailySystem } from './systems/finance';
+import { macroSystem } from './systems/macro';
+import { monthCloseSystem } from './systems/monthClose';
+import { officeSystem } from './systems/office';
+import { operationsSystem } from './systems/operations';
+import { monthlyPolicySystem } from './systems/policies';
+import type { Command, Validation } from './types/commands';
+import type { CompanyDef, LoadedContent } from './types/content';
+import type { SimContext } from './types/context';
+import type { Company, GameState } from './types/state';
+
+/** Ngữ cảnh cho ngày `state.clock.day`: rng(stream) = generator riêng của (seed, stream, day). */
+export function makeContext(state: GameState, content: LoadedContent): SimContext {
+  const factory = createRngFactory(state.seed);
+  const day = state.clock.day;
+  return { content, day, rng: (stream) => factory(stream, day) };
+}
+
+function assertContent(state: GameState, content: LoadedContent): void {
+  if (state.contentRef.contentVersion !== content.contentVersion) {
+    throw new Error(
+      `contentVersion mismatch: state was created with ${state.contentRef.contentVersion}, got ${content.contentVersion}`,
+    );
+  }
+}
+
+function newCompany(def: CompanyDef, content: LoadedContent): Company {
+  const base = blankCompany(content, def.id, def.name);
+  if (def.kind !== 'ai') return { ...base, kind: 'player', qualityTier: 'standard' };
+  const profile = profileFromPersonality(content, def.personality);
+  return {
+    ...base,
+    kind: 'ai',
+    personality: def.personality,
+    qualityTier: profile.qualityTier,
+    profile,
+    foundedDay: 0,
+    storelessMonths: 0,
+  };
+}
+
+/** Lệnh dựng cửa hàng ban đầu: OpenStore, rồi với AI là giá target, lương theo hồ sơ, aiInitialStaff. */
+function scenarioStoreCommands(
+  state: GameState,
+  content: LoadedContent,
+  def: CompanyDef,
+  districtId: string,
+): Command[] {
+  const company = state.companies[def.id];
+  if (def.kind !== 'ai' || !company || company.kind !== 'ai') {
+    return [{ type: 'OpenStore', companyId: def.id, payload: { districtId } }];
+  }
+  return initialStoreCommands(state, content, def.id, company.profile, districtId);
+}
+
+/**
+ * Tạo game ở đầu ngày 0: công ty (id đã sort), góp vốn qua ledger, cửa hàng ban đầu qua đúng đường lệnh.
+ * Ném lỗi nếu scenario khiến một lệnh khởi tạo bị từ chối.
+ */
+export function createGame(content: LoadedContent, opts: { readonly seed?: number } = {}): GameState {
+  const { industry, scenario } = content;
+  const base: GameState = {
+    schemaVersion: 2,
+    contentRef: { industryId: industry.id, scenarioId: scenario.id, contentVersion: content.contentVersion },
+    seed: opts.seed ?? scenario.seed,
+    clock: { day: 0 },
+    macro: { ...scenario.macro },
+    city: { districtIds: worldDistricts(content).map((d) => d.id) },
+    companies: {},
+    companyIds: [],
+    stores: {},
+    storeIds: [],
+    loans: {},
+    loanIds: [],
+    ledger: createLedger(),
+    statements: {},
+    commandQueue: [],
+    events: [],
+    eventSeq: 0,
+    market: { targetChains: 0, cities: {} },
+    nextIds: { store: 1, loan: 1, company: 1 },
+  };
+  const defs = [...scenario.companies].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const ctx = makeContext(base, content);
+
+  const state = produce(base, (draft) => {
+    for (const def of defs) {
+      draft.companies[def.id] = newCompany(def, content);
+      draft.companyIds.push(def.id);
+      draft.statements[def.id] = [];
+      if (def.startingCash > 0) {
+        post(draft.ledger, {
+          day: 0,
+          companyId: def.id,
+          memo: 'Vốn góp ban đầu',
+          lines: [
+            { account: ACC.Cash, debit: def.startingCash, credit: ZERO },
+            { account: ACC.ShareCapital, debit: ZERO, credit: def.startingCash },
+          ],
+        });
+      }
+    }
+    for (const def of defs) {
+      for (const districtId of def.initialStores) {
+        for (const cmd of scenarioStoreCommands(draft, content, def, districtId)) {
+          const verdict = validateWithContext(draft, ctx, cmd);
+          if (!verdict.ok) {
+            throw new Error(
+              `scenario ${scenario.id}: cửa hàng ban đầu của ${def.id} ở quận ${districtId}: ${cmd.type} bị từ chối: ${verdict.reason}`,
+            );
+          }
+          applyCommand(draft, ctx, cmd);
+        }
+      }
+    }
+    // M1.8 (§20.5): scenario có `competition` thì sinh đối thủ đầu ván từ seed.
+    seedInitialRivals(draft, ctx);
+    draft.eventSeq = draft.events.length;
+  });
+  return freeze(state, true);
+}
+
+/**
+ * Xếp lệnh vào hàng đợi; áp dụng ở đầu tick kế tiếp. Lệnh được chuẩn hóa qua JSON để state luôn
+ * serializable và không giữ tham chiếu tới object của người gọi.
+ */
+export function enqueue(state: GameState, cmd: Command): GameState {
+  // #53: ngoại lệ có chủ đích; bản sao JSON của một Command đã có kiểu (validate ở applyQueuedCommands).
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const command: Command = JSON.parse(JSON.stringify(cmd) ?? 'null');
+  return produce(state, (draft) => {
+    draft.commandQueue.push({ enqueuedDay: state.clock.day, command });
+  });
+}
+
+/** Một ngày, đúng thứ tự spec §4. */
+export function step(state: GameState, content: LoadedContent): GameState {
+  assertContent(state, content);
+  const ctx = makeContext(state, content);
+  // ADR-0002: bản sao có chọn lọc thay cho draft immer (immer chiếm ~2/3 thời gian tick).
+  const draft = beginTick(state);
+  runSystems(draft, ctx);
+  return devChecksEnabled() ? deepFreeze(draft) : draft;
+}
+
+/** Thứ tự system của một ngày (spec §4), ghi trực tiếp lên `draft`. Dùng chung cho step và test tương đương. */
+export function runSystems(draft: GameState, ctx: SimContext): void {
+  const eventsBefore = draft.events.length;
+  if (ctx.day % DAYS_PER_MONTH === 0 && ctx.day > 0) {
+    entrySystem(draft, ctx);
+    aiSystem(draft, ctx);
+    monthlyPolicySystem(draft, ctx);
+  }
+  applyQueuedCommands(draft, ctx);
+  macroSystem(draft, ctx);
+  brandSystem(draft, ctx);
+  demandSystem(draft, ctx);
+  operationsSystem(draft, ctx);
+  officeSystem(draft, ctx);
+  financeDailySystem(draft, ctx);
+  draft.clock.day += 1;
+  if (draft.clock.day % DAYS_PER_MONTH === 0) monthCloseSystem(draft, ctx);
+  // #54: đếm event mới rồi chỉ giữ EVENTS_KEEP event gần nhất.
+  draft.eventSeq += draft.events.length - eventsBefore;
+  if (draft.events.length > EVENTS_KEEP) draft.events.splice(0, draft.events.length - EVENTS_KEEP);
+}
+
+/** Chạy n ngày; gọi `onMonth` ngay sau mỗi lần chốt tháng. */
+export function runDays(
+  state: GameState,
+  content: LoadedContent,
+  days: number,
+  onMonth?: (state: GameState) => void,
+): GameState {
+  let s = state;
+  for (let i = 0; i < days; i++) {
+    s = step(s, content);
+    if (onMonth && s.clock.day % DAYS_PER_MONTH === 0) onMonth(s);
+  }
+  return s;
+}
+
+/** Kiểm tra một lệnh với state hiện tại (không thay đổi gì). */
+export function validateCommand(state: GameState, content: LoadedContent, cmd: Command): Validation {
+  assertContent(state, content);
+  return validateWithContext(state, makeContext(state, content), cmd);
+}

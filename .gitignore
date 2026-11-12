@@ -4,3 +4,7 @@ out/
 coverage/
 .DS_Store
 *.log
+*.tsbuildinfo
+.vite/
+test-results/
+playwright-report/

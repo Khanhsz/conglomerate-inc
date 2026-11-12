@@ -1,0 +1,192 @@
+/* M1.7: thành phần dùng chung (advisor, KPI, stepper, donut, sao, chip). */
+/* M1.7 U2: thành phần dùng chung */
+.advisor {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+.advisor p {
+  margin: 0;
+}
+.advisor-badge {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: var(--on-accent);
+  background: var(--accent);
+}
+.advisor-warn {
+  border-color: var(--warn);
+  background: var(--warn-bg);
+}
+.advisor-warn .advisor-badge {
+  background: var(--warn);
+}
+.advisor-bad {
+  border-color: var(--bad);
+  background: var(--err-bg);
+}
+.advisor-bad .advisor-badge {
+  background: var(--bad);
+}
+.advisor-good .advisor-badge {
+  background: var(--good);
+}
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.kpi {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 0;
+}
+.kpi-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.kpi-value {
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.kpi-delta {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.kpi-delta.good {
+  color: var(--good);
+}
+.kpi-delta.bad {
+  color: var(--bad);
+}
+.spark {
+  width: 100%;
+  max-width: 160px;
+  height: 32px;
+}
+.spark path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.spark circle {
+  fill: var(--accent);
+}
+.stepper {
+  display: grid;
+  gap: 4px;
+}
+.stepper-label {
+  font-weight: 600;
+}
+.stepper-row {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.stepper-row button {
+  border: 0;
+  border-radius: 0;
+  font-size: 18px;
+  background: var(--bg);
+}
+.stepper-value {
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 6px;
+}
+.donut {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(96px, 140px) 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.donut svg {
+  width: 100%;
+  height: auto;
+  transform: rotate(-90deg);
+}
+.donut-track {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 14;
+}
+.donut-slice {
+  fill: none;
+  stroke-width: 14;
+}
+.donut-center {
+  transform: rotate(90deg);
+  transform-origin: 50px 50px;
+  font-size: 12px;
+  fill: var(--text);
+}
+.donut-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.donut-legend b {
+  font-variant-numeric: tabular-nums;
+}
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: var(--line);
+}
+.stars .on {
+  color: var(--warn);
+}
+.stars .half {
+  background: linear-gradient(90deg, var(--warn) 50%, var(--line) 50%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.stars b {
+  margin-left: 6px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.kpis {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.kpi-value {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 420px) {
+  .kpi-value {
+    font-size: 20px;
+  }
+}

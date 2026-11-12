@@ -12,7 +12,6 @@ macro:
   marketWageMonthly: 220000      # $2,200
 
 finance:
-  startingCash: 25000000         # $250,000 cho người chơi
   overdraftFloor: 2000000        # $20,000
   overdraftSpread: 0.08
   loanSpreads:                   # theo leverage = debt / EBITDA trailing 12m
@@ -20,6 +19,12 @@ finance:
     - { maxLeverage: 2, spread: 0.035 }
     - { maxLeverage: 3, spread: 0.05 }
   earlyRepaymentFee: 0.01
+  # M1.6 (economic-model §19.1): hạn mức tín dụng của phòng Tài chính. Giá trị đề xuất (#59).
+  creditLine:
+    revenueMultiple: 2           # hạn mức tối đa = 2 × doanh thu 3 tháng
+    maxLeverage: 2               # chỉ cấp khi nợ / EBITDA năm ≤ 2
+    spreadDiscount: 0.02         # lãi = thấu chi − 2 điểm %
+    commitmentFeeAnnual: 0.005   # 0.5%/năm trên phần chưa dùng
 
 city:
   name: "Riverton"
@@ -45,4 +50,5 @@ companies:
   - { id: ai-daily, name: "Daily Grind", kind: ai, personality: balanced, startingCash: 60000000, initialStores: [c, n, e] }
   - { id: ai-aura,  name: "Aura Roasters", kind: ai, personality: premium, startingCash: 60000000, initialStores: [ne, se, c] }
 
-# Cửa hàng ban đầu của AI mở ở ngày 0, staff = 5, lương theo personality.
+# startingCash là trước capex; capex cửa hàng ban đầu trừ qua cùng logic OpenStore.
+# Cửa hàng ban đầu của AI mở ở ngày 0, staff = 5, giá = target theo personality, lương theo personality.

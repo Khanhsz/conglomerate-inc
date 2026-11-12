@@ -44,18 +44,19 @@ type Money = number & { readonly __brand: 'Money' };   // cent, safe integer
 
 interface GameState {
   schemaVersion: 1;
-  contentRef: { industryId: string; scenarioId: string };
-  seed: number;
+  contentRef: { industryId: string; scenarioId: string; contentVersion: string };
+  seed: number;                            // opts.seed thắng scenario.seed
   clock: { day: number };
   macro: MacroState;                       // economic-model §1
   city: { districtIds: Id[] };             // hình học lấy từ content
   companies: Record<Id, Company>; companyIds: Id[];
   stores: Record<Id, Store>; storeIds: Id[];
   loans: Record<Id, Loan>; loanIds: Id[];
-  ledger: { entries: JournalEntry[]; nextEntryId: number };
+  ledger: { entries: JournalEntry[]; nextEntryId: number;
+            balances: Record<Id, AccountBalances> };  // số dư hiện tại, cập nhật trong post(); snapshot cho UI không kèm entries
   statements: Record<Id, MonthlyStatements[]>;   // theo companyId
-  commandQueue: QueuedCommand[];
-  events: GameEvent[];                     // log hiển thị: cảnh báo, từ chối lệnh, AI mở cửa hàng…
+  commandQueue: QueuedCommand[];           // { enqueuedDay, command } — không có id: lệnh bị từ chối chỉ để lại event
+  events: GameEvent[];                     // union theo `kind`: commandRejected, storeOpened, storeClosed, distress, bankrupt, cashWarning, loanTaken, loanRepaid
   nextIds: { store: number; loan: number };
 }
 
@@ -64,18 +65,21 @@ interface Company {
   status: 'active' | 'distress' | 'bankrupt'; distressMonths: number;
   qualityTier: 'basic' | 'standard' | 'premium';
   brandAwareness: number;
-  marketingBudgetMonthly: Money;
+  marketingBudgetMonthly: Money; marketingAccrued: number;   // cent dạng float, reset khi chốt tháng
   tax: { preTaxProfitYTD: Money; taxBookedYTD: Money; lossCarryforward: Money };
   overdraft: { limit: Money; dailyBalanceSum: Money };
 }
 
 interface Store {
-  id: Id; companyId: Id; districtId: Id; openedDay: number; status: 'open' | 'closed';
+  id: Id; companyId: Id; districtId: Id; openedDay: number; status: 'open' | 'closed'; closedDay?: number;
   price: Money; staff: number; wageMonthly: Money; rentMonthly: Money; rentResetDay: number;
   capex: Money; accumDep: Money;
   morale: number; skill: number; serviceLevel: number;
   today: { demand: number; served: number; lost: number; capacity: number };  // ghi đè mỗi ngày
-  mtd: { demand: number; served: number; capacity: number; revenue: Money; cogs: Money }; // reset đầu tháng
+  mtd: { demand: number; served: number; capacity: number; revenue: Money; cogs: Money;
+         wagesAccrued: number; rentAccrued: number }; // reset đầu tháng; *Accrued là cent dạng float
+  lastMonth: { revenue: Money; cogs: Money; wages: Money; rent: Money };  // cho AI §9 và UI
+  negContributionMonths: number;
 }
 
 interface JournalEntry {
@@ -83,6 +87,8 @@ interface JournalEntry {
   lines: { account: AccountCode; debit: Money; credit: Money }[];  // mỗi dòng đúng một vế > 0
 }
 ```
+Id sinh ra có đệm số 0 (`store-000010`, `loan-000003`) để sort theo chuỗi trùng thứ tự tạo. Type tách riêng `SegmentId` / `QualityTier` / `Personality` dù cùng có giá trị `premium`. Trường optional phải bỏ hẳn key, không gán `undefined`.
+Doanh thu và giá vốn hằng ngày ghi **một bút toán cho mỗi công ty mỗi ngày** (gộp các cửa hàng); chi tiết theo cửa hàng nằm ở `store.mtd`.
 
 ## 3. Commands (M1)
 | type | payload | validate chính |
@@ -94,23 +100,24 @@ interface JournalEntry {
 | `SetWage` | `{ storeId \| 'all', wageMonthly }` | ∈ [0.5, 3] × lương thị trường |
 | `SetMarketingBudget` | `{ monthly }` | ≥ 0, ≤ $1M |
 | `SetQualityTier` | `{ tier }` | tier tồn tại |
-| `TakeLoan` | `{ principal, termMonths }` | economic-model §7.1 |
-| `RepayLoan` | `{ loanId }` | đủ tiền |
+| `TakeLoan` | `{ principal, termMonths }` | economic-model §7.1; công ty chưa phá sản; cần ít nhất một tháng đã chốt |
+| `RepayLoan` | `{ loanId }` | khoản vay của công ty, còn dư nợ; tiền mặt + hạn mức thấu chi còn lại ≥ dư nợ × (1 + phí) |
 
 Command bị từ chối → push `GameEvent { kind: 'commandRejected', reason }`, không thay đổi gì khác.
-Cửa hàng mới mặc định: giá = Pref, staff = 4, lương = lương thị trường, morale 0.5, skill = newHireSkill, serviceLevel 0.6.
+Cửa hàng mới mặc định: giá = Pref, lương = lương thị trường, skill = newHireSkill; staff, morale, serviceLevel lấy từ `industry.newStore` (coffee: 4, 0.5, 0.6). Lệnh được chuẩn hóa qua JSON khi `enqueue` và validate lại ngay trước khi apply.
+Trạng thái ban đầu: người chơi `qualityTier = standard`, marketing 0. Cửa hàng ban đầu của AI: giá = target theo personality (làm tròn 5 cent), staff = `industry.aiInitialStaff` (coffee: 5), lương theo personality, marketing 0 tới ngày 30; capex trừ vào `startingCash` qua cùng logic `OpenStore`. Chi tiết: economic-model §9.
 
 ## 4. Thứ tự tick (mỗi ngày)
 ```
 0. nếu day % 30 == 0 và day > 0: (đã chốt tháng ở cuối ngày trước) → AI ra quyết định tháng (§9)
 1. applyQueuedCommands
-2. macroSystem            (cập nhật priceIndex)
-3. brandSystem            (dùng spend + served hôm qua)
+2. macroSystem            (cập nhật priceIndex; bỏ qua ở ngày 0)
+3. brandSystem            (ngân sách marketing hiện hành sau lệnh hôm nay + served hôm qua)
 4. demandSystem           (share, demand, noise)
-5. operationsSystem       (capacity, served, doanh thu + giá vốn ghi sổ, morale, skill, serviceLevel)
-6. financeDailySystem     (thấu chi tự rút/tự trả, cộng dồn số dư thấu chi)
+5. operationsSystem       (capacity, served, doanh thu + giá vốn ghi sổ, cộng dồn lương/thuê/marketing, morale, skill, serviceLevel)
+6. financeDailySystem     (thấu chi tự trả, cộng dồn số dư thấu chi; việc rút thấu chi nằm trong helper thanh toán — economic-model §7.2)
 7. clock.day += 1
-8. nếu clock.day % 30 == 0: monthCloseSystem (economic-model §10)
+8. nếu clock.day % 30 == 0: monthCloseSystem (economic-model §10; bút toán ghi day = clock.day − 1)
 ```
 Thứ tự duyệt thực thể: luôn theo `companyIds` / `storeIds` đã sort.
 
@@ -121,7 +128,8 @@ enqueue(state, cmd: Command): GameState                // chỉ thêm vào queue
 step(state, content): GameState                       // 1 ngày
 runDays(state, content, n, onMonth?: (s) => void): GameState
 validateCommand(state, content, cmd): { ok: true } | { ok: false; reason: string }
-selectors: { balances(state, companyId), latestStatements(state, companyId), storeTable(state, companyId), marketShares(state) }
+selectors: { balances(state, companyId), latestStatements(state, companyId), storeTable(state, companyId), marketShares(state, content) }
+expectedDemand(state, content): { byStore, potential, captured }   // cầu kỳ vọng trước nhiễu (economic-model §3.3)
 hashState(state): string
 checkInvariants(state, content): InvariantViolation[]  // dùng trong test và balance:smoke
 ```
@@ -163,9 +171,13 @@ checkInvariants(state, content): InvariantViolation[]  // dùng trong test và b
 | performance | 3 năm, 60 cửa hàng, 4 công ty < 1.5s trên Node (bench, không fail CI, in kết quả) |
 
 ## 9. Tiêu chí nghiệm thu M1
-- [ ] `pnpm typecheck && pnpm test && pnpm balance:smoke` xanh.
-- [ ] `pnpm balance -- --seeds 100 --years 3 --bots all` chạy xong, có CSV và bảng tóm tắt.
-- [ ] Mục tiêu hiệu chỉnh §14 đạt, hoặc ghi rõ lệch bao nhiêu trong `docs/balance-log.md`.
-- [ ] Chơi được trên web 15 phút: mở cửa hàng, chỉnh giá/lương, thấy P&L thay đổi hợp lý.
-- [ ] Phá sản có báo cáo nguyên nhân (3 khoản chi lớn nhất + dự báo tiền mặt).
-- [ ] `docs/open-questions.md` liệt kê mọi giả định Claude phải tự đặt.
+Cập nhật 2026-11-11 (bước 08):
+- [x] `pnpm typecheck && pnpm test && pnpm balance:smoke` xanh (CI chạy cả `balance:smoke`).
+- [x] `pnpm balance -- --seeds 100 --years 3 --bots all` chạy xong (~5 phút, 4 worker), có CSV và bảng tóm tắt.
+- [x] Mục tiêu hiệu chỉnh §14 đạt sau vòng 1; xem `docs/balance-log.md`. Vấn đề năm 2–3 ngoài §14 ghi ở #49.
+- [x] Chơi được trên web: mở cửa hàng, chỉnh giá/lương, thấy P&L thay đổi hợp lý. Kiểm bằng Playwright (`pnpm e2e` và script chụp màn hình); **chưa có người chơi thật chơi 15 phút**.
+- [x] Phá sản có báo cáo nguyên nhân (3 khoản chi lớn nhất + dự báo tiền mặt), cả trong event lẫn hộp thoại game over.
+- [x] `docs/open-questions.md` liệt kê mọi giả định Claude phải tự đặt (#1–#55).
+- [ ] Bench hiệu năng (§8, không chặn CI): `pnpm bench` ~3.2 s so với mục tiêu < 1.5 s → cần ADR mới (#46).
+
+Review độc lập: `docs/reviews/M1-review.md`.

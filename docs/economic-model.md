@@ -20,11 +20,11 @@ Quy ước: `t` = ngày, `m` = tháng. Tiền tính bằng cent (Money). Biến 
 | I | `macro.incomeIndex` | chỉ số thu nhập (1.0 = gốc) | 1.0 |
 | CPI | `macro.priceIndex` | chỉ số giá, bắt đầu 1.0 | 1.0 |
 | τ | `macro.corporateTaxRate` | thuế TNDN | 0.20 |
-| w̄ | `macro.marketWageMonthly` | lương thị trường / nhân viên / tháng (Money, chưa nhân CPI) | 200000 (=$2,000) |
+| w̄ | `macro.marketWageMonthly` | lương thị trường / nhân viên / tháng (Money, chưa nhân CPI) | 220000 (=$2,200) |
 
-Mỗi ngày: `priceIndex_t = priceIndex_{t-1} × (1 + dailyRate(π))`.
-Mọi chi phí danh nghĩa có cờ `indexed: true` được nhân `priceIndex` (giá nguyên liệu, tiền thuê khi gia hạn, lương thị trường).
-`incomeIndex` tăng cùng tốc độ CPI ở M1 (thu nhập thực không đổi).
+Mỗi ngày từ ngày 1: `priceIndex_t = priceIndex_{t-1} × (1 + dailyRate(π))`. Ngày 0 giữ `priceIndex = 1.0` (không cập nhật).
+Các đại lượng danh nghĩa sau luôn được nhân `priceIndex` (danh sách cố định, không có cờ trong content): `industry.referencePrice`, `industry.unitCost`, `industry.overheadBaseMonthly`, `industry.brand.halfSaturationDaily`, `macro.marketWageMonthly`, `district.fitOutCost` (lúc mở), `district.rentMonthly` (lúc mở và khi gia hạn).
+`incomeIndex` tăng cùng tốc độ CPI ở M1 (thu nhập thực không đổi). Ghi chú cho M3: khi bật η > 0 phải định nghĩa lại `incomeIndex` là thu nhập **thực**, vì Pref đã được index theo CPI.
 
 **Interface cho M3:** `MacroSystem` là một system riêng; M1 implement `ConstantMacroSystem`. Các system khác chỉ đọc `state.macro`, không đọc scenario trực tiếp.
 
@@ -34,6 +34,12 @@ Mọi chi phí danh nghĩa có cờ `indexed: true` được nhân `priceIndex` 
 - Quy mô phân khúc s tại quận d: `N_{d,s} = pop_d × mix_{d,s}` (người).
 - Khoảng cách quận e → quận d (Manhattan):
   `D(e,d) = (|x_e − x_d| + |y_e − y_d|) × districtSizeKm`, với `D(d,d) = sameDistrictKm` (0.5).
+- **Nhiều thành phố (M1.8, ADR-0003):**
+  - scenario có danh sách `cities`; mỗi thành phố có lưới và các tham số khoảng cách riêng. Lưới được phép có ô trống;
+  - khách chỉ mua trong thành phố mình sống: hai địa điểm khác thành phố không với tới nhau (`D = ∞`), bất kể `maxTravelKm`;
+  - mỗi địa điểm có `zone ∈ {budget, central, premium}` (Bình dân / Trung tâm / Cao cấp). Khu chỉ là nhãn; khác biệt kinh tế nằm ở `pop`, `mix`, `rentMonthly`, `fitOutCost` của địa điểm;
+  - "quận" trong các mục khác của tài liệu này nghĩa là một địa điểm; thứ tự duyệt là thành phố theo scenario rồi địa điểm theo thứ tự trong thành phố;
+  - một thành phố thì mọi công thức trùng với M1.
 
 ## 3. Cầu — multinomial logit
 ### 3.1 Utility của phân khúc s ở quận e đối với cửa hàng j
@@ -55,6 +61,9 @@ U_{e,s,j} = βq_s · Q_j
 
 Lưu ý: dùng `ln(P/Pref)` để độ co giãn theo giá phụ thuộc tỷ lệ, không phụ thuộc đơn vị tiền. Giá phải được nhân `incomeIndex`? → Không; thu nhập ảnh hưởng qua `βp_s,eff = βp_s / incomeIndex^η_s` với `η_s = segment.incomeElasticityOfPriceSensitivity` (M1 mặc định 0, tức tắt).
 
+> M1.6: với nhiều sản phẩm, `βq·Q − βp·ln(P/Pref)` được thay bằng inclusive value của menu (§17.3); `A_c` thay bằng `A_{c,e,s}` (§18.1). Cấu hình mặc định cho kết quả đúng bằng công thức trên.
+> M1.7: cộng thêm utility của tiện ích cửa hàng đang bật (§21).
+
 ### 3.2 Lựa chọn ngoài (không mua)
 `U_{e,s,0} = segment.outsideUtility` (hằng số hiệu chỉnh, calibrated).
 
@@ -68,7 +77,7 @@ demand_j = Σ_e Σ_s  N_{e,s} × f_s × share_{e,s,j}
 Tính bằng log-sum-exp ổn định số học (trừ max trước khi exp).
 
 ### 3.4 Nhiễu và giới hạn công suất
-- `demandRealized_j = demand_j × exp(σ·z − σ²/2)`, `z ~ N(0,1)` từ `rng('demand')`, `σ = industry.dailyDemandNoise` (0.05). Kỳ vọng không đổi.
+- `demandRealized_j = demand_j × exp(σ·z − σ²/2)`, `z ~ N(0,1)` từ `rng('demand:<storeId>')` (mỗi cửa hàng một stream, mở thêm cửa hàng không làm lệch nhiễu của cửa hàng khác), `σ = industry.dailyDemandNoise` (0.05). Kỳ vọng không đổi.
 - `served_j = min(demandRealized_j, capacity_j)` (số thực; doanh thu làm tròn ở bước ghi sổ).
 - `lost_j = demandRealized_j − served_j`.
 
@@ -79,6 +88,8 @@ W_target = 0.5 × fill_j + 0.5 × staffQuality_j
 W_j ← W_j + κw × (W_target − W_j)        κw = industry.serviceAdjustRate (0.2)
 ```
 `staffQuality_j = morale_j × skill_j` (cả hai ∈ [0,1]).
+
+Thứ tự trong ngày của một cửa hàng (operationsSystem): gia hạn thuê nếu đến hạn → capacity dùng morale **đầu ngày** → served/lost → bút toán doanh thu, giá vốn → cộng dồn lương, thuê → cập nhật W bằng `fill` hôm nay và `staffQuality` **đầu ngày** → cập nhật morale (§4.2) → cập nhật skill (§4.3).
 
 ## 4. Vận hành cửa hàng
 ### 4.1 Công suất
@@ -92,12 +103,16 @@ capacity_j = staff_j × industry.customersPerStaffPerDay × productivity_j
 ```
 wageRatio_j = store.wageMonthly / (macro.marketWageMonthly × priceIndex)
 morale_target = 1 / (1 + exp(−k_m × (wageRatio_j − 1)))        k_m = industry.moraleWageSensitivity (6)
-morale_j ← morale_j + κm × (morale_target − morale_j)          κm = 0.05 / ngày
+morale_j ← morale_j + κm × (morale_target − morale_j)          κm = industry.moraleAdjustRate (0.05 / ngày)
 ```
 Lương = thị trường → morale hướng về 0.5. Lương +20% → ≈ 0.77.
 
+> M1.6: phúc lợi cộng vào morale_target; thưởng cộng vào wageRatio (§16.3–16.4).
+
 ### 4.3 Kỹ năng
-`skill_j ← min(1, skill_j + industry.skillGainPerDay)` khi staff không đổi; mỗi lần tuyển thêm Δ người: `skill_j ← (skill_j × staff_old + skill0 × Δ) / staff_new`, `skill0 = 0.4`. Giảm staff không đổi skill.
+`skill_j ← min(1, skill_j + industry.skillGainPerDay)` mỗi ngày (kể cả ngày vừa tuyển: phần trộn do tuyển đã áp ngay trong lệnh SetStaff); mỗi lần tuyển thêm Δ người: `skill_j ← (skill_j × staff_old + skill0 × Δ) / staff_new`, `skill0 = industry.newHireSkill` (0.4). Giảm staff không đổi skill.
+
+> M1.6: đào tạo nhân hệ số cho skillGainPerDay và cộng vào newHireSkill (§16.2).
 
 ### 4.4 Chất lượng
 Tier chọn ở cấp công ty cho M1 (`company.qualityTier`), áp cho mọi cửa hàng. Mỗi tier có `quality` và `unitCostMultiplier`.
@@ -110,26 +125,45 @@ lift = α × (1 − exp(−spendDaily / (halfSat × priceIndex)))
 A ← A + (1 − A) × lift − δ × A
 ```
 `α = industry.brand.alpha`, `halfSat = industry.brand.halfSaturationDaily` (Money), `δ = industry.brand.decayPerDay`.
-Thêm hiệu ứng truyền miệng nhỏ: `A ← A + γ × Σ_j served_j / cityPopulation`, `γ = industry.brand.wordOfMouth`. Clamp [0,1].
+Thêm hiệu ứng truyền miệng nhỏ: `A ← A + γ × Σ_j served_j / cityPopulation`, `γ = industry.brand.wordOfMouth`, `cityPopulation = Σ_d pop_d`. Clamp [0,1].
+
+> M1.6: nhận biết theo quận và phân khúc, nhiều kênh (§18). Chỉ dùng kênh `general` thì đúng bằng công thức trên.
+
+**Nhiều thành phố (M1.8).** Với công ty c và thành phố k:
+```
+K_c = các thành phố c đang có ≥ 1 cửa hàng mở; nếu c chưa có cửa hàng nào thì K_c = mọi thành phố
+spendDaily_{c,k} = (marketingBudgetMonthly / 30) × pop_k / Σ_{j ∈ K_c} pop_j     nếu k ∈ K_c, ngược lại 0
+lift_{c,k}  = α × (1 − exp(−spendDaily_{c,k} / (halfSat × priceIndex)))
+wordOfMouth_{c,k} = γ × Σ_{cửa hàng j của c ở k} served_j / pop_k
+```
+- `pop_k` là tổng dân số các địa điểm của thành phố k.
+- Mọi ô (e, s) của thành phố k dùng `lift_{c,k}` và `wordOfMouth_{c,k}` trong công thức cập nhật `A`.
+- Một thành phố: `K_c` chỉ có thành phố đó, tỷ lệ chia bằng 1, nên đúng bằng công thức M1.
+- `halfSat` chưa co giãn theo quy mô thành phố (#62).
 
 ## 6. Chi phí và ghi nhận
 | Khoản | Khi nào | Công thức | Bút toán |
 |---|---|---|---|
 | Doanh thu | mỗi ngày | `round(served_j × P_j)` | Nợ Cash / Có Revenue |
 | Giá vốn | mỗi ngày | `round(served_j × industry.unitCost × tierMult × priceIndex)` | Nợ COGS / Có Cash |
-| Lương | cuối tháng | `staff_j × wageMonthly` | Nợ Wages / Có Cash |
-| Thuê mặt bằng | cuối tháng | `store.rentMonthly` (cố định theo hợp đồng lúc mở, index khi gia hạn mỗi 12 tháng) | Nợ Rent / Có Cash |
-| Marketing | cuối tháng | `company.marketingBudgetMonthly` | Nợ Marketing / Có Cash |
-| Quản trị chung | cuối tháng | `round(overheadBase × priceIndex × nStores^γo)` | Nợ Admin / Có Cash |
-| Khấu hao | cuối tháng | `capex / usefulLifeMonths` mỗi cửa hàng | Nợ Depreciation / Có AccumDep |
+| Lương | cộng dồn mỗi ngày, ghi sổ cuối tháng | mỗi ngày `wagesAccrued_j += staff_j × wageMonthly / 30`; cuối tháng ghi `round(wagesAccrued_j)` | Nợ Wages / Có Cash |
+| Thuê mặt bằng | cộng dồn mỗi ngày, ghi sổ cuối tháng | mỗi ngày cửa hàng mở `rentAccrued_j += store.rentMonthly / 30`; cuối tháng ghi `round(rentAccrued_j)`. `rentMonthly` cố định theo hợp đồng lúc mở, index khi gia hạn mỗi 12 tháng | Nợ Rent / Có Cash |
+| Marketing | cộng dồn mỗi ngày, ghi sổ cuối tháng | mỗi ngày `marketingAccrued += company.marketingBudgetMonthly / 30`, cộng thêm `monthly / 30` của từng dòng ngân sách kênh (§18.2); cuối tháng ghi `round(marketingAccrued)` | Nợ Marketing / Có Cash |
+| Quản trị chung | cuối tháng | `round(overheadBaseMonthly × priceIndex × nStores^γo)`, `nStores` = số cửa hàng đang mở lúc chốt | Nợ Admin / Có Cash |
+| Khấu hao | cuối tháng | `floor(capex / usefulLifeMonths)` mỗi cửa hàng, tính từ tháng mở (tròn tháng); tháng thứ `usefulLifeMonths` lấy phần còn lại để AccumDep = capex, sau đó dừng | Nợ Depreciation / Có AccumDep |
 | Mở cửa hàng | khi lệnh | `capex = district.fitOutCost × priceIndex` | Nợ PP&E / Có Cash |
 | Đóng cửa hàng | khi lệnh | ghi giảm GTCL vào `LossOnDisposal`; phí phá hợp đồng = 3 tháng thuê | xem §6.1 |
 | Lãi vay | cuối tháng | xem §7 | Nợ InterestExpense / Có Cash |
 | Thuế | cuối tháng | xem §6.2 | Nợ IncomeTax / Có TaxPayable |
-| Nộp thuế | cuối quý | số dư TaxPayable | Nợ TaxPayable / Có Cash |
+| Nộp thuế | cuối quý | số dư TaxPayable (âm → hoàn thuế, xem §6.2) | Nợ TaxPayable / Có Cash |
+
+Các accumulator (`wagesAccrued`, `rentAccrued`, `marketingAccrued`) là `number` (cent dạng float) trong state, chỉ thành Money khi làm tròn lúc ghi sổ, rồi reset về 0. Cộng dồn theo ngày để giá trị đặt vào ngày chốt tháng không quyết định chi phí cả tháng.
+Bút toán có số tiền bằng 0 thì bỏ qua (không ghi). Mọi khoản chi bằng Cash đi qua helper thanh toán ở §7.2.
 
 `γo = industry.overheadExponent` (1.2) — **phi hiệu quả theo quy mô**, là cơ chế chống "quá dễ".
 `rentMonthly` mặc định = `district.rentMonthly × priceIndex` tại thời điểm mở.
+
+> M1.6: giá vốn tính theo sản phẩm và nhà cung cấp (§17.2); văn phòng và phòng ban là chi phí thêm (§15); overhead chung giữ nguyên.
 
 ### 6.1 Đóng cửa hàng
 ```
@@ -146,50 +180,83 @@ taxableYTD = max(0, preTaxProfitYTD − lossCarryforward)
 taxDueYTD  = round(τ × taxableYTD)
 taxExpense_m = taxDueYTD − taxBookedYTD          (có thể âm để hoàn nhập trong năm, nhưng taxBookedYTD ≥ 0)
 ```
+`taxExpense_m < 0` ghi ngược: Nợ TaxPayable / Có IncomeTax. TaxPayable được phép âm trong năm (khoản thuế phải thu). Cuối quý quyết toán hai chiều: số dư dương → Nợ TaxPayable / Có Cash; số dư âm → Nợ Cash / Có TaxPayable (hoàn thuế).
 Cuối năm: nếu `preTaxProfitYear < 0` thì `lossCarryforward += −preTaxProfitYear`; ngược lại `lossCarryforward = max(0, lossCarryforward − preTaxProfitYear)`. Reset YTD.
 
 ## 7. Vay nợ
 ### 7.1 Khoản vay kỳ hạn
 - Lệnh `TakeLoan { principal, termMonths ∈ {12,24,36,60} }`.
 - Lãi năm: `rate = policyRate + spread(leverage)` cố định cho cả khoản vay.
-- `leverage = (totalDebt + principal) / max(1, EBITDA_trailing12m)`; nếu < 12 tháng lịch sử, annualize phần có.
+- `leverage = (totalDebt + principal) / max(1, EBITDA_trailing12m)`; `totalDebt` = Loans + Overdraft. Nếu < 12 tháng lịch sử, annualize phần có; chưa có tháng nào đã chốt → từ chối với lý do "chưa có lịch sử EBITDA".
 - `spread`: leverage ≤ 1 → 2%; ≤ 2 → 3.5%; ≤ 3 → 5%; > 3 → **từ chối** (trả `CommandRejected` với lý do). Bậc spread nằm trong scenario.
-- Trả góp đều (annuity) hàng tháng: `payment = P × r / (1 − (1+r)^−n)`, `r = rate/12`. Ghi lãi vào InterestExpense, gốc giảm Loans.
-- `RepayLoan { loanId }` trả sớm toàn bộ gốc còn lại + phí 1%.
+- Trả góp đều (annuity) hàng tháng: `payment = round(P × r / (1 − (1+r)^−n))`, `r = rate/12` (quy ước lãi đơn theo tháng, khác với `dailyRate` ở §0 — có chủ đích). Lãi kỳ = `round(gốc còn lại × r)` ghi InterestExpense, phần còn lại giảm Loans; kỳ cuối tất toán đúng gốc còn lại.
+- Kỳ trả đầu tiên ở lần chốt tháng của tháng **kế tiếp** tháng nhận khoản vay; đủ `n` kỳ.
+- `RepayLoan { loanId }` trả sớm toàn bộ gốc còn lại + phí `finance.earlyRepaymentFee` (1%), phí ghi InterestExpense.
 
 ### 7.2 Thấu chi tự động (overdraft)
-- Mọi khoản chi làm Cash < 0 sẽ tự rút thấu chi: Nợ Cash / Có Overdraft. Cash không bao giờ âm.
+- Mọi khoản chi bằng Cash đi qua một helper thanh toán duy nhất: phần Cash không đủ được ghi thẳng Có Overdraft **trong cùng bút toán** (Nợ Chi phí / Có Cash + Có Overdraft). Cash không bao giờ âm, kể cả giữa các bước của một tick và trong chốt tháng.
+- Khoản chi bắt buộc do system phát sinh (giá vốn, lương, thuê, lãi, thuế…) được phép vượt hạn mức; distress xét ở chốt tháng (§8). Lệnh tự nguyện (`OpenStore`, `RepayLoan`) bị validate theo `cash + hạn mức còn lại`.
 - Khi Cash > 0 và Overdraft > 0, cuối ngày tự trả: Nợ Overdraft / Có Cash.
-- Hạn mức: `overdraftLimit = max(scenario.overdraftFloor, 1 × revenue_trailing3m)`.
-- Lãi: `policyRate + scenario.overdraftSpread` (8%), tính trên số dư cuối ngày, ghi cuối tháng.
+- Hạn mức: `overdraftLimit = max(finance.overdraftFloor, 1 × revenue_trailing3m)`, tính lại ở mỗi lần chốt tháng; chưa đủ 3 tháng thì cộng phần đã có.
+- Lãi: `dailyRate(policyRate + finance.overdraftSpread)` (8%) × tổng số dư cuối ngày trong tháng, ghi cuối tháng.
+
+> M1.6: hạn mức tín dụng của phòng Tài chính thay hạn mức mặc định khi được đặt (§19.1).
 
 ## 8. Mất khả năng thanh toán và phá sản
 Tại chốt tháng, cho mỗi công ty:
 - `overdraft > overdraftLimit` → trạng thái `distress` + cảnh báo nêu **3 khoản chi lớn nhất tháng** và dự báo tiền mặt 3 tháng.
-- 2 lần chốt tháng liên tiếp ở `distress` → `bankrupt`. Người chơi: game over (hiện báo cáo nguyên nhân). AI: tất cả cửa hàng đóng, công ty rời thị trường.
+- 2 lần chốt tháng liên tiếp ở `distress` → `bankrupt`. Người chơi: game over (hiện báo cáo nguyên nhân). AI: tất cả cửa hàng đóng (thanh lý: ghi giảm GTCL theo §6.1 nhưng **không** tính phí chấm dứt 3 tháng thuê), công ty rời thị trường. Công ty `bankrupt` bị mọi system bỏ qua từ đó (không tính lãi, không chốt tháng).
 - Cảnh báo sớm (không phải distress): dự báo tiền mặt 13 tuần âm theo xu hướng 3 tháng gần nhất.
+- Định nghĩa dự báo: `tiền ròng = Cash − Overdraft`; `xu hướng` = trung bình 3 tháng gần nhất (đã chốt, gồm tháng này) của `CFO − trả gốc` (không tính CFI vì mở cửa hàng là đầu tư tự nguyện một lần, không tính góp vốn và tiền vay mới vì không lặp lại); `dự báo(k tháng) = tiền ròng + k × xu hướng`. 3 tháng cho distress; 13 tuần = 91/30 tháng cho cảnh báo sớm.
+- Hạn mức thấu chi được tính lại (§7.2) ngay trước bước xét distress.
+- Thanh lý khi phá sản ghi vào ngày đầu tháng kế tiếp (sau khi báo cáo tháng đã chốt); công ty `bankrupt` không còn chốt tháng.
 
 ## 9. Đối thủ AI (M1)
 Quyết định chạy vào ngày đầu mỗi tháng, đọc **cùng dữ liệu người chơi thấy** (không gian lận).
 | Personality | qualityTier | target markup trên giá vốn | lương / thị trường | marketing / doanh thu |
 |---|---|---|---|---|
-| discount | basic | 3.0× | 0.95 | 2% |
+| discount | basic | 3.7× | 0.95 | 2% |
 | balanced | standard | 3.9× | 1.05 | 4% |
-| premium | premium | 4.6× | 1.20 | 6% |
+| premium | premium | 4.0× | 1.20 | 6% |
 
-(Giá trị nằm trong `coffee.yaml > aiPersonalities`; bảng chỉ minh họa.)
+(Giá trị nằm trong `coffee.yaml > aiPersonalities`; bảng chỉ minh họa. Các ngưỡng của luật dưới đây nằm trong `coffee.yaml > aiRules`.)
 
 Luật tháng (mỗi cửa hàng):
-1. Giá: `targetPrice = unitCost × tierMult × priceIndex × markup`. Nếu utilization (`served/capacity` trung bình tháng) > 0.95 → +3%; < 0.6 → −3%; dịch giá hiện tại tối đa ±5% về phía target. Làm tròn tới 5 cent.
-2. Nhân sự: chọn staff để utilization dự kiến ≈ 0.85 dựa trên demand trung bình tháng, thay đổi tối đa ±2 người/tháng.
-3. Đóng cửa hàng nếu lợi nhuận đóng góp (doanh thu − giá vốn − lương − thuê) âm 3 tháng liên tiếp.
+0. Trạng thái ban đầu (ngày 0): cửa hàng AI mở ở `targetPrice` làm tròn 5 cent, lương = `wageRatio × marketWageMonthly`, marketing = 0 cho tới lần quyết định đầu tiên ở ngày 30.
+1. Giá: `targetPrice = unitCost × tierMult × priceIndex × markup`. `adjTarget = targetPrice × (1 + priceAdjust)` nếu utilization (`served/capacity` tháng trước) > `highUtilization`; `× (1 − priceAdjust)` nếu < `lowUtilization`; ngược lại giữ nguyên (không cộng dồn qua các tháng). Giá mới = `adjTarget` kẹp trong ±`maxPriceStep` giá hiện tại. Làm tròn tới 5 cent. (Tham số trong `coffee.yaml > aiRules`; hiện là 0.03, 0.95, 0.6, 0.05.)
+2. Nhân sự: chọn staff để utilization dự kiến ≈ `targetUtilization` (0.85) dựa trên demand trung bình/ngày tháng trước, thay đổi tối đa ±`maxStaffStep` (2) người/tháng.
+3. Đóng cửa hàng nếu lợi nhuận đóng góp (doanh thu − giá vốn − lương − thuê) âm `closeAfterNegativeMonths` (3) tháng liên tiếp.
+3b. Lương: mỗi tháng đặt `wageMonthly = round(wageRatio × marketWageMonthly × priceIndex)`.
 
 Luật công ty:
-4. Mở cửa hàng mới nếu: ROI đóng góp 3 tháng gần nhất trên capex > 2%/tháng **và** cash ≥ 1.5 × capex **và** không ở distress. Chọn quận có `Σ_s N_{d,s} × f_s / (1 + số cửa hàng trong quận)` cao nhất. Tối đa 1 cửa hàng/tháng.
+3c. Marketing: `marketingBudgetMonthly = round(marketingShareOfRevenue × doanh thu công ty tháng trước)`; bằng 0 nếu sau lần quyết định không còn cửa hàng nào.
+4. Mở cửa hàng mới nếu: ROI đóng góp 3 tháng gần nhất trên capex > `expansion.minMonthlyRoi` (0.02/tháng) **và** cash ≥ `expansion.cashMultiple` (hiện 3, vòng hiệu chỉnh 1) × capex **và** không ở distress **và** tháng này không đóng cửa hàng nào. Công ty chưa có cửa hàng nào thì mở cửa hàng đầu tiên nếu đủ tiền (bootstrap, #48). Chọn quận có `Σ_s N_{d,s} × f_s / (1 + số cửa hàng trong quận)` cao nhất. Tối đa 1 cửa hàng/tháng.
 5. Dùng `rng('ai:<companyId>')` chỉ để phá hòa khi chọn quận.
 
+**Hồ sơ đối thủ (M1.8).** Mỗi công ty AI mang `profile` trong state; mọi luật trên đọc tham số từ hồ sơ:
+`qualityTier`, `markup`, `wageRatio`, `marketingShareOfRevenue`, `expansion { rule, minMonthlyRoi, cashMultiple, maxPaybackMonths }`, `closeAfterNegativeMonths`, `reach`, `homeCityId`.
+- Công ty khai sẵn bằng `personality`: hồ sơ = bảng trên + `aiRules` (`rule = averageRoi`, `closeAfterNegativeMonths` của `aiRules`), nên hành vi không đổi so với M1.
+- Công ty sinh ngẫu nhiên: xem §20.1; `rule = marginalGain`.
+
+**Luật 4b — mở rộng theo lãi biên** (`rule = marginalGain`, thay điều kiện ROI của luật 4; các điều kiện "không distress", "tháng này không đóng cửa hàng" và `cashMultiple` giữ nguyên). Khác luật 4, cửa hàng đầu tiên cũng phải có lãi biên dương: công ty không còn chỗ nào có lãi thì không mở lại và sẽ rút lui theo §20.2.
+```
+thành phố được xét = thành phố đang có cửa hàng của công ty
+                     + mọi thành phố khác nếu số thành phố đang có cửa hàng < reachCities[reach]
+                     (công ty chưa có cửa hàng nào: chỉ homeCity)
+ứng viên = 5 địa điểm có điểm số luật 4 (Σ N·f / (1 + số cửa hàng đang mở)) cao nhất trong các thành phố được xét,
+           còn mở được (MAX_STORES_PER_DISTRICT) và đủ tiền (cash ≥ cashMultiple × capex)
+ΔD(d)   = Σ cầu kỳ vọng/ngày của cả công ty khi có thêm một cửa hàng giả định ở d − Σ cầu kỳ vọng/ngày hiện tại
+          (cửa hàng giả định: giá = targetPrice, serviceLevel và staff như cửa hàng mới mở)
+margin  = targetPrice − unitCost × tierMult × priceIndex
+gain(d) = 30 × min(ΔD(d), công suất/ngày của cửa hàng mới) × margin − rentMonthly_d × priceIndex − newStore.staff × lương theo hồ sơ
+mở d* = argmax gain nếu gain(d*) > 0 và capex_{d*} / gain(d*) ≤ maxPaybackMonths      (hòa thì phá bằng rng)
+```
+`ΔD` tính cả phần khách bị lấy từ cửa hàng khác của chính công ty, nên công ty không tự ăn mòn mình như luật 4.
+
 ## 10. Chốt tháng — thứ tự
-1. Ghi lương, thuê, marketing, overhead, khấu hao, lãi vay/thấu chi, trả góp.
+Chốt tháng chạy sau khi `clock.day` đã tăng (spec §4 bước 8), nên mọi bút toán chốt tháng ghi `day = clock.day − 1` và `MonthlyStatements.month = floor((clock.day − 1) / 30)`.
+
+1. Ghi lương, thuê, marketing, overhead, khấu hao, lãi vay/thấu chi, trả góp. M1.6, cùng bước, theo thứ tự: đào tạo và phúc lợi (§16) → thưởng (§16.4, sau lương và thuê) → thuê và overhead văn phòng (§15.1) → chi phí cố định phòng ban (§15.2) → lương, phúc lợi và thưởng C-level (§19.2) → R&D (§17.5) → phí cam kết tín dụng (§19.1).
 2. Thuế (§6.2); cuối quý nộp thuế.
 3. Tạo `MonthlyStatements` cho mỗi công ty từ ledger (§11).
 4. Kiểm tra distress/bankrupt (§8).
@@ -198,8 +265,18 @@ Luật công ty:
 ## 11. Báo cáo tài chính (tính từ ledger)
 - **P&L tháng:** Revenue, COGS, GrossProfit, Wages, Rent, Marketing, Admin, EBITDA, Depreciation, LossOnDisposal, EBIT, Interest, PreTax, IncomeTax, NetIncome.
 - **Bảng cân đối:** Cash, PP&E (gross), AccumDep, TotalAssets | Overdraft, Loans, TaxPayable, TotalLiabilities | ShareCapital, RetainedEarnings (= Σ NetIncome từ đầu), TotalEquity.
-- **Lưu chuyển tiền tệ (gián tiếp):** NetIncome + Depreciation + LossOnDisposal ± ΔTaxPayable = CFO; CFI = −capex; CFF = vay − trả gốc ± Δoverdraft. Kiểm tra: CFO + CFI + CFF = ΔCash.
-- **KPI:** gross margin, EBITDA margin, utilization trung bình, revenue/store, ROE (năm hóa), netDebt/EBITDA.
+- **Lưu chuyển tiền tệ (gián tiếp):** NetIncome + Depreciation + LossOnDisposal ± ΔTaxPayable = CFO; CFI = −capex; CFF = góp vốn + vay − trả gốc ± Δoverdraft. Kiểm tra: CFO + CFI + CFF = ΔCash.
+  Lấy từ ledger: `capex` = phát sinh Nợ PPE trong tháng; vay / trả gốc = phát sinh Có / Nợ Loans; góp vốn = phát sinh ròng ShareCapital; các Δ = số dư cuối − đầu tháng. Đẳng thức chỉ đúng khi khấu hao luôn ghi Nợ Depreciation / Có AccumDep và thanh lý ghi đúng §6.1.
+- **RetainedEarnings** không có tài khoản riêng: = Σ số dư thu nhập − Σ số dư chi phí từ đầu (không có bút toán kết chuyển).
+- **KPI** (mẫu số ≤ 0 → `null`, không bao giờ NaN/Infinity):
+  | KPI | Công thức |
+  |---|---|
+  | gross margin | `grossProfit / revenue` |
+  | EBITDA margin | `ebitda / revenue` |
+  | utilization trung bình | do month close cung cấp (Σ served / Σ capacity các cửa hàng trong tháng) |
+  | revenue/store | `round(revenue / storeCount)` (Money) |
+  | ROE năm hóa | `12 × netIncome / totalEquity` cuối tháng |
+  | netDebt/EBITDA | `(loans + overdraft − cash) / (12 × ebitda)`; âm = tiền ròng |
 
 ## 12. Hệ thống tài khoản (chart of accounts)
 | Mã | Tên | Loại |
@@ -214,15 +291,19 @@ Luật công ty:
 | 4000 | Revenue | Income |
 | 5000 | COGS | Expense |
 | 6000 | Wages | Expense |
+| 6050 | StoreAmenities (M1.7, §21) | Expense |
 | 6100 | Rent | Expense |
+| 6150 | OfficeRent (M1.6) | Expense |
 | 6200 | Marketing | Expense |
 | 6300 | Depreciation | Expense |
 | 6400 | Admin | Expense |
+| 6410–6450 | DeptHr, DeptProduct, DeptFinance, DeptMarketing, DeptBoard (M1.6, §15.2) | Expense |
+| 6600 | ResearchAndDevelopment (M1.6, §17.5) | Expense |
 | 6900 | LossOnDisposal | Expense |
 | 7000 | InterestExpense | Expense |
 | 8000 | IncomeTax | Expense |
 
-Vốn ban đầu: Nợ Cash / Có ShareCapital = `scenario.startingCash`.
+Vốn ban đầu: Nợ Cash / Có ShareCapital = `companies[].startingCash` trong scenario (trước capex của cửa hàng ban đầu).
 
 ## 13. Bất biến (phải có property test)
 1. Mỗi `JournalEntry`: Σ debit = Σ credit, mọi amount là safe integer > 0.
@@ -234,11 +315,324 @@ Vốn ban đầu: Nợ Cash / Có ShareCapital = `scenario.startingCash`.
 7. Không NaN/Infinity ở bất kỳ trường số nào của state sau mỗi tick.
 8. Cùng scenario + seed + chuỗi command ⇒ `hashState` giống hệt sau N ngày.
 9. CFO + CFI + CFF = ΔCash mỗi tháng.
+10. (M1.8) Công ty `exited` không có cửa hàng đang mở; mọi công ty AI có hồ sơ với tham số trong miền hợp lệ; `homeCityId` tồn tại.
 
 ## 14. Mục tiêu hiệu chỉnh (calibration test trong M1)
-Với scenario `m1-default`, 4 công ty mỗi bên 3 cửa hàng ban đầu, không ai thao tác:
-- Tổng thị phần ngành (1 − Σ share_0 có trọng số) ∈ [0.30, 0.50].
-- Khách/cửa hàng/ngày trung bình ∈ [250, 650].
-- Biên EBITDA cửa hàng balanced ở năm 1 ∈ [8%, 25%].
+Với scenario `m1-default` đúng như file (3 AI mỗi bên 3 cửa hàng ban đầu, người chơi không có cửa hàng và không thao tác; AI chạy luật §9), đo trung bình 12 tháng đầu:
+- Tổng thị phần ngành (1 − Σ share_0 có trọng số, theo demand logit **trước** giới hạn công suất) ∈ [0.30, 0.50].
+- Khách **được phục vụ** (`served`)/cửa hàng/ngày trung bình ∈ [250, 650].
+- Biên EBITDA **cấp công ty** của AI balanced ở năm 1 ∈ [8%, 25%].
 - Bot `random` phá sản trong 3 năm ở ≥ 50% seed; bot `sensible` sống ở ≥ 90% seed.
 Nếu không đạt, chỉnh `outsideUtility` và tham số trong content (không chỉnh công thức) và ghi lại trong `docs/balance-log.md`.
+
+---
+
+# Phần M1.6 — Văn phòng, phòng ban và Ban điều hành
+Spec: `docs/specs/M1.6-office-departments.md`. Nguyên tắc chung cho §15–§19:
+- **Cấu hình mặc định giữ nguyên M1.** Không văn phòng, menu chỉ có sản phẩm chính, chỉ dùng kênh marketing tổng hợp, không chính sách nhân sự, không hạn mức tín dụng. Với cấu hình này, ledger và báo cáo **giống hệt từng cent** so với M1. Có test hồi quy cho điều này.
+- Mọi tham số mới nằm trong `coffee.yaml` (industry) hoặc scenario. Giá trị ghi ở đây là **đề xuất khởi đầu để hiệu chỉnh**, không phải số thực nghiệm.
+- Mọi khoản chi đi qua helper thanh toán §7.2. Khoản cộng dồn theo ngày đi theo đúng quy ước §6 (float cent, làm tròn khi ghi sổ cuối tháng).
+
+## 15. Văn phòng và phòng ban
+### 15.1 Văn phòng
+- `LeaseOffice { districtId, size }`, `size` ∈ `office.sizes`. Mỗi công ty có tối đa 1 văn phòng.
+  - Capex sửa sang: `office.sizes[size].fitOut × priceIndex`. Ghi Nợ PPE / Có Cash. Khấu hao như cửa hàng (§6, `usefulLifeMonths`).
+  - Thuê: `rentMonthly = district.rentMonthly × sizes[size].rentMultiplier × priceIndex`, cố định theo hợp đồng lúc thuê, gia hạn có index mỗi 12 tháng như cửa hàng. Cộng dồn ngày, cuối tháng ghi Nợ **OfficeRent (6150)** / Có Cash.
+  - Overhead văn phòng: `sizes[size].overheadMonthly × priceIndex`, cộng dồn ngày, cuối tháng ghi Nợ Admin (6400) / Có Cash.
+- `ReleaseOffice` (dùng khi chuyển hoặc nâng cấp văn phòng):
+  - xử lý như đóng cửa hàng §6.1: ghi giảm GTCL vào LossOnDisposal, phí phá hợp đồng = 3 tháng thuê;
+  - phòng ban và Ban điều hành đóng theo, C-level nghỉ với trợ cấp (§19.2).
+  - Lệnh chuyển văn phòng ở UI = `ReleaseOffice` rồi `LeaseOffice` trong cùng tick; phòng ban phải mở lại.
+- Đề xuất `office.sizes`:
+
+| size | slot | fitOut | rentMultiplier | overheadMonthly |
+|---|---|---|---|---|
+| small | 2 | $40,000 | 0.6 | $1,500 |
+| medium | 4 | $80,000 | 1.0 | $3,000 |
+| large | 5 (đủ mọi phòng) | $150,000 | 1.6 | $6,000 |
+
+### 15.2 Phòng ban
+- `dept` ∈ {`hr`, `product`, `finance`, `marketing`, `board`}. Mỗi phòng chiếm 1 slot văn phòng.
+- `OpenDepartment { dept }`: cần có văn phòng, còn slot và phòng đó chưa mở.
+  - Phí mở một lần `departments[dept].openingCost × priceIndex`: Nợ Dept<dept> / Có Cash ngay khi lệnh áp dụng.
+  - Chi phí cố định `departments[dept].fixedMonthly × priceIndex`: cộng dồn ngày, cuối tháng ghi Nợ Dept<dept> / Có Cash.
+- `CloseDepartment { dept }`: không hoàn phí mở; khoản cộng dồn tới ngày đóng vẫn ghi ở chốt tháng; chức năng của phòng tắt.
+  - Chính sách đang đặt bởi phòng đó **trở về mặc định M1** từ ngày hôm sau: đào tạo, phúc lợi, thưởng về 0; kênh marketing ngoài kênh tổng hợp về 0; hạn mức tín dụng về thấu chi §7.2.
+  - Menu và nhà cung cấp **giữ nguyên** (chỉ không sửa được nữa).
+  - C-level phụ trách phòng nghỉ, có trợ cấp (§19.2).
+- Tài khoản (Expense):
+
+| Mã | Tên |
+|---|---|
+| 6410 | DeptHr |
+| 6420 | DeptProduct |
+| 6430 | DeptFinance |
+| 6440 | DeptMarketing |
+| 6450 | DeptBoard |
+
+- Đề xuất `departments`:
+
+| dept | openingCost | fixedMonthly |
+|---|---|---|
+| hr | $10,000 | $3,000 |
+| product | $20,000 | $4,000 |
+| finance | $10,000 | $3,000 |
+| marketing | $15,000 | $3,500 |
+| board | $20,000 | $2,000 (chưa gồm lương C-level) |
+
+- **Khóa chức năng:** `validateCommand` từ chối lệnh thuộc phòng chưa mở, với lý do "cần phòng X". Lệnh M1 (giá, nhân viên, lương, marketing tổng hợp, tier, vay, trả nợ) **không** bị khóa.
+- **Overhead chung §6** (`overheadBase × n^γo`) **giữ nguyên**; văn phòng và phòng ban là chi phí thêm (#56).
+
+## 16. Phòng Nhân sự
+Chính sách công ty: `company.hrPolicy = { wageRatio: number | null, trainingLevel: 0..3, benefitsLevel: 0..3, bonusRate: number }`. Mặc định `{ null, 0, 0, 0 }` (= M1). Lệnh `SetHrPolicy { …partial }` cần phòng `hr`.
+
+### 16.1 Lương chuẩn và ghi đè
+- `wageRatio ≠ null` thì mọi cửa hàng **không ghi đè lương** có `wageMonthly = round(wageRatio × marketWageMonthly × priceIndex)`. Giá trị này áp khi lệnh có hiệu lực, và đầu mỗi tháng (theo CPI).
+- `SetWage` cho một cửa hàng bật `store.overrides.wage = true`. `ClearOverride { storeId, field: 'wage' }` tắt cờ và áp lương chuẩn ngay.
+- `wageRatio` phải nằm trong dải validate của `SetWage` (0.5–3).
+- Áp lại ở tick ngày đầu tháng, sau quyết định AI và trước bước vĩ mô của ngày đó, nên lương chuẩn dùng `priceIndex` cuối tháng trước. Đóng phòng `hr` thì chính sách về mặc định; lương hiện tại của cửa hàng giữ nguyên.
+
+### 16.2 Đào tạo
+- `trainingLevel = L` thì:
+  - chi phí mỗi ngày: `trainingAccrued += staff_j × hrPolicies.trainingCostPerStaffMonthly[L] × priceIndex / 30`, cuối tháng ghi vào **Wages (6000)**;
+  - `skillGain_eff = industry.skillGainPerDay × hrPolicies.trainingMult[L]` (thay §4.3);
+  - `newHireSkill_eff = min(1, industry.newHireSkill + hrPolicies.trainingNewHire[L])`, dùng trong phép trộn khi tuyển (§4.3).
+- Đề xuất: `trainingCostPerStaffMonthly = [$0, $20, $50, $100]`, `trainingMult = [1, 1.5, 2, 3]`, `trainingNewHire = [0, 0.05, 0.10, 0.15]`.
+
+### 16.3 Phúc lợi
+- `benefitsLevel = L` thì:
+  - chi phí mỗi ngày: `benefitsAccrued += staff_j × wageMonthly_j × hrPolicies.benefitsShare[L] / 30`, cuối tháng ghi vào Wages;
+  - `morale_target = clamp01( 1/(1+exp(−k_m(wageRatio_eff − 1))) + hrPolicies.benefitsMorale[L] )` (thay §4.2).
+- Đề xuất: `benefitsShare = [0, 0.03, 0.06, 0.10]`, `benefitsMorale = [0, 0.05, 0.09, 0.12]`. Lợi ích giảm dần theo mức: phúc lợi rẻ hơn tăng lương ở mức thấp, đắt hơn ở mức cao.
+
+### 16.4 Thưởng hiệu suất
+- `bonusRate ∈ [0, hrPolicies.bonusRateMax]`, đề xuất max 0.2.
+- Ở chốt tháng, sau bước ghi lương và thuê, mỗi cửa hàng nhận `bonus_j = round(bonusRate × max(0, contribution_j))`, ghi vào Wages. `contribution_j` tính như luật AI §9.3: doanh thu − giá vốn − lương − thuê **trước thưởng**, kể cả đào tạo và phúc lợi.
+- **Tháng đang chạy (chỉ hiển thị, tab Tài chính của cửa hàng):** doanh thu và lãi đóng góp của tháng chưa chốt sổ là đúng số chốt tháng sẽ ghi nếu tháng kết thúc hôm nay: các khoản cộng dồn làm tròn như khi ghi sổ, thưởng tính theo `bonusRate` hiện tại trên lãi đóng góp trước thưởng. Chốt tháng và màn hình dùng chung một hàm (`storeMonthCosts` trong `sim-core/src/store.ts`) nên hai con số không lệch nhau. Không ghi bút toán nào.
+- Morale tháng sau: `wageRatio_eff = (wageMonthly_j + bonusPerHead_j) / (marketWageMonthly × priceIndex)`, với `bonusPerHead_j = bonus_j(tháng trước) / staff_j`.
+- Khi `bonusRate = 0` thì `wageRatio_eff = wageRatio` (§4.2).
+
+## 17. Phòng Sản phẩm
+### 17.1 Danh mục
+- `industry.ingredients[g].suppliers[]`: `{ id, unitPrice (cent float/đơn vị, trước CPI), quality ∈ [0,1] }`.
+- `industry.products[i]`:
+  - `category`, `recipe: { g: { qty, qualityWeight } }` với Σ `qualityWeight` = 1;
+  - `qualityBonus ∈ [0, 0.2]`, `prepUnits > 0`;
+  - `refPrice` (cent);
+  - `starter: boolean`;
+  - `rd: { cost, days }` cho sản phẩm không phải starter.
+- **Sản phẩm chính** `core` (cà phê pha máy):
+  - recipe `{ coffeeBase: { qty: 1, qualityWeight: 1 } }`, `qualityBonus 0`, `prepUnits 1`, `refPrice = referencePrice`, category `coffee`;
+  - ingredient `coffeeBase` có 3 nhà cung cấp trùng tier M1: basic $0.675 / 0.35, standard $0.90 / 0.60, premium $1.35 / 0.85.
+- **Tier M1 trở thành gói nhà cung cấp:** `qualityTiers[tier].supplierPreset: { g: supplierId }`. `SetQualityTier` (không khóa) đặt toàn bộ nhà cung cấp theo gói. `SetSupplier` (cần phòng `product`) đặt riêng từng nguyên liệu, và tier hiển thị thành "tùy chỉnh".
+
+### 17.2 Chất lượng, giá vốn, giá bán
+```
+Q_i      = clamp01( Σ_g qualityWeight_{i,g} × quality(sup_c(g)) + qualityBonus_i )
+unitCOGS_i = Σ_g qty_{i,g} × unitPrice(sup_c(g)) × priceIndex          (cent float)
+P_{i,j}  = store.priceOverride[i] ?? company.listPrice[i]               (Money)
+```
+- Với `core` theo gói M1: `Q = qualityTiers[tier].quality` và `unitCOGS = unitCost × unitCostMultiplier × priceIndex`, đúng như M1.
+- `SetPrice { storeId, price }` (M1, không khóa) = ghi đè giá `core` ở cửa hàng đó.
+- `SetProductPrice { productId, price }` (cần `product`) đặt giá niêm yết công ty. `ClearOverride { storeId, field: 'price', productId }` cho cửa hàng về giá niêm yết.
+- Dải giá mỗi sản phẩm: `[0.3, 5] × refPrice_i × priceIndex`, bước 5 cent (như §3).
+- Giá vốn ghi sổ mỗi ngày: `round(Σ_i served_{i,j} × unitCOGS_i)`, Nợ COGS / Có Cash. Một bút toán mỗi cửa hàng mỗi ngày, như M1.
+
+### 17.3 Cầu: nested logit (thay phần chất lượng và giá trong §3.1)
+```
+u_{s,i}   = βq_s·Q_i − βp_s,eff·ln(P_{i,j}/(refPrice_i·priceIndex)) + βcat_{s,cat(i)}
+V_{s,j}   = IV_{s,j} + βb_s·A + −βd_s·D + βw_s·W         (thay βq·Q − βp·ln(P/Pref) ở §3.1)
+IV_{s,j}  = |menu_j| = 1 ? u_{s,i} : λ·ln Σ_{i∈menu_j} exp(u_{s,i}/λ)      (log-sum-exp ổn định)
+π_{i|j,s} = exp(u_{s,i}/λ) / Σ_{k∈menu_j} exp(u_{s,k}/λ)
+demand_{i,j} = Σ_e Σ_s N_{e,s} × f_s × share_{e,s,j} × π_{i|j,s}
+```
+- `λ = industry.menuNesting` (đề xuất 0.6). `βcat_{s,c} = segment.categoryAffinity[c]`, mặc định 0 (`coffee` = 0 mọi phân khúc).
+- Menu 1 sản phẩm thì nhánh đặc biệt `IV = u` cho kết quả **đúng bằng** M1, không qua exp/ln.
+- **Tính chất:** thêm sản phẩm vào menu không làm giảm IV; IV ≤ max u + λ ln |menu|. Lợi ích từ độ rộng menu giảm dần.
+- Nhiễu §3.4 nhân lên `demand_j` tổng, rồi chia theo π.
+
+### 17.4 Công suất theo đơn vị pha chế
+```
+load_j    = Σ_i demandRealized_{i,j} × prepUnits_i
+served_{i,j} = demandRealized_{i,j} × min(1, capacity_j / load_j)
+```
+Giới hạn là `Σ_i served_{i,j} × prepUnits_i ≤ capacity_j`. Với `core` (prepUnits 1) thì trùng §3.4. `fill_j` ở §3.5 = `Σ served / Σ demandRealized` (tính theo khách).
+
+### 17.5 Menu và R&D
+- `SetMenu { productIds }` (cần `product`): áp cho mọi cửa hàng. Gồm 1–`industry.maxMenuSize` (8) sản phẩm đã mở khóa; luôn phải có ít nhất 1 sản phẩm.
+- `StartResearch { productId }` (cần `product`, mỗi công ty 1 dự án cùng lúc):
+  - chi phí `rd.cost × priceIndex` dàn đều theo ngày: `rdAccrued += cost/days`, cuối tháng ghi Nợ **R&D (6600)** / Có Cash;
+  - sau `rd.days` ngày, sản phẩm được mở khóa;
+  - `CancelResearch` dừng dự án, không hoàn phần đã chi.
+- **Đánh giá sao** (chỉ giao diện; điểm `x ∈ [0,1]` → `stars = max(1, round(2·(1 + 4x))/2)`):
+  - Chất lượng: `x = Q_i`;
+  - Giá trị: `x = σ(βq̄·Q_i − βp̄·ln(P/Pref) − c0)`, với β̄ là trung bình có trọng số dân số; `c0` trong content;
+  - Biên lợi nhuận: `x = clamp01((P − unitCOGS)/P)`;
+  - Phổ biến: `x = π` trung bình theo khách / max π trong menu.
+
+## 18. Phòng Marketing: kênh và vùng
+### 18.1 Nhận biết theo quận và phân khúc
+`A_{c,e,s}` thay `A_c` (§5). Utility §3.1 của khách sống ở quận e, phân khúc s dùng `βb_s · A_{c(j),e,s}`.
+
+### 18.2 Kênh
+- `industry.marketingChannels[ch] = { scope: 'city' | 'district', segmentWeight: {s: w ∈ [0,1]}, alpha, halfSaturationDaily }`.
+- Kênh `general` = tham số §5 (`alpha`, `halfSaturationDaily`), `scope: city`, mọi trọng số 1. `SetMarketingBudget` (M1, không khóa) đặt ngân sách kênh `general`.
+- `SetChannelBudget { channel, target: 'city' | districtId, monthly }` (cần `marketing`):
+  - kênh `city` nhận target là id một thành phố (M1.8; trước đó là hằng `city`);
+  - kênh `district` nhận từng quận.
+- Mỗi ngày:
+```
+spendDaily_{ch,e} = budget_{ch,target}/30                       (scope city: cùng một giá trị cho mọi quận)
+lift_{ch,e,s} = alpha_ch × segmentWeight_{ch,s} × (1 − exp(−spendDaily_{ch,e}/(halfSat_ch × priceIndex)))
+lift_{e,s}    = 1 − Π_ch (1 − lift_{ch,e,s})
+A_{c,e,s} ← A + (1 − A) × lift_{e,s} − δ × A + γ × Σ_j served_j / cityPopulation      (clamp [0,1])
+```
+- Kênh city tác động như nhau lên mọi quận của thành phố được chi: tiếp cận toàn thành phố, giống M1.
+- Chỉ có `general` thì `lift_{e,s} = lift` M1 và `A_{c,e,s} = A_c` ở mọi ô, **đúng bằng M1**. Thứ tự phép tính giữ nguyên.
+- Chi phí cộng dồn mọi kênh vào Marketing (6200) như §6.
+- Thứ tự áp: `general` trước, rồi các kênh theo id tăng dần; kênh không có ngân sách không tham gia phép nhân.
+- Đóng phòng Marketing (hoặc trả văn phòng) thì bỏ mọi ngân sách kênh; ngân sách `general` giữ nguyên. Nhận biết đã có không mất ngay mà suy giảm theo `δ`.
+- Đề xuất các kênh:
+
+| ch | scope | trọng số students/office/premium/other | alpha | halfSat/ngày |
+|---|---|---|---|---|
+| social | city | 1 / 0.6 / 0.4 / 0.5 | 0.012 | $80 |
+| outdoor | district | 0.6 / 1 / 0.8 / 0.8 | 0.02 | $25 |
+| flyers | district | 1 / 0.5 / 0.2 / 1 | 0.015 | $10 |
+| events | district | 0.8 / 0.6 / 1 / 0.6 | 0.025 | $40 |
+
+### 18.3 Hiệu quả theo kênh
+- **Phần đóng góp của kênh** `C_{c,ch,e,s}` (lưu trong state, cập nhật cùng lúc với `A`):
+  ```
+  C_ch ← C_ch × (1 − δ) + (1 − A) × lift_{e,s} × lift_{ch,e,s} / Σ_k lift_{k,e,s}
+  ```
+  - Phần tăng do marketing trong ngày, `(1 − A) × lift_{e,s}`, chia cho các kênh theo tỷ lệ `lift_ch` (kể cả `general`).
+  - Phần đã có suy giảm cùng tốc độ `δ` với nhận biết. Nhờ vậy `Σ_ch C_ch + phần tự nhiên = A` ở mọi ô, mọi ngày; phần tự nhiên gồm nhận biết ban đầu và truyền miệng.
+  - Khi `A` bị kẹp ở 1, mọi `C_ch` của ô co theo cùng tỷ lệ.
+  - Đây là cách hiểu của "phần nhận biết do kênh mang lại": số đang còn, không phải cửa sổ 30 ngày (#60).
+- **Khách tăng thêm** của kênh = `expectedDemand(A) − expectedDemand(A − C_ch)` trên các cửa hàng của công ty (selector, không đổi state).
+- **ROI** = `extra × (giá TB − giá vốn) × 30 / ngân sách tháng hiện tại của kênh`; giá TB bình quân theo cầu kỳ vọng của các cửa hàng. Kênh không có ngân sách thì không có ROI.
+
+## 19. Phòng Tài chính và Ban điều hành
+### 19.1 Tài chính
+- **Báo cáo theo cửa hàng** (selector): P&L tháng của từng cửa hàng gồm doanh thu, giá vốn, lương (gồm đào tạo, phúc lợi, thưởng), thuê, khấu hao.
+  - Các khoản cấp công ty (overhead, văn phòng, phòng ban, marketing, R&D, lãi, thuế) để riêng.
+  - **Σ cửa hàng + cấp công ty = P&L công ty §11** (bất biến, có test).
+  - Để làm được điều này, `store.mtd` thêm `depreciation`, `training`, `benefits`, `bonus`.
+- **Tư vấn** (selector): với mỗi kỳ hạn tính `loanQuote`; khoản vay tối đa trước khi spread tăng bậc; leverage; DSCR = EBITDA 12 tháng / nghĩa vụ trả nợ 12 tháng; lãi / EBITDA; khuyến nghị theo luật.
+- `RefinanceLoan { loanId, termMonths }` (cần `finance`): áp như `RepayLoan` (§7.1, có phí) rồi `TakeLoan` với gốc = gốc còn lại + phí, theo spread hiện tại. Validate như hai lệnh gộp lại.
+- `SetCreditLine { limit }` (cần `finance`):
+  - `limit ≤ max(overdraftFloor, creditLine.revenueMultiple × revenue_trailing3m)` và leverage ≤ `creditLine.maxLeverage`;
+  - leverage = (Loans + Overdraft) / EBITDA năm; EBITDA năm ≤ 0 thì không cấp (không đo được khả năng trả nợ);
+  - hạn mức áp dụng cho lãi thấu chi của cả tháng nếu đang có lúc chốt tháng;
+  - khi đặt, hạn mức thấu chi §7.2 = `limit` thay công thức mặc định; mỗi lần chốt tháng xét lại, và nếu vượt mức tối đa mới thì cắt xuống;
+  - lãi thấu chi dùng `overdraftSpread − creditLine.spreadDiscount`;
+  - phí cam kết mỗi ngày `(limit − overdraft) × dailyRate(creditLine.commitmentFeeAnnual)`, cộng dồn, cuối tháng ghi InterestExpense.
+  - `limit = 0` thì quay về §7.2.
+  - Đề xuất: `revenueMultiple 2`, `maxLeverage 2`, `spreadDiscount 0.02`, `commitmentFeeAnnual 0.005`.
+
+### 19.2 Ban điều hành (C-level)
+- Cần phòng `board`. Vai trò: `coo` (cửa hàng: giá, nhân viên), `chro` (hr), `cpo` (product), `cmo` (marketing), `cfo` (finance). Vai trò chỉ tuyển được khi phòng tương ứng đã mở; riêng COO chỉ cần `board`.
+- **Ứng viên:**
+  - ngày đầu mỗi tháng, mỗi vai trò có `executives.candidatesPerRole` (3) ứng viên mới, sinh từ `rng('bod:<companyId>:<role>')`;
+  - năng lực `stars ∈ {1..5}`, phân phối theo `executives.starWeights`;
+  - lương đòi `salary = executives.baseSalaryMonthly × (0.6 + 0.2·stars) × priceIndex`, làm tròn tới $100;
+  - mức phúc lợi tối thiểu `minBenefits ∈ {0..3}` = `max(0, stars − 2)`;
+  - danh sách ứng viên nằm trong state và được thay mới mỗi tháng.
+- **Tuyển:** `HireExecutive { role, candidateId, benefitsLevel }`, cần `benefitsLevel ≥ minBenefits`.
+  - Lương cộng dồn ngày, cuối tháng ghi **DeptBoard (6450)**.
+  - Phúc lợi = `executives.benefitsShare[level] × salary` (cùng tài khoản).
+  - Mức 2–3 có thêm thưởng `executives.profitShare[level] × max(0, EBITDA tháng)` ở chốt tháng.
+- **Cho nghỉ:** `DismissExecutive { role }` trả `executives.severanceMonths` (1) tháng lương ngay.
+- **Tự điều hành:** `SetDelegation { role, enabled }`.
+  - Ngày đầu tháng (cùng lúc AI §9), mỗi C-level đang bật sinh lệnh cho công ty. Lệnh đi qua `validateCommand` và **không chạm vào trường cửa hàng đang ghi đè** (`store.overrides`).
+  - Luật theo vai trò và năng lực:
+
+| Năng lực | Nhịp quyết định | Bộ luật |
+|---|---|---|
+| 1★ | 3 tháng/lần | luật AI §9 cho phần việc của vai trò |
+| 2★ | 2 tháng/lần | như 1★ |
+| 3★ | mỗi tháng | luật AI §9 |
+| 4★ | mỗi tháng | luật AI §9, cộng luật mở rộng của vai trò (spec M1.6 §7) |
+| 5★ | mỗi tháng | chọn phương án có lãi đóng góp kỳ vọng cao nhất trong tập ứng viên bằng `whatIf` / selector tương ứng |
+
+- Đề xuất: `baseSalaryMonthly $8,000`, `starWeights [0.25, 0.3, 0.25, 0.15, 0.05]`, `benefitsShare [0, 0.1, 0.15, 0.2]`, `profitShare [0, 0, 0.01, 0.02]`.
+
+### 19.3 AI (M1.6)
+Mỗi personality có `office: { openAtStores, size, departments[] }`. Ngày đầu tháng, khi số cửa hàng ≥ `openAtStores`, AI thuê văn phòng và mở các phòng trong danh sách (tối đa 1 hành động/tháng). AI không tuyển C-level: luật AI chính là "ban điều hành" của nó. AI dùng gói nhà cung cấp theo tier, menu `core` và kênh `general`, cho tới khi spec hiệu chỉnh vòng 2 đổi lại (#57).
+
+## 20. Đối thủ: sinh hồ sơ, rút lui, gia nhập (M1.8)
+Spec: `docs/specs/M1.8-atlas-rivals.md`. Chỉ áp khi scenario khai `competition`; `m1-default` không khai nên không đổi.
+
+### 20.1 Sinh hồ sơ
+Tham số ở `industry.rivalGenerator`. Với đối thủ thứ n của ván, dùng `rng('rival:<n>')`, lấy lần lượt:
+```
+qualityTier ~ chọn theo trọng số tierWeights
+markup, wageRatio, marketingShareOfRevenue ~ đều trong dải của tiers[qualityTier]
+reach = 'local' với chuỗi địa phương; với chuỗi liên thành phố ~ chọn theo trọng số chainReachWeights
+maxPaybackMonths ~ nguyên, đều trong expansion.maxPaybackMonths
+cashMultiple ~ đều trong expansion.cashMultiple
+closeAfterNegativeMonths ~ nguyên, đều trong patienceMonths
+startingCash = round(U(capital[reach]) / $1,000) × $1,000 × priceIndex
+nStores ~ nguyên, đều trong initialStores[reach]
+name = prefix + " " + suffix, không trùng tên công ty đang hoạt động (thử lại tối đa 20 lần, sau đó thêm số thứ tự)
+```
+- Vốn ghi sổ: Nợ Cash / Có ShareCapital.
+- Cửa hàng ban đầu: `nStores` địa điểm có điểm số luật 4 cao nhất trong `homeCity` (hòa thì phá bằng rng), mỗi địa điểm mở bằng `OpenStore`, rồi đặt giá = `targetPrice`, lương theo `wageRatio`, staff = `aiInitialStaff`, đúng như cửa hàng ban đầu ở §9 luật 0. Lệnh nào bị từ chối (ví dụ không đủ tiền) thì bỏ qua.
+
+### 20.2 Rút lui
+- Ở mỗi lần chốt tháng, công ty AI đang `active` hoặc `distress` mà không có cửa hàng nào đang mở thì `storelessMonths += 1`; có cửa hàng thì về 0.
+- `storelessMonths ≥ competition.exitAfterMonthsWithoutStores` (3) ⇒ `status = exited`: ngừng mọi quyết định và marketing, trả văn phòng nếu có (như §15.1), ghi event `competitorExited`. Sổ sách giữ nguyên; không có bút toán thanh lý vốn.
+- "Bị loại" = `bankrupt` (§8) hoặc `exited`.
+
+### 20.3 Số đối thủ mục tiêu và thay thế
+```
+present(k) = số công ty AI chưa bị loại có ≥ 1 cửa hàng đang mở ở thành phố k,
+             cộng các công ty AI chưa bị loại, chưa có cửa hàng nào, có homeCity = k
+targetRivals_k = present(k) ngay sau khi tạo ván (không đổi trong ván)
+```
+Ngày đầu mỗi tháng, trước luật AI, với từng thành phố k theo thứ tự scenario:
+1. Nếu `entryDueDay_k` đã tới: xóa hẹn; nếu `present(k) < maxPerCity` thì sinh một đối thủ mới có `homeCity = k` (§20.1) và ghi event `competitorEntered`.
+2. Nếu không có hẹn và (`present(k) < targetRivals_k` **hoặc** thị trường hấp dẫn §20.4) và `present(k) < maxPerCity`: đặt hẹn `entryDueDay_k = hôm nay + 30 × U_int(entryDelayMonths)` bằng `rng('entry:<k>')`.
+- Đối thủ mới là chuỗi liên thành phố với xác suất `chains_hiện_có < chains_ban_đầu ? 1 : 0` khi số chuỗi liên thành phố chưa bị loại thấp hơn lúc đầu ván; ngược lại là chuỗi địa phương.
+
+### 20.4 Thị trường hấp dẫn
+```
+margin_k = Σ lãi đóng góp / Σ doanh thu của mọi cửa hàng ở k (mọi công ty, kể cả người chơi) trong `attractive.months` (6) tháng đã chốt gần nhất
+hấp dẫn ⇔ đã chốt đủ `attractive.months` tháng và margin_k > attractive.margin (đề xuất 0.25, #62)
+```
+Lãi đóng góp như §9.3 / §21 (doanh thu − giá vốn − lương gồm đào tạo, phúc lợi, thưởng − thuê − tiện ích), lấy từ `store.history`.
+
+### 20.5 Đầu ván
+Với scenario có `competition.initial`, sau khi tạo các công ty khai sẵn:
+1. mỗi thành phố k theo thứ tự: sinh `U_int(localPerCity)` chuỗi địa phương có `homeCity = k`;
+2. sinh `U_int(chains)` chuỗi liên thành phố, `homeCity` chọn đều trong các thành phố;
+3. ghi `targetRivals_k`.
+Số lượng dùng `rng('entry:init')`; mỗi đối thủ dùng stream riêng của mình.
+
+## 21. Tiện ích cửa hàng (M1.7)
+Spec: `docs/specs/M1.7-ui.md`.
+- **Content:** `industry.storeAmenities[a] = { name, setupCost, monthlyCost, utility, segmentWeight: {s: w ∈ [0,1]}, reviewWeight }`.
+- **Utility (cộng vào §3.1):**
+  ```
+  + Σ_{a ∈ amenities_j} utility_a × segmentWeight_{a,s}
+  ```
+  - Cửa hàng không bật tiện ích nào thì không cộng gì, nên **đúng bằng M1**.
+  - Áp ở mọi nơi tính utility: cầu kỳ vọng, thị phần khu vực, phân rã "vì sao cầu như vậy". Ở phần phân rã, đây là thành phần "không gian".
+- **Bật** (`SetStoreAmenity { storeId, amenity, on: true }`):
+  - trả ngay `setupCost × priceIndex`, Nợ **StoreAmenities (6050)** / Có Cash, qua helper thanh toán;
+  - tắt rồi bật lại thì trả lại phí này;
+  - lệnh validate theo `cash + hạn mức còn lại`; không cần phòng ban.
+- **Chi phí tháng:** mỗi ngày đang bật cộng dồn `monthlyCost × priceIndex / 30` (float cent). Cuối tháng ghi Nợ 6050 / Có Cash, ngay sau bút toán chi phí vận hành.
+- **P&L:** dòng `amenities`, tính trong EBITDA.
+- **Lãi đóng góp của cửa hàng** (luật AI §9.3, thưởng §16.4, P&L theo cửa hàng) trừ thêm `phí lắp đặt + chi phí tháng` của cửa hàng.
+- **Tiêu chí "Không gian"** của đánh giá sao (chỉ giao diện) = Σ `reviewWeight` tiện ích đang bật / Σ `reviewWeight` mọi tiện ích.
+- **AI:** chưa dùng tiện ích (phase 8).
+- **Đề xuất ban đầu** (#59):
+
+| Tiện ích | Lắp đặt | Tháng | utility | Trọng số students / office / premium / other | reviewWeight |
+|---|---|---|---|---|---|
+| Wi-Fi miễn phí | $500 | $300 | 0.20 | 1 / 0.8 / 0.4 / 0.4 | 1 |
+| Ổ cắm tại bàn | $1,500 | $100 | 0.15 | 1 / 1 / 0.3 / 0.2 | 1 |
+| Nhạc & ánh sáng | $2,000 | $250 | 0.15 | 0.4 / 0.3 / 1 / 0.6 | 1.5 |
+| Khu ghế lounge | $8,000 | $400 | 0.25 | 0.5 / 0.4 / 1 / 0.7 | 2 |

@@ -1,0 +1,97 @@
+/* Token màu, sáng / tối. */
+/* Bảng điều khiển sổ sách: nền giấy xám-xanh nhạt, một màu nhấn xanh dương, mỗi công ty một màu nhận diện. */
+:root {
+  --bg: #f4f6f9;
+  --panel: #ffffff;
+  --text: #1c2531;
+  --muted: #637083;
+  --line: #dfe4eb;
+  --accent: #2459d6;
+  --on-accent: #ffffff;
+  --bad: #b42318;
+  --good: #067647;
+  --warn: #b54708;
+  --warn-bg: #fff6e5;
+  --err-bg: #fdeceb;
+  --scrim: rgba(16, 24, 40, 0.5);
+  /* Series biểu đồ cột (doanh thu, lợi nhuận): đã qua validate_palette (CVD, độ sáng, tương phản). */
+  --series-1: #2459d6;
+  --series-2: #c4660a;
+  /* Màu công ty: 0 = người chơi, 1–7 = đối thủ. Đã qua validate_palette ở cả hai chế độ; ba màu sáng
+     tương phản thấp trên nền trắng nên luôn đi kèm ký hiệu hình dạng và tên công ty. */
+  --company-0: #2459d6;
+  --company-1: #eb6834;
+  --company-2: #1baf7a;
+  --company-3: #eda100;
+  --company-4: #e87ba4;
+  --company-5: #008300;
+  --company-6: #6250d6;
+  --company-7: #e34948;
+  --outside: #98a2b3;
+  color-scheme: light;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #11161d;
+    --panel: #19202a;
+    --text: #e6ebf2;
+    --muted: #97a3b4;
+    --line: #2b3441;
+    --accent: #6d97f5;
+    --on-accent: #0b1220;
+    --bad: #f97066;
+    --good: #47cd89;
+    --warn: #fdb022;
+    --warn-bg: #2e2412;
+    --err-bg: #34191a;
+    --scrim: rgba(0, 0, 0, 0.6);
+    --series-1: #5b87ee;
+    --series-2: #d9772f;
+    --company-0: #5b87ee;
+    --company-1: #d95926;
+    --company-2: #199e70;
+    --company-3: #c98500;
+    --company-4: #d55181;
+    --company-5: #008300;
+    --company-6: #9085e9;
+    --company-7: #e66767;
+    --outside: #667085;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #11161d;
+  --panel: #19202a;
+  --text: #e6ebf2;
+  --muted: #97a3b4;
+  --line: #2b3441;
+  --accent: #6d97f5;
+  --on-accent: #0b1220;
+  --bad: #f97066;
+  --good: #47cd89;
+  --warn: #fdb022;
+  --warn-bg: #2e2412;
+  --err-bg: #34191a;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --series-1: #5b87ee;
+  --series-2: #d9772f;
+  --company-0: #5b87ee;
+  --company-1: #d95926;
+  --company-2: #199e70;
+  --company-3: #c98500;
+  --company-4: #d55181;
+  --company-5: #008300;
+  --company-6: #9085e9;
+  --company-7: #e66767;
+  --outside: #667085;
+  color-scheme: dark;
+}

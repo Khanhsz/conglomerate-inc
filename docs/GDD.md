@@ -31,7 +31,7 @@ Quan sát (dashboard) → Quyết định (command) → Mô phỏng (tick ngày)
 | Conglomerate | niêm yết + ≥ 2 ngành | M&A, holding, bất động sản, danh mục đầu tư | M4 |
 
 ## 6. Phạm vi Milestone 1 (vertical prototype của sim-core)
-- 1 thành phố (lưới 3×3 quận), 1 ngành (cà phê), 3 phân khúc khách.
+- 1 thành phố (lưới 3×3 quận), 1 ngành (cà phê), 4 phân khúc khách (students, office, premium, other).
 - Người chơi + 3 đối thủ AI (discount / balanced / premium).
 - Hành động: mở/đóng cửa hàng, đặt giá, đặt số nhân viên, đặt lương, ngân sách marketing, chọn tier chất lượng, vay/trả nợ.
 - Vĩ mô: hằng số theo scenario (lạm phát, lãi suất chính sách, chỉ số thu nhập). Mô hình động ở M3.
@@ -43,7 +43,7 @@ Quan sát (dashboard) → Quyết định (command) → Mô phỏng (tick ngày)
 
 ## 7. Điều kiện thắng/thua (M1)
 - Thua: phá sản (xem economic-model §8).
-- Không có điều kiện thắng ở M1; hiển thị điểm = giá trị sổ sách vốn chủ + 5× EBITDA trung bình 12 tháng gần nhất.
+- Không có điều kiện thắng ở M1; hiển thị điểm = giá trị sổ sách vốn chủ + 5× EBITDA của 12 tháng gần nhất (tổng năm).
 
 ## 8. Lộ trình milestone
 | Milestone | Nội dung | Cổng qua |
@@ -53,4 +53,6 @@ Quan sát (dashboard) → Quyết định (command) → Mô phỏng (tick ngày)
 | M2 Vertical slice | tồn kho, nhà cung cấp, tutorial, UI đầy đủ 1 thành phố | 5 playtester chơi 60 phút, giải thích được lãi/lỗ |
 | M3 Tài chính & vĩ mô | macro NK rút gọn, VC/IPO, chứng khoán, C-level | không bot nào thắng > 40% seed |
 | M4 Đa ngành | industry pack thứ 2–3, đa thành phố, M&A, sự kiện | ngành thứ 3 thêm chủ yếu bằng dữ liệu |
+
+> 2026-11-12: phần **đa thành phố** (7 thành phố, đối thủ sinh ngẫu nhiên có ra / vào thị trường) được kéo lên làm ngay sau M1.7 theo yêu cầu, xem `docs/specs/M1.8-atlas-rivals.md` và ADR-0003. Đa ngành và M&A vẫn ở M4.
 | M5 Polish & ra mắt | cân bằng, UX, vi/en, Tauri, Early Access | phát hành |

@@ -1,0 +1,200 @@
+import { money, type UtilityPart } from '@game/sim-core';
+import type { Snapshot } from '../sim/snapshot';
+import { useUi } from '../store';
+import { int, pct, usd } from '../format';
+import { segmentName } from '../labels';
+import { DayChart, PriceCurve } from './Charts';
+import { Stepper } from './Parts';
+import { Slider } from './Slider';
+import { districtLabel } from '../sim/places';
+
+const PART_LABEL: Record<UtilityPart, string> = {
+  quality: 'chất lượng',
+  price: 'giá',
+  brand: 'thương hiệu',
+  distance: 'khoảng cách',
+  service: 'phục vụ',
+  atmosphere: 'không gian',
+};
+
+/** Panel chi tiết cửa hàng: thanh kéo có ước tính trực tiếp, đường cong giá, 14 ngày, vì sao cầu như vậy. */
+export function StoreDetail({ snap }: { snap: Snapshot }) {
+  const { send, requestPreview, clearPreview, preview } = useUi();
+  const view = snap.inspection;
+  if (!view) return null;
+  const row = snap.stores.find((r) => r.id === view.storeId);
+  if (!row) return null;
+  const companyId = snap.player.id;
+  const pending = snap.pending.stores[view.storeId] ?? {};
+  const price = pending.price ?? row.price;
+  const staff = pending.staff ?? row.staff;
+  const wageMonthly = pending.wageMonthly ?? row.wageMonthly;
+  const preview$ = (change: Parameters<typeof requestPreview>[1]) =>
+    requestPreview(view.storeId, { ...pending, ...change });
+  const names = Object.fromEntries(snap.companies.map((c) => [c.id, c.kind === 'player' ? 'Bạn' : c.name]));
+  const estimate = preview ?? view.current;
+  const { report } = view;
+  const focus = report.focus;
+  const command = (cmd: Parameters<typeof send>[0]) => send(cmd);
+
+  return (
+    <section className="store-detail" aria-labelledby="detail-title">
+      <p className="muted small detail-meta">
+        Giá hiện tại{' '}
+        <span data-testid={`price-${row.id}`}>
+          {usd(row.price)}
+          {pending.price !== undefined && pending.price !== row.price && (
+            <span className="pending"> → {usd(pending.price)}</span>
+          )}
+        </span>{' '}
+        · tinh thần {pct(view.morale, 0)} · kỹ năng {pct(view.skill, 0)} · phục vụ{' '}
+        {row.serviceLevel.toFixed(2)}
+      </p>
+
+      <div className="detail-grid">
+        <div className="levers">
+          <Slider
+            id="slider-price"
+            label="Giá bán"
+            value={price}
+            {...snap.limits.price}
+            format={(v) => usd(money(v))}
+            onPreview={(v) => preview$({ price: money(v) })}
+            onRelease={clearPreview}
+            onCommit={(v) =>
+              command({
+                type: 'command',
+                command: { type: 'SetPrice', companyId, payload: { storeId: view.storeId, price: money(v) } },
+              })
+            }
+          />
+          <Stepper
+            id="stepper-staff"
+            label="Nhân viên"
+            value={staff}
+            {...snap.limits.staff}
+            format={(v) => `${v} người`}
+            onCommit={(v) =>
+              command({
+                type: 'command',
+                command: { type: 'SetStaff', companyId, payload: { storeId: view.storeId, staff: v } },
+              })
+            }
+          />
+          {snap.hr.view.standardWage !== null && (
+            <p className="small muted" data-testid="wage-policy-note">
+              {snap.hr.view.roster.find((r) => r.storeId === view.storeId)?.wageOverridden
+                ? 'Lương đặt riêng cho cửa hàng này (không theo lương chuẩn công ty).'
+                : `Theo lương chuẩn công ty (${usd(snap.hr.view.standardWage)}). Kéo để đặt riêng.`}
+            </p>
+          )}
+          <Slider
+            id="slider-wage"
+            label="Lương / người / tháng"
+            value={wageMonthly}
+            {...snap.limits.wage}
+            format={(v) => usd(money(v))}
+            onPreview={(v) => preview$({ wageMonthly: money(v) })}
+            onRelease={clearPreview}
+            onCommit={(v) =>
+              command({
+                type: 'command',
+                command: {
+                  type: 'SetWage',
+                  companyId,
+                  payload: { storeId: view.storeId, wageMonthly: money(v) },
+                },
+              })
+            }
+          />
+          {Object.keys(pending).length > 0 && (
+            <p className="small pending" data-testid="pending-note">
+              ⏳ Thay đổi đã đặt, áp dụng từ đầu ngày mai.
+            </p>
+          )}
+          <dl className="estimate" data-testid="estimate" aria-live="polite">
+            <div>
+              <dt>Khách/ngày (kỳ vọng)</dt>
+              <dd>{int(estimate.expectedDemand)}</dd>
+            </div>
+            <div>
+              <dt>Phục vụ được</dt>
+              <dd>
+                {int(estimate.served)} / công suất {int(estimate.capacity)}
+              </dd>
+            </div>
+            <div>
+              <dt>Lãi đóng góp/ngày</dt>
+              <dd
+                className={estimate.contributionPerDay < 0 ? 'bad' : ''}
+                data-testid="estimate-contribution"
+              >
+                {usd(estimate.contributionPerDay)}
+              </dd>
+            </div>
+            <div>
+              <dt>Tinh thần hướng tới</dt>
+              <dd>{pct(estimate.moraleTarget, 0)}</dd>
+            </div>
+          </dl>
+          <p className="muted small">
+            {preview ? 'Đang thử — thả tay để áp dụng. ' : ''}Ước tính kỳ vọng: đối thủ giữ nguyên, chưa tính
+            nhiễu hằng ngày.
+          </p>
+        </div>
+
+        <div className="charts-col">
+          <PriceCurve curve={view.curve} current={row.price} preview={preview ? preview.price : null} />
+          <DayChart days={view.recentDays} />
+        </div>
+      </div>
+
+      <div className="why">
+        <h4>Vì sao cầu như vậy</h4>
+        <p>
+          ≈ {int(report.expectedDemand)} khách/ngày kỳ vọng. Theo phân khúc:{' '}
+          {report.bySegment
+            .map((s) => `${segmentName(s.segmentId)} ${int(s.demand)} (${pct(s.share)} số lượt trong tầm)`)
+            .join(' · ')}
+          .
+        </p>
+        <p>
+          Đến từ quận:{' '}
+          {report.byOrigin.map((o) => `${districtLabel(o.districtId)} ${int(o.demand)}`).join(' · ')}.
+          {report.lostToday > 0.5 && <> Hôm nay mất {int(report.lostToday)} khách vì hết công suất.</>}
+        </p>
+        {focus?.rival ? (
+          <p data-testid="gap-summary">
+            Ở nhóm khách lớn nhất ({segmentName(focus.segmentId)} quận {districtLabel(focus.originId)}), đối
+            thủ mạnh nhất là <b>{names[focus.rival.companyId] ?? focus.rival.companyId}</b>
+            {focus.gaps.length > 0 ? (
+              <>
+                . Bạn đang thua về{' '}
+                {focus.gaps
+                  .slice(0, 3)
+                  .map((g) => `${PART_LABEL[g.part]} (≈ ${int(g.customers)} khách/ngày)`)
+                  .join(', ')}
+                .
+              </>
+            ) : (
+              <>, nhưng bạn đang hơn họ ở mọi yếu tố.</>
+            )}
+          </p>
+        ) : (
+          <p>Chưa có đối thủ nào cạnh tranh trực tiếp ở nhóm khách lớn nhất.</p>
+        )}
+        {report.rivals.length > 0 && (
+          <p className="muted">
+            Đối thủ chia khách nhiều nhất:{' '}
+            {report.rivals
+              .map(
+                (r) =>
+                  `${names[r.companyId] ?? r.companyId} ở ${districtLabel(r.districtId)} (${int(r.overlap)}/ngày)`,
+              )
+              .join(' · ')}
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}

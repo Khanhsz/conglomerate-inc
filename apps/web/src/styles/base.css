@@ -1,0 +1,322 @@
+/* Nền tảng: chữ, nút, ô nhập, bảng, thanh trên cùng. */
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+h2 {
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+h3 {
+  font-size: 13px;
+  margin: 16px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+button {
+  font: inherit;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+button[aria-pressed='true'],
+button[aria-selected='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+/* Ô nhập không kế thừa màu chữ: đặt rõ từ token, không dựa vào color-scheme (WebView cũ bỏ qua nó). */
+input,
+select,
+textarea {
+  font: inherit;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--text);
+}
+option {
+  background: var(--panel);
+  color: var(--text);
+}
+input.num {
+  width: 110px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.muted {
+  color: var(--muted);
+}
+.bad {
+  color: var(--bad);
+}
+.loading {
+  padding: 24px;
+}
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 24px;
+}
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  background: var(--bg);
+  z-index: 5;
+}
+.topbar .brand {
+  font-size: 16px;
+}
+.speeds {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.status-distress {
+  color: var(--warn);
+  font-weight: 600;
+}
+.status-bankrupt {
+  color: var(--bad);
+  font-weight: 600;
+}
+.status-active {
+  color: var(--good);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.grid {
+  display: grid;
+  gap: 4px;
+}
+.district {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 84px;
+  padding: 6px 8px;
+  text-align: left;
+  border-radius: 6px;
+}
+.district.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.district-name {
+  font-weight: 700;
+}
+.glyphs {
+  font-size: 15px;
+  letter-spacing: 1px;
+  line-height: 1.2;
+}
+.district-panel {
+  margin-top: 10px;
+}
+.district-panel p {
+  margin: 0 0 6px;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 0;
+  color: var(--muted);
+}
+
+.company-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th,
+td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+thead th {
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+table.pnl th:first-child {
+  white-space: nowrap;
+}
+tr.subtotal th,
+tr.subtotal td {
+  font-weight: 600;
+}
+/* Bảng so sánh tháng này / tháng trước: tăng .good (xanh), giảm .bad (đỏ). */
+table.mom {
+  width: 100%;
+  max-width: 720px;
+}
+table.mom th.num,
+table.mom td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+table.mom tbody th {
+  font-weight: 400;
+}
+table.mom tr.subtotal th {
+  font-weight: 600;
+}
+table.mom td.muted {
+  color: var(--muted);
+}
+table.mom .mom-pct-inline {
+  display: none;
+}
+/* Điện thoại: bỏ cột tháng trước và cột %, % hiện dưới chênh lệch để bảng vừa bề ngang. */
+@media (max-width: 600px) {
+  table.mom [data-col='previous'],
+  table.mom [data-col='pct'] {
+    display: none;
+  }
+  table.mom .mom-pct-inline {
+    display: block;
+    font-size: 0.85em;
+  }
+  table.mom th,
+  table.mom td {
+    padding: 4px 4px;
+  }
+}
+.finance h4 {
+  margin: 16px 0 4px;
+}
+table.kv {
+  width: auto;
+  min-width: 280px;
+}
+.events {
+  margin-top: 12px;
+}
+.events ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.event {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--line);
+}
+.event.mine {
+  font-weight: 500;
+}
+.event-distress,
+.event-cashWarning {
+  background: var(--warn-bg);
+}
+.event-bankrupt,
+.event-commandRejected.mine {
+  background: var(--err-bg);
+}
+.notice {
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.notice.warning {
+  background: var(--warn-bg);
+}
+.notice.error {
+  background: var(--err-bg);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  display: grid;
+  place-items: center;
+  z-index: 10;
+  padding: 16px;
+}
+.dialog {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 20px;
+  max-width: 480px;
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .speeds {
+    margin-left: 0;
+  }
+}
+
+/* Dải safe-area phía trên thanh dính (ứng dụng điện thoại). */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--bg);
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

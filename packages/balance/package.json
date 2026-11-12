@@ -1,0 +1,16 @@
+{
+  "name": "@game/balance",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@game/content": "workspace:*",
+    "@game/sim-core": "workspace:*"
+  },
+  "devDependencies": {
+    "yaml": "^2.9.1"
+  }
+}

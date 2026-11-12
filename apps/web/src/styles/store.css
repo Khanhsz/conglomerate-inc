@@ -1,0 +1,138 @@
+/* M1.7: khách hàng và tiện ích cửa hàng. */
+/* M1.7 U4: khách hàng */
+.customers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+.reviews-overall {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: baseline;
+}
+.reviews-overall > strong {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.reviews-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.reviews-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* M1.7 U5: tiện ích cửa hàng */
+.amenities {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.amenity p {
+  margin: 0;
+}
+.amenity.on {
+  border-color: var(--good);
+  box-shadow: inset 0 0 0 1px var(--good);
+}
+.stars {
+  color: var(--muted);
+}
+.stars .half {
+  background: linear-gradient(90deg, var(--warn) 50%, var(--muted) 50%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Tài chính cửa hàng: tháng đang chạy (hai ô nổi bật) và biểu đồ cột 5 tháng. */
+.mtd-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+  margin: 4px 0 16px;
+}
+.mtd-tile {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--line);
+  border-radius: 10px;
+}
+.mtd-tile.series-1-edge {
+  border-top-color: var(--series-1);
+}
+.mtd-tile.series-2-edge {
+  border-top-color: var(--series-2);
+}
+.mtd-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.mtd-value {
+  font-size: 30px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.mtd-sub {
+  font-size: 12px;
+}
+/* `.chart.column-chart` thắng `.hq-section > * { max-width: 100% }` của overflow.css. */
+.chart.column-chart {
+  max-width: min(520px, 100%);
+  margin-bottom: 8px;
+}
+.column-tooltip .dot.series-1 {
+  background: var(--series-1);
+}
+.column-tooltip .dot.series-2 {
+  background: var(--series-2);
+}
+.column-tooltip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  min-height: 20px;
+  margin: 4px 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.column-tooltip .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+.column-chart .bar.series-1 {
+  fill: var(--series-1);
+}
+.column-chart .bar.series-2 {
+  fill: var(--series-2);
+}
+.column-chart .grid {
+  stroke: var(--line);
+  stroke-dasharray: 2 3;
+}
+.column-chart .hit {
+  fill: transparent;
+  cursor: pointer;
+}
+.column-chart .group.active .hit {
+  fill: var(--line);
+  opacity: 0.35;
+}
+.column-chart .tick {
+  font-size: 11px;
+}

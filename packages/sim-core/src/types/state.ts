@@ -1,0 +1,387 @@
+/**
+ * GameState (spec §2). Dữ liệu thuần, serializable bằng JSON: không class, Map, Set, Date, undefined.
+ * Collection: Record<Id, T> + mảng id đã sort để duyệt có thứ tự.
+ */
+import type { Money } from '../money';
+import type { Command } from './commands';
+import type {
+  CompanyId,
+  Department,
+  DistrictId,
+  OfficeSize,
+  Personality,
+  PolicyLevel,
+  QualityTier,
+  Reach,
+} from './content';
+import type { Ledger } from './ledger';
+import type { MonthlyStatements } from './statements';
+
+export type StoreId = string;
+export type LoanId = string;
+
+export interface MacroState {
+  inflationAnnual: number;
+  policyRateAnnual: number;
+  /** Tăng cùng CPI ở M1 (economic-model §1). */
+  incomeIndex: number;
+  priceIndex: number;
+  corporateTaxRate: number;
+  /** Chưa nhân priceIndex. */
+  marketWageMonthly: Money;
+}
+
+/** `exited`: đối thủ đã rút khỏi thị trường (M1.8, §20.2); sổ sách giữ nguyên, không còn hoạt động. */
+export type CompanyStatus = 'active' | 'distress' | 'bankrupt' | 'exited';
+
+interface CompanyBase {
+  readonly id: CompanyId;
+  readonly name: string;
+  status: CompanyStatus;
+  distressMonths: number;
+  qualityTier: QualityTier;
+  /**
+   * Nhận biết A_{c,e,s} (economic-model §18.1): mảng phẳng, ô (e, s) ở `e × S + s`, quận theo thứ tự scenario,
+   * phân khúc theo id tăng dần. Chỉ dùng kênh `general` thì mọi ô bằng nhau (= A_c của M1).
+   */
+  awareness: number[];
+  marketingBudgetMonthly: Money;
+  /** Cent dạng float, cộng dồn mỗi ngày (mọi kênh), ghi sổ và reset khi chốt tháng (economic-model §6). */
+  marketingAccrued: number;
+  /** Ngân sách kênh ngoài `general` (§18.2), sắp theo kênh rồi mục tiêu (`city` hoặc quận theo scenario). */
+  channelBudgets: ChannelBudget[];
+  /** Phần nhận biết hiện có do từng kênh đóng góp (§18.3), cùng thứ tự ô với `awareness`; `general` đứng đầu. */
+  channelAwareness: ChannelAwareness[];
+  tax: { preTaxProfitYTD: Money; taxBookedYTD: Money; lossCarryforward: Money };
+  overdraft: { limit: Money; dailyBalanceSum: Money };
+  /** Văn phòng (M1.6, economic-model §15.1); null = chưa thuê. */
+  office: Office | null;
+  /** Phòng ban đang mở (§15.2); đủ mọi key của DEPARTMENTS, null = chưa mở. */
+  departments: { [D in Department]: { readonly openedDay: number } | null };
+  /** Cent float cộng dồn trong tháng, ghi sổ và reset khi chốt tháng (§15). */
+  officeAccrued: OfficeAccrued;
+  /** Hạn mức tín dụng của phòng Tài chính (§19.1); limit 0 = dùng thấu chi §7.2. Phí cam kết là cent float. */
+  creditLine: { limit: Money; commitmentFeeAccrued: number };
+  /** Chính sách phòng Nhân sự (§16); mặc định { null, 0, 0, 0 } = như M1. */
+  hrPolicy: HrPolicy;
+}
+
+export interface ChannelBudget {
+  readonly channel: string;
+  /** `city` với kênh toàn thành phố, id quận với kênh theo quận. */
+  readonly target: string;
+  readonly monthly: Money;
+}
+
+export interface ChannelAwareness {
+  readonly channel: string;
+  cells: number[];
+}
+
+export interface HrPolicy {
+  /** Lương chuẩn = wageRatio × lương thị trường cho cửa hàng không ghi đè; null = không đặt. */
+  wageRatio: number | null;
+  trainingLevel: PolicyLevel;
+  benefitsLevel: PolicyLevel;
+  /** Tỷ lệ thưởng trên lãi đóng góp dương của tháng. */
+  bonusRate: number;
+}
+
+export interface Office {
+  readonly districtId: DistrictId;
+  readonly size: OfficeSize;
+  readonly openedDay: number;
+  /** Cố định theo hợp đồng, index CPI khi gia hạn mỗi 12 tháng (như cửa hàng). */
+  rentMonthly: Money;
+  rentResetDay: number;
+  readonly capex: Money;
+  accumDep: Money;
+}
+
+export interface OfficeAccrued {
+  rent: number;
+  overhead: number;
+  departments: { [D in Department]: number };
+}
+
+export interface PlayerCompany extends CompanyBase {
+  readonly kind: 'player';
+}
+
+/** Hồ sơ hành vi của một đối thủ (economic-model §9, §20.1). Luật AI chỉ đọc hồ sơ này. */
+export interface RivalProfile {
+  /** `personality`: suy từ bảng kiểu cố định của scenario (M1); `generated`: sinh ngẫu nhiên từ seed. */
+  readonly source: 'personality' | 'generated';
+  readonly qualityTier: QualityTier;
+  readonly markup: number;
+  readonly wageRatio: number;
+  readonly marketingShareOfRevenue: number;
+  readonly expansion: {
+    /** `averageRoi`: luật 4 của M1; `marginalGain`: luật 4b. */
+    readonly rule: 'averageRoi' | 'marginalGain';
+    readonly minMonthlyRoi: number;
+    readonly cashMultiple: number;
+    readonly maxPaybackMonths: number;
+  };
+  readonly closeAfterNegativeMonths: number;
+  readonly reach: Reach;
+  readonly homeCityId: string;
+}
+
+export interface AiCompany extends CompanyBase {
+  readonly kind: 'ai';
+  /** Chỉ có ở công ty khai sẵn trong scenario. */
+  readonly personality?: Personality;
+  readonly profile: RivalProfile;
+  readonly foundedDay: number;
+  /** Số lần chốt tháng liên tiếp không có cửa hàng nào đang mở (§20.2). */
+  storelessMonths: number;
+}
+
+export type Company = PlayerCompany | AiCompany;
+
+export interface StoreDayStats {
+  /** Cầu thực tế sau nhiễu (economic-model §3.4). */
+  demand: number;
+  served: number;
+  lost: number;
+  capacity: number;
+}
+
+/** Cộng dồn trong tháng của một cửa hàng. `*Accrued` là cent dạng float, chỉ làm tròn khi ghi sổ. */
+export interface StoreMonthToDate {
+  demand: number;
+  served: number;
+  capacity: number;
+  /** Số ngày cửa hàng hoạt động trong tháng. */
+  days: number;
+  revenue: Money;
+  cogs: Money;
+  wagesAccrued: number;
+  rentAccrued: number;
+  /** Đào tạo và phúc lợi (M1.6, §16), cent float. */
+  trainingAccrued: number;
+  benefitsAccrued: number;
+  /** Tiện ích cửa hàng (M1.7, §21): chi phí tháng cộng dồn (cent float) và phí lắp đặt đã trả trong tháng. */
+  amenitiesAccrued: number;
+  amenitiesSetup: Money;
+}
+
+/** Kết quả tháng trước của một cửa hàng (tiền đã làm tròn như khi ghi sổ). */
+export interface StoreLastMonth {
+  /** Tháng (monthOf) của số liệu; −1 khi chưa có tháng nào. */
+  readonly month: number;
+  readonly demand: number;
+  readonly served: number;
+  readonly capacity: number;
+  readonly days: number;
+  readonly revenue: Money;
+  readonly cogs: Money;
+  readonly wages: Money;
+  readonly rent: Money;
+  /** Khấu hao của cửa hàng trong tháng (M1.6, cho P&L theo cửa hàng). */
+  readonly depreciation: Money;
+  /** Đào tạo, phúc lợi, thưởng (M1.6, §16); đều ghi vào Wages ở sổ công ty. */
+  readonly training: Money;
+  readonly benefits: Money;
+  readonly bonus: Money;
+  /** Tiện ích cửa hàng: lắp đặt + chi phí tháng (M1.7). */
+  readonly amenities: Money;
+}
+
+export interface StoreDayRecord {
+  readonly day: number;
+  readonly demand: number;
+  readonly served: number;
+  readonly capacity: number;
+}
+
+export interface Store {
+  readonly id: StoreId;
+  readonly companyId: CompanyId;
+  readonly districtId: DistrictId;
+  readonly openedDay: number;
+  status: 'open' | 'closed';
+  /** Chỉ có khi status = 'closed'. */
+  closedDay?: number;
+  price: Money;
+  staff: number;
+  wageMonthly: Money;
+  rentMonthly: Money;
+  rentResetDay: number;
+  readonly capex: Money;
+  accumDep: Money;
+  morale: number;
+  skill: number;
+  serviceLevel: number;
+  /** Ghi đè mỗi ngày. */
+  today: StoreDayStats;
+  /** Cộng dồn trong tháng, reset khi chốt tháng. */
+  mtd: StoreMonthToDate;
+  /** Kết quả tháng trước, cho AI (economic-model §9) và UI. */
+  lastMonth: StoreLastMonth;
+  negContributionMonths: number;
+  /** 14 ngày gần nhất (mới nhất ở cuối), cho biểu đồ vận hành. */
+  recentDays: StoreDayRecord[];
+  /** 12 tháng gần nhất (mới nhất ở cuối). */
+  history: StoreLastMonth[];
+  /** Trường người chơi đặt tay, không theo chính sách công ty (M1.6). */
+  overrides: { wage: boolean; staff: boolean };
+  /** Thưởng tháng trước / nhân viên (cent float), cộng vào lương khi tính tinh thần (§16.4). */
+  bonusPerHead: number;
+  /** Tiện ích đang bật, id đã sort (M1.7, §21). */
+  amenities: string[];
+}
+
+/** Khoản vay kỳ hạn (economic-model §7.1). Dùng từ bước 05. */
+export interface Loan {
+  readonly id: LoanId;
+  readonly companyId: CompanyId;
+  readonly principal: Money;
+  outstanding: Money;
+  readonly paymentMonthly: Money;
+  readonly annualRate: number;
+  readonly termMonths: number;
+  readonly takenDay: number;
+  paymentsMade: number;
+}
+
+/** Lệnh chờ áp dụng ở đầu tick kế tiếp, theo thứ tự nhận (ADR-0001 #6). Không có id: lệnh bị từ chối chỉ để lại event. */
+export interface QueuedCommand {
+  readonly enqueuedDay: number;
+  readonly command: Command;
+}
+
+export type GameEvent =
+  | {
+      readonly day: number;
+      readonly kind: 'commandRejected';
+      readonly companyId: string;
+      readonly commandType: string;
+      readonly reason: string;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'storeOpened';
+      readonly companyId: CompanyId;
+      readonly storeId: StoreId;
+      readonly districtId: DistrictId;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'storeClosed';
+      readonly companyId: CompanyId;
+      readonly storeId: StoreId;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'distress' | 'bankrupt';
+      readonly companyId: CompanyId;
+      readonly overdraft: Money;
+      readonly overdraftLimit: Money;
+      /** 3 khoản chi lớn nhất tháng (economic-model §8). */
+      readonly topExpenses: readonly ExpenseItem[];
+      /** Tiền ròng (cash − overdraft) dự báo sau 3 tháng theo xu hướng 3 tháng gần nhất. */
+      readonly cashForecast3m: Money;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'cashWarning';
+      readonly companyId: CompanyId;
+      readonly cashForecast13w: Money;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'loanTaken';
+      readonly companyId: CompanyId;
+      readonly loanId: LoanId;
+      readonly principal: Money;
+      readonly annualRate: number;
+      readonly termMonths: number;
+      readonly paymentMonthly: Money;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'officeLeased';
+      readonly companyId: CompanyId;
+      readonly districtId: DistrictId;
+      readonly size: OfficeSize;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'officeReleased';
+      readonly companyId: CompanyId;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'departmentOpened' | 'departmentClosed';
+      readonly companyId: CompanyId;
+      readonly dept: Department;
+    }
+  | {
+      readonly day: number;
+      readonly kind: 'loanRepaid';
+      readonly companyId: CompanyId;
+      readonly loanId: LoanId;
+      readonly principal: Money;
+      readonly fee: Money;
+    }
+  | {
+      /** Đối thủ mới gia nhập một thành phố (M1.8, §20.3). */
+      readonly day: number;
+      readonly kind: 'competitorEntered';
+      readonly companyId: CompanyId;
+      readonly name: string;
+      readonly cityId: string;
+      readonly reach: Reach;
+      readonly qualityTier: QualityTier;
+    }
+  | {
+      /** Đối thủ rút khỏi thị trường sau nhiều tháng không còn cửa hàng (§20.2). */
+      readonly day: number;
+      readonly kind: 'competitorExited';
+      readonly companyId: CompanyId;
+      readonly name: string;
+    };
+
+export interface ExpenseItem {
+  /** Tên dòng P&L (Wages, Rent, COGS…). */
+  readonly label: string;
+  readonly amount: Money;
+}
+
+export interface GameState {
+  readonly schemaVersion: 2;
+  readonly contentRef: {
+    readonly industryId: string;
+    readonly scenarioId: string;
+    readonly contentVersion: string;
+  };
+  readonly seed: number;
+  clock: { day: number };
+  macro: MacroState;
+  readonly city: { readonly districtIds: readonly DistrictId[] };
+  companies: Record<CompanyId, Company>;
+  companyIds: CompanyId[];
+  stores: Record<StoreId, Store>;
+  storeIds: StoreId[];
+  loans: Record<LoanId, Loan>;
+  loanIds: LoanId[];
+  ledger: Ledger;
+  statements: Record<CompanyId, MonthlyStatements[]>;
+  commandQueue: QueuedCommand[];
+  /**
+   * Thị trường theo thành phố (M1.8, §20.3): số đối thủ mục tiêu và hẹn gia nhập. `cities` rỗng khi scenario
+   * không khai `competition`.
+   */
+  market: {
+    /** Số chuỗi liên thành phố lúc đầu ván. */
+    readonly targetChains: number;
+    cities: Record<string, { readonly targetRivals: number; entryDueDay: number | null }>;
+  };
+  /** Chỉ `EVENTS_KEEP` event gần nhất (#54). */
+  events: GameEvent[];
+  /** Tổng số event đã phát sinh từ đầu game; event cuối của `events` có số thứ tự `eventSeq`. */
+  eventSeq: number;
+  nextIds: { store: number; loan: number; company: number };
+}
