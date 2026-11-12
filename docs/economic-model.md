@@ -34,6 +34,12 @@ Các đại lượng danh nghĩa sau luôn được nhân `priceIndex` (danh sá
 - Quy mô phân khúc s tại quận d: `N_{d,s} = pop_d × mix_{d,s}` (người).
 - Khoảng cách quận e → quận d (Manhattan):
   `D(e,d) = (|x_e − x_d| + |y_e − y_d|) × districtSizeKm`, với `D(d,d) = sameDistrictKm` (0.5).
+- **Nhiều thành phố (M1.8, ADR-0003):**
+  - scenario có danh sách `cities`; mỗi thành phố có lưới và các tham số khoảng cách riêng. Lưới được phép có ô trống;
+  - khách chỉ mua trong thành phố mình sống: hai địa điểm khác thành phố không với tới nhau (`D = ∞`), bất kể `maxTravelKm`;
+  - mỗi địa điểm có `zone ∈ {budget, central, premium}` (Bình dân / Trung tâm / Cao cấp). Khu chỉ là nhãn; khác biệt kinh tế nằm ở `pop`, `mix`, `rentMonthly`, `fitOutCost` của địa điểm;
+  - "quận" trong các mục khác của tài liệu này nghĩa là một địa điểm; thứ tự duyệt là thành phố theo scenario rồi địa điểm theo thứ tự trong thành phố;
+  - một thành phố thì mọi công thức trùng với M1.
 
 ## 3. Cầu — multinomial logit
 ### 3.1 Utility của phân khúc s ở quận e đối với cửa hàng j
@@ -122,6 +128,18 @@ A ← A + (1 − A) × lift − δ × A
 Thêm hiệu ứng truyền miệng nhỏ: `A ← A + γ × Σ_j served_j / cityPopulation`, `γ = industry.brand.wordOfMouth`, `cityPopulation = Σ_d pop_d`. Clamp [0,1].
 
 > M1.6: nhận biết theo quận và phân khúc, nhiều kênh (§18). Chỉ dùng kênh `general` thì đúng bằng công thức trên.
+
+**Nhiều thành phố (M1.8).** Với công ty c và thành phố k:
+```
+K_c = các thành phố c đang có ≥ 1 cửa hàng mở; nếu c chưa có cửa hàng nào thì K_c = mọi thành phố
+spendDaily_{c,k} = (marketingBudgetMonthly / 30) × pop_k / Σ_{j ∈ K_c} pop_j     nếu k ∈ K_c, ngược lại 0
+lift_{c,k}  = α × (1 − exp(−spendDaily_{c,k} / (halfSat × priceIndex)))
+wordOfMouth_{c,k} = γ × Σ_{cửa hàng j của c ở k} served_j / pop_k
+```
+- `pop_k` là tổng dân số các địa điểm của thành phố k.
+- Mọi ô (e, s) của thành phố k dùng `lift_{c,k}` và `wordOfMouth_{c,k}` trong công thức cập nhật `A`.
+- Một thành phố: `K_c` chỉ có thành phố đó, tỷ lệ chia bằng 1, nên đúng bằng công thức M1.
+- `halfSat` chưa co giãn theo quy mô thành phố (#62).
 
 ## 6. Chi phí và ghi nhận
 | Khoản | Khi nào | Công thức | Bút toán |
@@ -215,6 +233,26 @@ Luật công ty:
 4. Mở cửa hàng mới nếu: ROI đóng góp 3 tháng gần nhất trên capex > `expansion.minMonthlyRoi` (0.02/tháng) **và** cash ≥ `expansion.cashMultiple` (hiện 3, vòng hiệu chỉnh 1) × capex **và** không ở distress **và** tháng này không đóng cửa hàng nào. Công ty chưa có cửa hàng nào thì mở cửa hàng đầu tiên nếu đủ tiền (bootstrap, #48). Chọn quận có `Σ_s N_{d,s} × f_s / (1 + số cửa hàng trong quận)` cao nhất. Tối đa 1 cửa hàng/tháng.
 5. Dùng `rng('ai:<companyId>')` chỉ để phá hòa khi chọn quận.
 
+**Hồ sơ đối thủ (M1.8).** Mỗi công ty AI mang `profile` trong state; mọi luật trên đọc tham số từ hồ sơ:
+`qualityTier`, `markup`, `wageRatio`, `marketingShareOfRevenue`, `expansion { rule, minMonthlyRoi, cashMultiple, maxPaybackMonths }`, `closeAfterNegativeMonths`, `reach`, `homeCityId`.
+- Công ty khai sẵn bằng `personality`: hồ sơ = bảng trên + `aiRules` (`rule = averageRoi`, `closeAfterNegativeMonths` của `aiRules`), nên hành vi không đổi so với M1.
+- Công ty sinh ngẫu nhiên: xem §20.1; `rule = marginalGain`.
+
+**Luật 4b — mở rộng theo lãi biên** (`rule = marginalGain`, thay điều kiện ROI của luật 4; các điều kiện "không distress", "tháng này không đóng cửa hàng", bootstrap và `cashMultiple` giữ nguyên):
+```
+thành phố được xét = thành phố đang có cửa hàng của công ty
+                     + mọi thành phố khác nếu số thành phố đang có cửa hàng < reachCities[reach]
+                     (công ty chưa có cửa hàng nào: chỉ homeCity)
+ứng viên = 5 địa điểm có điểm số luật 4 (Σ N·f / (1 + số cửa hàng đang mở)) cao nhất trong các thành phố được xét,
+           còn mở được (MAX_STORES_PER_DISTRICT) và đủ tiền (cash ≥ cashMultiple × capex)
+ΔD(d)   = Σ cầu kỳ vọng/ngày của cả công ty khi có thêm một cửa hàng giả định ở d − Σ cầu kỳ vọng/ngày hiện tại
+          (cửa hàng giả định: giá = targetPrice, serviceLevel và staff như cửa hàng mới mở)
+margin  = targetPrice − unitCost × tierMult × priceIndex
+gain(d) = 30 × min(ΔD(d), công suất/ngày của cửa hàng mới) × margin − rentMonthly_d × priceIndex − newStore.staff × lương theo hồ sơ
+mở d* = argmax gain nếu gain(d*) > 0 và capex_{d*} / gain(d*) ≤ maxPaybackMonths      (hòa thì phá bằng rng)
+```
+`ΔD` tính cả phần khách bị lấy từ cửa hàng khác của chính công ty, nên công ty không tự ăn mòn mình như luật 4.
+
 ## 10. Chốt tháng — thứ tự
 Chốt tháng chạy sau khi `clock.day` đã tăng (spec §4 bước 8), nên mọi bút toán chốt tháng ghi `day = clock.day − 1` và `MonthlyStatements.month = floor((clock.day − 1) / 30)`.
 
@@ -277,6 +315,7 @@ Vốn ban đầu: Nợ Cash / Có ShareCapital = `companies[].startingCash` tron
 7. Không NaN/Infinity ở bất kỳ trường số nào của state sau mỗi tick.
 8. Cùng scenario + seed + chuỗi command ⇒ `hashState` giống hệt sau N ngày.
 9. CFO + CFI + CFF = ΔCash mỗi tháng.
+10. (M1.8) Công ty `exited` không có cửa hàng đang mở; mọi công ty AI có hồ sơ với tham số trong miền hợp lệ; `homeCityId` tồn tại.
 
 ## 14. Mục tiêu hiệu chỉnh (calibration test trong M1)
 Với scenario `m1-default` đúng như file (3 AI mỗi bên 3 cửa hàng ban đầu, người chơi không có cửa hàng và không thao tác; AI chạy luật §9), đo trung bình 12 tháng đầu:
@@ -439,7 +478,7 @@ Giới hạn là `Σ_i served_{i,j} × prepUnits_i ≤ capacity_j`. Với `core`
 - `industry.marketingChannels[ch] = { scope: 'city' | 'district', segmentWeight: {s: w ∈ [0,1]}, alpha, halfSaturationDaily }`.
 - Kênh `general` = tham số §5 (`alpha`, `halfSaturationDaily`), `scope: city`, mọi trọng số 1. `SetMarketingBudget` (M1, không khóa) đặt ngân sách kênh `general`.
 - `SetChannelBudget { channel, target: 'city' | districtId, monthly }` (cần `marketing`):
-  - kênh `city` chỉ nhận target `city`;
+  - kênh `city` nhận target là id một thành phố (M1.8; trước đó là hằng `city`);
   - kênh `district` nhận từng quận.
 - Mỗi ngày:
 ```
@@ -448,7 +487,7 @@ lift_{ch,e,s} = alpha_ch × segmentWeight_{ch,s} × (1 − exp(−spendDaily_{ch
 lift_{e,s}    = 1 − Π_ch (1 − lift_{ch,e,s})
 A_{c,e,s} ← A + (1 − A) × lift_{e,s} − δ × A + γ × Σ_j served_j / cityPopulation      (clamp [0,1])
 ```
-- Kênh city tác động như nhau lên mọi quận: tiếp cận toàn thành phố, giống M1.
+- Kênh city tác động như nhau lên mọi quận của thành phố được chi: tiếp cận toàn thành phố, giống M1.
 - Chỉ có `general` thì `lift_{e,s} = lift` M1 và `A_{c,e,s} = A_c` ở mọi ô, **đúng bằng M1**. Thứ tự phép tính giữ nguyên.
 - Chi phí cộng dồn mọi kênh vào Marketing (6200) như §6.
 - Thứ tự áp: `general` trước, rồi các kênh theo id tăng dần; kênh không có ngân sách không tham gia phép nhân.
@@ -521,6 +560,55 @@ A_{c,e,s} ← A + (1 − A) × lift_{e,s} − δ × A + γ × Σ_j served_j / ci
 
 ### 19.3 AI (M1.6)
 Mỗi personality có `office: { openAtStores, size, departments[] }`. Ngày đầu tháng, khi số cửa hàng ≥ `openAtStores`, AI thuê văn phòng và mở các phòng trong danh sách (tối đa 1 hành động/tháng). AI không tuyển C-level: luật AI chính là "ban điều hành" của nó. AI dùng gói nhà cung cấp theo tier, menu `core` và kênh `general`, cho tới khi spec hiệu chỉnh vòng 2 đổi lại (#57).
+
+## 20. Đối thủ: sinh hồ sơ, rút lui, gia nhập (M1.8)
+Spec: `docs/specs/M1.8-atlas-rivals.md`. Chỉ áp khi scenario khai `competition`; `m1-default` không khai nên không đổi.
+
+### 20.1 Sinh hồ sơ
+Tham số ở `industry.rivalGenerator`. Với đối thủ thứ n của ván, dùng `rng('rival:<n>')`, lấy lần lượt:
+```
+qualityTier ~ chọn theo trọng số tierWeights
+markup, wageRatio, marketingShareOfRevenue ~ đều trong dải của tiers[qualityTier]
+reach = 'local' với chuỗi địa phương; với chuỗi liên thành phố ~ chọn theo trọng số chainReachWeights
+maxPaybackMonths ~ nguyên, đều trong expansion.maxPaybackMonths
+cashMultiple ~ đều trong expansion.cashMultiple
+closeAfterNegativeMonths ~ nguyên, đều trong patienceMonths
+startingCash = round(U(capital[reach]) / $1,000) × $1,000 × priceIndex
+nStores ~ nguyên, đều trong initialStores[reach]
+name = prefix + " " + suffix, không trùng tên công ty đang hoạt động (thử lại tối đa 20 lần, sau đó thêm số thứ tự)
+```
+- Vốn ghi sổ: Nợ Cash / Có ShareCapital.
+- Cửa hàng ban đầu: `nStores` địa điểm có điểm số luật 4 cao nhất trong `homeCity` (hòa thì phá bằng rng), mỗi địa điểm mở bằng `OpenStore`, rồi đặt giá = `targetPrice`, lương theo `wageRatio`, staff = `aiInitialStaff`, đúng như cửa hàng ban đầu ở §9 luật 0. Lệnh nào bị từ chối (ví dụ không đủ tiền) thì bỏ qua.
+
+### 20.2 Rút lui
+- Ở mỗi lần chốt tháng, công ty AI đang `active` hoặc `distress` mà không có cửa hàng nào đang mở thì `storelessMonths += 1`; có cửa hàng thì về 0.
+- `storelessMonths ≥ competition.exitAfterMonthsWithoutStores` (3) ⇒ `status = exited`: ngừng mọi quyết định và marketing, trả văn phòng nếu có (như §15.1), ghi event `competitorExited`. Sổ sách giữ nguyên; không có bút toán thanh lý vốn.
+- "Bị loại" = `bankrupt` (§8) hoặc `exited`.
+
+### 20.3 Số đối thủ mục tiêu và thay thế
+```
+present(k) = số công ty AI chưa bị loại có ≥ 1 cửa hàng đang mở ở thành phố k,
+             cộng các công ty AI chưa bị loại, chưa có cửa hàng nào, có homeCity = k
+targetRivals_k = present(k) ngay sau khi tạo ván (không đổi trong ván)
+```
+Ngày đầu mỗi tháng, trước luật AI, với từng thành phố k theo thứ tự scenario:
+1. Nếu `entryDueDay_k` đã tới: xóa hẹn; nếu `present(k) < maxPerCity` thì sinh một đối thủ mới có `homeCity = k` (§20.1) và ghi event `competitorEntered`.
+2. Nếu không có hẹn và (`present(k) < targetRivals_k` **hoặc** thị trường hấp dẫn §20.4) và `present(k) < maxPerCity`: đặt hẹn `entryDueDay_k = hôm nay + 30 × U_int(entryDelayMonths)` bằng `rng('entry:<k>')`.
+- Đối thủ mới là chuỗi liên thành phố với xác suất `chains_hiện_có < chains_ban_đầu ? 1 : 0` khi số chuỗi liên thành phố chưa bị loại thấp hơn lúc đầu ván; ngược lại là chuỗi địa phương.
+
+### 20.4 Thị trường hấp dẫn
+```
+margin_k = Σ lãi đóng góp / Σ doanh thu của mọi cửa hàng ở k (mọi công ty, kể cả người chơi) trong `attractive.months` (6) tháng đã chốt gần nhất
+hấp dẫn ⇔ đã chốt đủ `attractive.months` tháng và margin_k > attractive.margin (đề xuất 0.25, #62)
+```
+Lãi đóng góp như §9.3 / §21 (doanh thu − giá vốn − lương gồm đào tạo, phúc lợi, thưởng − thuê − tiện ích), lấy từ `store.history`.
+
+### 20.5 Đầu ván
+Với scenario có `competition.initial`, sau khi tạo các công ty khai sẵn:
+1. mỗi thành phố k theo thứ tự: sinh `U_int(localPerCity)` chuỗi địa phương có `homeCity = k`;
+2. sinh `U_int(chains)` chuỗi liên thành phố, `homeCity` chọn đều trong các thành phố;
+3. ghi `targetRivals_k`.
+Số lượng dùng `rng('entry:init')`; mỗi đối thủ dùng stream riêng của mình.
 
 ## 21. Tiện ích cửa hàng (M1.7)
 Spec: `docs/specs/M1.7-ui.md`.

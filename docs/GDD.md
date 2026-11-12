@@ -53,4 +53,6 @@ Quan sát (dashboard) → Quyết định (command) → Mô phỏng (tick ngày)
 | M2 Vertical slice | tồn kho, nhà cung cấp, tutorial, UI đầy đủ 1 thành phố | 5 playtester chơi 60 phút, giải thích được lãi/lỗ |
 | M3 Tài chính & vĩ mô | macro NK rút gọn, VC/IPO, chứng khoán, C-level | không bot nào thắng > 40% seed |
 | M4 Đa ngành | industry pack thứ 2–3, đa thành phố, M&A, sự kiện | ngành thứ 3 thêm chủ yếu bằng dữ liệu |
+
+> 2026-11-12: phần **đa thành phố** (7 thành phố, đối thủ sinh ngẫu nhiên có ra / vào thị trường) được kéo lên làm ngay sau M1.7 theo yêu cầu, xem `docs/specs/M1.8-atlas-rivals.md` và ADR-0003. Đa ngành và M&A vẫn ở M4.
 | M5 Polish & ra mắt | cân bằng, UX, vi/en, Tauri, Early Access | phát hành |
