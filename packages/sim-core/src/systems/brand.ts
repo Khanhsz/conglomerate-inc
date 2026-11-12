@@ -168,6 +168,30 @@ export const brandSystem: System = (draft, ctx) => {
     const channelCells = channels.map((ch) => cellsOf(contributions, ch.channel, size));
 
     const cells = company.awareness;
+    if (channels.length === 0) {
+      // Đường nhanh: chỉ có `general` (đa số công ty). Cùng phép tính như nhánh tổng quát với lift = liftSum = general.
+      for (let k = 0; k < cityCount; k++) {
+        const general = generalByCity[k] ?? 0;
+        const cityHasPeople = (world.cityPop[k] ?? 0) > 0;
+        const wom = wordOfMouth[k] ?? 0;
+        const first = (world.cityStart[k] ?? 0) * S;
+        const last = first + (world.citySize[k] ?? 0) * S;
+        for (let i = first; i < last; i++) {
+          const before = cells[i] ?? 0;
+          let a = before;
+          a = a + (1 - a) * general - brand.decayPerDay * a;
+          if (cityHasPeople) a += wom;
+          const next = clamp01(a);
+          cells[i] = next;
+          if (general > 0 && generalCells) {
+            const gained = ((1 - before) * general) / general;
+            generalCells[i] = (generalCells[i] ?? 0) + gained * general;
+          }
+          if (a > 1) for (const c of contributions) c.cells[i] = ((c.cells[i] ?? 0) * next) / a;
+        }
+      }
+      continue;
+    }
     for (let e = 0; e < D; e++) {
       const k = world.cityOf[e] ?? 0;
       const general = generalByCity[k] ?? 0;

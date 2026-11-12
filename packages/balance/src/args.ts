@@ -1,5 +1,6 @@
 /** Tham số dòng lệnh của balance runner (spec §6). */
 import { BOT_NAMES, type BotName } from './bots/index';
+import { SCENARIO_NAMES, type ScenarioName } from './content';
 
 export interface Args {
   readonly seeds: number;
@@ -10,6 +11,7 @@ export interface Args {
   readonly smoke: boolean;
   readonly checkInvariants: boolean;
   readonly workers: number | null;
+  readonly scenario: ScenarioName;
 }
 
 const isBot = (s: string): s is BotName => BOT_NAMES.some((b) => b === s);
@@ -30,6 +32,7 @@ export function parseArgs(argv: readonly string[]): Args {
   let smoke = false;
   let checkInvariants = false;
   let workers: number | null = null;
+  let scenario: ScenarioName = 'm1-default';
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
     const next = () => argv[++i];
@@ -48,6 +51,14 @@ export function parseArgs(argv: readonly string[]): Args {
       case '--workers':
         workers = positiveInt(flag, next());
         break;
+      case '--scenario': {
+        const value = next();
+        const found = SCENARIO_NAMES.find((s) => s === value);
+        if (!found)
+          throw new Error(`scenario không tồn tại: "${String(value)}" (có: ${SCENARIO_NAMES.join(', ')})`);
+        scenario = found;
+        break;
+      }
       case '--out':
         out = next() ?? null;
         break;
@@ -77,7 +88,8 @@ export function parseArgs(argv: readonly string[]): Args {
   }
   if (smoke)
     return {
-      seeds: 10,
+      // Atlas nặng hơn nhiều (225 địa điểm, ~20 công ty): smoke chạy ít seed hơn.
+      seeds: scenario === 'atlas' ? 2 : 10,
       seedStart,
       years: 2,
       bots: [...BOT_NAMES],
@@ -85,6 +97,7 @@ export function parseArgs(argv: readonly string[]): Args {
       smoke,
       checkInvariants: true,
       workers,
+      scenario,
     };
-  return { seeds, seedStart, years, bots, out, smoke, checkInvariants, workers };
+  return { seeds, seedStart, years, bots, out, smoke, checkInvariants, workers, scenario };
 }

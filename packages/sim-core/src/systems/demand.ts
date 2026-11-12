@@ -186,9 +186,17 @@ export function kmToCandidate(world: World, e: number, c: DemandCandidate): numb
   return distanceKm(city, origin, c.district);
 }
 
+/** Bộ đệm dùng lại giữa các ô của một lần tính cầu (không giữ gì giữa các lần gọi). */
+const scratchIndex: number[] = [];
+const scratchWeight: number[] = [];
+
 /**
  * Cầu kỳ vọng (trước nhiễu) của mọi cửa hàng đang mở (economic-model §3.3). Chỉ đọc state.
  * Có `cityIndex` thì chỉ tính dân của thành phố đó (cửa hàng nơi khác nhận 0): dùng cho ước tính của AI.
+ *
+ * Đường nhanh (M1.8): phần utility không phụ thuộc ô (chất lượng, giá, phục vụ, tiện ích) tính sẵn cho từng cửa
+ * hàng × phân khúc; ứng viên chia theo thành phố. Thứ tự phép tính và thứ tự cộng giữ đúng như
+ * `candidateUtility` + `logitShares`, nên kết quả trùng từng bit (có test so với hai hàm đó).
  */
 export function expectedDemand(state: GameState, content: LoadedContent, cityIndex?: number): DemandSnapshot {
   const { industry } = content;
@@ -196,19 +204,110 @@ export function expectedDemand(state: GameState, content: LoadedContent, cityInd
   const candidates = demandCandidates(state, content);
   const from = cityIndex === undefined ? 0 : (world.cityStart[cityIndex] ?? 0);
   const to = cityIndex === undefined ? world.districts.length : from + (world.citySize[cityIndex] ?? 0);
+  const segmentIds = segmentIdsOf(content);
+  const S = segmentIds.length;
+  const incomeIndex = state.macro.incomeIndex;
+  const N = candidates.length;
 
+  // head = βq·Q − βp,eff·ln(P/Pref); tail = βw·W; bonus = tiện ích theo phân khúc (undefined = không có).
+  const head = new Float64Array(N * S);
+  const tail = new Float64Array(N * S);
+  const bonus: (number | undefined)[] = new Array<number | undefined>(N * S);
+  const total = new Float64Array(N);
+  const byCity: number[][] = world.cities.map(() => []);
+  for (let n = 0; n < N; n++) {
+    const c = candidates[n];
+    if (!c) continue;
+    byCity[c.city]?.push(n);
+    for (let s = 0; s < S; s++) {
+      const segmentId = segmentIds[s];
+      const segment = segmentId === undefined ? undefined : industry.segments[segmentId];
+      if (segmentId === undefined || !segment) continue;
+      const { q, p, w } = segment.betas;
+      const eta = segment.incomeElasticityOfPriceSensitivity;
+      const priceBeta = eta === 0 ? p : p / incomeIndex ** eta;
+      head[n * S + s] = q * c.x.quality - priceBeta * Math.log(c.x.price / c.x.refPrice);
+      tail[n * S + s] = w * c.x.serviceLevel;
+      bonus[n * S + s] = c.amenity[segmentId];
+    }
+  }
+
+  let potential = 0;
+  let captured = 0;
+  for (let e = from; e < to; e++) {
+    const origin = world.districts[e];
+    const k = world.cityOf[e];
+    const city = k === undefined ? undefined : world.cities[k];
+    const local = k === undefined ? undefined : byCity[k];
+    if (!origin || !city || !local) continue;
+    for (let s = 0; s < S; s++) {
+      const segmentId = segmentIds[s];
+      const segment = segmentId === undefined ? undefined : industry.segments[segmentId];
+      if (segmentId === undefined || !segment) continue;
+      const visits = origin.pop * (origin.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
+      potential += visits;
+      if (visits === 0) continue;
+      const { b, d } = segment.betas;
+      const cell = e * S + s;
+      // Ứng viên trong tầm, theo thứ tự storeIds (khách chỉ mua trong thành phố mình sống, §2).
+      let count = 0;
+      let max = segment.outsideUtility;
+      for (const n of local) {
+        const c = candidates[n];
+        if (!c) continue;
+        const km = distanceKm(city, origin, c.district);
+        if (km > segment.maxTravelKm) continue;
+        const at = n * S + s;
+        const core = (head[at] ?? 0) + b * (c.awareness[cell] ?? 0) - d * km + (tail[at] ?? 0);
+        const extra = bonus[at];
+        const u = extra === undefined ? core : core + extra;
+        scratchIndex[count] = n;
+        scratchWeight[count] = u;
+        count += 1;
+        if (u > max) max = u;
+      }
+      // Logit với lựa chọn ngoài, trừ max trước khi exp (như logitShares).
+      const outsideWeight = Math.exp(segment.outsideUtility - max);
+      let denominator = outsideWeight;
+      for (let i = 0; i < count; i++) {
+        const weight = Math.exp((scratchWeight[i] ?? 0) - max);
+        scratchWeight[i] = weight;
+        denominator += weight;
+      }
+      for (let i = 0; i < count; i++) {
+        const demand = visits * ((scratchWeight[i] ?? 0) / denominator);
+        const n = scratchIndex[i] ?? 0;
+        total[n] = (total[n] ?? 0) + demand;
+        captured += demand;
+      }
+    }
+  }
+
+  const byStore: Record<StoreId, number> = {};
+  for (let n = 0; n < N; n++) {
+    const c = candidates[n];
+    if (c) byStore[c.id] = total[n] ?? 0;
+  }
+  return { byStore, potential, captured };
+}
+
+/**
+ * Bản tham chiếu của `expectedDemand`, viết thẳng theo công thức bằng `candidateUtility` và `logitShares`.
+ * Chỉ dùng trong test để chứng minh đường nhanh cho kết quả giống hệt.
+ */
+export function expectedDemandReference(state: GameState, content: LoadedContent): DemandSnapshot {
+  const { industry } = content;
+  const world = worldOf(content);
+  const candidates = demandCandidates(state, content);
   const byStore: Record<StoreId, number> = {};
   for (const c of candidates) byStore[c.id] = 0;
   let potential = 0;
   let captured = 0;
   const segmentIds = segmentIdsOf(content);
   const S = segmentIds.length;
-
-  for (let e = from; e < to; e++) {
+  for (let e = 0; e < world.districts.length; e++) {
     const origin = world.districts[e];
-    const k = world.cityOf[e];
-    const city = k === undefined ? undefined : world.cities[k];
-    if (!origin || !city) continue;
+    if (!origin) continue;
     for (let s = 0; s < S; s++) {
       const segmentId = segmentIds[s];
       const segment = segmentId === undefined ? undefined : industry.segments[segmentId];
@@ -219,9 +318,7 @@ export function expectedDemand(state: GameState, content: LoadedContent, cityInd
       const reachable: DemandCandidate[] = [];
       const utilities: number[] = [];
       for (const c of candidates) {
-        // Khách chỉ mua trong thành phố mình sống (§2); thứ tự ứng viên giữ theo storeIds.
-        if (c.city !== k) continue;
-        const km = distanceKm(city, origin, c.district);
+        const km = kmToCandidate(world, e, c);
         if (km > segment.maxTravelKm) continue;
         reachable.push(c);
         utilities.push(candidateUtility(segmentId, segment, state.macro.incomeIndex, c, km, e * S + s));

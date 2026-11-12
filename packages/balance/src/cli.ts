@@ -10,8 +10,16 @@ import { Worker } from 'node:worker_threads';
 import { parseArgs } from './args';
 import { BOT_NAMES } from './bots/index';
 import { setDevChecks } from '@game/sim-core';
-import { loadDefaultContent } from './content';
-import { calibration, formatReport, summarize, toCsv, type RunResult } from './report';
+import { loadScenarioContent } from './content';
+import {
+  atlasStats,
+  calibration,
+  formatAtlasReport,
+  formatReport,
+  summarize,
+  toCsv,
+  type RunResult,
+} from './report';
 import { runOne } from './runner';
 import type { Job } from './worker';
 
@@ -35,8 +43,9 @@ function runJob(worker: Worker, job: Job): Promise<RunResult> {
 async function runAll(jobs: readonly Job[], workers: number): Promise<RunResult[]> {
   if (workers <= 1) {
     setDevChecks(jobs.some((j) => j.devChecks));
-    const content = loadDefaultContent();
-    return jobs.map((j) => runOne(content, j.seed, j.bot, j.years, { checkInvariants: j.checkInvariants }));
+    return jobs.map((j) =>
+      runOne(loadScenarioContent(j.scenario), j.seed, j.bot, j.years, { checkInvariants: j.checkInvariants }),
+    );
   }
   const results: RunResult[] = [];
   let next = 0;
@@ -65,6 +74,7 @@ async function main(): Promise<number> {
   for (const bot of args.bots) {
     for (let i = 0; i < args.seeds; i++)
       jobs.push({
+        scenario: args.scenario,
         seed: args.seedStart + i,
         bot,
         years: args.years,
@@ -83,10 +93,14 @@ async function main(): Promise<number> {
     mkdirSync(dirname(args.out), { recursive: true });
     writeFileSync(args.out, toCsv(results.flatMap((r) => r.rows)));
   }
-  const content = loadDefaultContent();
-  const balanced =
-    content.scenario.companies.find((c) => c.kind === 'ai' && c.personality === 'balanced')?.id ?? '';
-  console.log(formatReport(summarize(results), calibration(results, balanced), args.years));
+  const content = loadScenarioContent(args.scenario);
+  if (args.scenario === 'atlas') {
+    console.log(formatAtlasReport(summarize(results), atlasStats(results, args.years)));
+  } else {
+    const balanced =
+      content.scenario.companies.find((c) => c.kind === 'ai' && c.personality === 'balanced')?.id ?? '';
+    console.log(formatReport(summarize(results), calibration(results, balanced), args.years));
+  }
   console.log(`Thời gian thực: ${((performance.now() - started) / 1000).toFixed(1)} s với ${workers} worker`);
   if (args.out) console.log(`CSV: ${args.out}`);
 

@@ -39,10 +39,18 @@ describe('parseArgs', () => {
 
   it('--smoke means 10 seeds × 2 years × all bots with invariant checks', () => {
     expect(parseArgs(['--smoke'])).toMatchObject({ smoke: true, seeds: 10, years: 2, checkInvariants: true });
+    // Atlas: mặc định là m1-default; smoke trên atlas chạy ít seed hơn vì nặng hơn nhiều.
+    expect(parseArgs([]).scenario).toBe('m1-default');
+    expect(parseArgs(['--smoke', '--scenario', 'atlas'])).toMatchObject({
+      scenario: 'atlas',
+      seeds: 2,
+      years: 2,
+    });
   });
 
   it('rejects unknown bots and flags', () => {
     expect(() => parseArgs(['--bots', 'genius'])).toThrow(/genius/);
+    expect(() => parseArgs(['--scenario', 'mars'])).toThrow(/mars/);
     expect(() => parseArgs(['--fast'])).toThrow(/--fast/);
     expect(() => parseArgs(['--seeds', 'x'])).toThrow(/--seeds/);
   });

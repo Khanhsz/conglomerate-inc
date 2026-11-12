@@ -13,6 +13,21 @@ export function readDefaultYaml(): { industry: string; scenario: string } {
   return { industry: read(INDUSTRY_PATH), scenario: read(SCENARIO_PATH) };
 }
 
+/** Scenario mà balance runner chạy được: `m1-default` (hiệu chỉnh §14) và `atlas` (M1.8). */
+export const SCENARIO_NAMES = ['m1-default', 'atlas'] as const;
+export type ScenarioName = (typeof SCENARIO_NAMES)[number];
+
+const loaded = new Map<ScenarioName, LoadedContent>();
+
+export function loadScenarioContent(scenario: ScenarioName): LoadedContent {
+  let content = loaded.get(scenario);
+  if (!content) {
+    content = loadContent(read(INDUSTRY_PATH), read(`../../content/scenarios/${scenario}.yaml`));
+    loaded.set(scenario, content);
+  }
+  return content;
+}
+
 export function loadDefaultContent(): LoadedContent {
   const { industry, scenario } = readDefaultYaml();
   return loadContent(industry, scenario);

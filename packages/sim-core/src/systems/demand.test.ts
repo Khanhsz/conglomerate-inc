@@ -1,16 +1,23 @@
 import fc from 'fast-check';
 import { produce } from 'immer';
 import { describe, expect, it } from 'vitest';
-import { createGame } from '../engine';
+import { createGame, runDays } from '../engine';
 import { money } from '../money';
 import { createRngFactory } from '../rng';
-import { fixtureContent } from '../test-support/fixture';
+import { fixtureContent, rivalWorldContent } from '../test-support/fixture';
 import { must } from '../test-support/must';
 import type { LoadedContent, SegmentDef } from '../types/content';
 import type { SimContext } from '../types/context';
 import type { GameState } from '../types/state';
 import { worldDistricts } from '../world';
-import { demandSystem, distanceKm, expectedDemand, logitShares, storeUtility } from './demand';
+import {
+  demandSystem,
+  distanceKm,
+  expectedDemand,
+  expectedDemandReference,
+  logitShares,
+  storeUtility,
+} from './demand';
 
 const finite = (min: number, max: number) => fc.double({ min, max, noNaN: true, noDefaultInfinity: true });
 const RUNS = Number(process.env['FC_RUNS'] ?? 100);
@@ -270,5 +277,32 @@ describe('demandSystem (economic-model §3.4)', () => {
       expectedDemand(s, quiet).byStore['store-000001'] ?? Number.NaN,
       12,
     );
+  });
+});
+
+describe('expectedDemand fast path (M1.8)', () => {
+  it('is bit-identical to the reference built from candidateUtility and logitShares', () => {
+    const worlds = [fixtureContent(), rivalWorldContent()];
+    for (const c of worlds) {
+      let s = createGame(c, { seed: 3 });
+      for (const days of [0, 1, 45, 120]) {
+        s = runDays(s, c, days);
+        const fast = expectedDemand(s, c);
+        const reference = expectedDemandReference(s, c);
+        expect(fast.byStore).toEqual(reference.byStore);
+        expect(fast.potential).toBe(reference.potential);
+        expect(fast.captured).toBe(reference.captured);
+      }
+    }
+  });
+
+  it('per-city demand sums to the whole world, store by store', () => {
+    const c = rivalWorldContent();
+    const s = runDays(createGame(c, { seed: 3 }), c, 40);
+    const whole = expectedDemand(s, c);
+    const parts = c.scenario.cities.map((_, k) => expectedDemand(s, c, k));
+    for (const id of Object.keys(whole.byStore)) {
+      expect(parts.reduce((a, p) => a + (p.byStore[id] ?? 0), 0)).toBe(whole.byStore[id]);
+    }
   });
 });

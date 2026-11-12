@@ -14,7 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "balance": "tsx packages/balance/src/cli.ts",
-    "balance:smoke": "tsx packages/balance/src/cli.ts --smoke",
+    "balance:smoke": "tsx packages/balance/src/cli.ts --smoke && tsx packages/balance/src/cli.ts --smoke --scenario atlas",
     "dev": "pnpm --filter @game/web dev",
     "e2e": "pnpm --filter @game/web build && playwright test -c apps/web/playwright.config.ts",
     "bench": "tsx packages/balance/src/bench.ts",

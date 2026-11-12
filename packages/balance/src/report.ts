@@ -5,6 +5,13 @@ export interface Row {
   readonly bot: string;
   readonly month: number;
   readonly companyId: string;
+  /** `player` hoặc `ai`; bậc chất lượng; phạm vi và thành phố nhà của đối thủ (M1.8). */
+  readonly kind: string;
+  readonly tier: string;
+  readonly reach: string;
+  readonly homeCity: string;
+  /** Số thành phố đang có cửa hàng mở. */
+  readonly cities: number;
   readonly stores: number;
   /** Tiền: cent. */
   readonly revenue: number;
@@ -50,6 +57,11 @@ const COLUMNS = [
   'equity',
   'industryShare',
   'servedPerStoreDay',
+  'kind',
+  'tier',
+  'reach',
+  'homeCity',
+  'cities',
 ] as const satisfies readonly (keyof Row)[];
 
 function cell(v: string | number | null): string {
@@ -201,6 +213,116 @@ export function formatReport(summary: Summary, cal: Calibration, years: number):
     const status = t.value === null ? '  —' : t.ok(t.value) ? ' ✓ ' : ' ✗ ';
     const value = t.value === null ? 'không có dữ liệu' : t.format(t.value);
     lines.push(`${status} ${t.label.padEnd(34)} ${value.padStart(10)}   mục tiêu ${t.goal}`);
+  }
+  lines.push('', `Thời gian mô phỏng (tổng các run): ${(summary.totalMs / 1000).toFixed(1)} s`);
+  return lines.join('\n');
+}
+
+/** Số liệu vòng đời đối thủ trên atlas (M1.8), theo từng năm, đo trên các run của bot `none`. */
+export interface AtlasYear {
+  readonly year: number;
+  /** Trung vị giữa các run. */
+  readonly rivalsActive: number | null;
+  readonly rivalsOut: number | null;
+  readonly entrants: number | null;
+  readonly rivalStores: number | null;
+  /** Trung bình thị phần ngành trong năm. */
+  readonly industryShare: number | null;
+  /** Σ EBITDA / Σ doanh thu của đối thủ trong năm, theo bậc chất lượng. */
+  readonly marginByTier: Readonly<Record<string, number | null>>;
+  /** Tỷ lệ đối thủ (có doanh thu) có EBITDA âm cả năm. */
+  readonly losingShare: number | null;
+}
+
+export interface AtlasStats {
+  readonly runs: number;
+  readonly years: readonly AtlasYear[];
+}
+
+const OUT = new Set(['bankrupt', 'exited']);
+
+export function atlasStats(results: readonly RunResult[], years: number): AtlasStats {
+  const base = results.some((r) => r.bot === 'none') ? results.filter((r) => r.bot === 'none') : results;
+  const out: AtlasYear[] = [];
+  for (let year = 1; year <= years; year++) {
+    const lastMonth = year * 12 - 1;
+    const active: number[] = [];
+    const gone: number[] = [];
+    const entrants: number[] = [];
+    const stores: number[] = [];
+    const industry: number[] = [];
+    const tierRevenue: Record<string, number> = {};
+    const tierEbitda: Record<string, number> = {};
+    let withRevenue = 0;
+    let losing = 0;
+    for (const run of base) {
+      const ai = run.rows.filter((r) => r.kind === 'ai');
+      const end = ai.filter((r) => r.month === lastMonth);
+      active.push(end.filter((r) => !OUT.has(r.status)).length);
+      gone.push(end.filter((r) => OUT.has(r.status)).length);
+      stores.push(end.reduce((a, r) => a + r.stores, 0));
+      const first = new Map<string, number>();
+      for (const r of ai)
+        if (!first.has(r.companyId) || r.month < (first.get(r.companyId) ?? 0))
+          first.set(r.companyId, r.month);
+      entrants.push([...first.values()].filter((m) => m > 0 && m <= lastMonth).length);
+      const inYear = ai.filter((r) => r.month > lastMonth - 12 && r.month <= lastMonth);
+      const share = run.rows.filter(
+        (r) => r.kind === 'player' && r.month > lastMonth - 12 && r.month <= lastMonth,
+      );
+      for (const r of share) industry.push(r.industryShare);
+      const byCompany = new Map<string, { revenue: number; ebitda: number }>();
+      for (const r of inYear) {
+        tierRevenue[r.tier] = (tierRevenue[r.tier] ?? 0) + r.revenue;
+        tierEbitda[r.tier] = (tierEbitda[r.tier] ?? 0) + r.ebitda;
+        const c = byCompany.get(r.companyId) ?? { revenue: 0, ebitda: 0 };
+        byCompany.set(r.companyId, { revenue: c.revenue + r.revenue, ebitda: c.ebitda + r.ebitda });
+      }
+      for (const c of byCompany.values()) {
+        if (c.revenue <= 0) continue;
+        withRevenue += 1;
+        if (c.ebitda < 0) losing += 1;
+      }
+    }
+    const marginByTier: Record<string, number | null> = {};
+    for (const tier of Object.keys(tierRevenue).sort()) {
+      const revenue = tierRevenue[tier] ?? 0;
+      marginByTier[tier] = revenue > 0 ? (tierEbitda[tier] ?? 0) / revenue : null;
+    }
+    out.push({
+      year,
+      rivalsActive: median(active),
+      rivalsOut: median(gone),
+      entrants: median(entrants),
+      rivalStores: median(stores),
+      industryShare: mean(industry),
+      marginByTier,
+      losingShare: withRevenue > 0 ? losing / withRevenue : null,
+    });
+  }
+  return { runs: base.length, years: out };
+}
+
+/** Báo cáo cho atlas: bảng bot như thường lệ, rồi vòng đời đối thủ theo năm. */
+export function formatAtlasReport(summary: Summary, stats: AtlasStats): string {
+  const lines: string[] = [];
+  lines.push('Bot              runs  phá sản  vốn chủ trung vị (USD)  cửa hàng trung vị');
+  for (const [bot, s] of Object.entries(summary.byBot)) {
+    const equity = s.medianEquity === null ? '—' : (s.medianEquity / 100).toFixed(0);
+    lines.push(
+      `${bot.padEnd(16)} ${String(s.runs).padStart(4)}  ${pctFmt(s.bankruptRate).padStart(7)}  ${equity.padStart(22)}  ${String(s.medianStores ?? '—').padStart(17)}`,
+    );
+  }
+  const num = (v: number | null, f: (x: number) => string = (x) => String(x)) => (v === null ? '—' : f(v));
+  lines.push('', `Đối thủ trên atlas (trung vị của ${stats.runs} run bot none):`);
+  lines.push('Năm  hoạt động  bị loại  gia nhập  cửa hàng  thị phần ngành  thua lỗ  biên EBITDA theo bậc');
+  for (const y of stats.years) {
+    const margins = Object.entries(y.marginByTier)
+      .map(([tier, m]) => `${tier} ${num(m, pctFmt)}`)
+      .join(' · ');
+    lines.push(
+      `${String(y.year).padStart(3)}  ${num(y.rivalsActive).padStart(9)}  ${num(y.rivalsOut).padStart(7)}  ${num(y.entrants).padStart(8)}  ${num(y.rivalStores).padStart(8)}  ${num(y.industryShare, pctFmt).padStart(14)}  ${num(y.losingShare, pctFmt).padStart(7)}  ${margins}`,
+    );
   }
   lines.push('', `Thời gian mô phỏng (tổng các run): ${(summary.totalMs / 1000).toFixed(1)} s`);
   return lines.join('\n');

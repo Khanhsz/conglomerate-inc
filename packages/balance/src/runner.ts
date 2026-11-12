@@ -11,6 +11,7 @@ import {
   retainedEarnings,
   selectors,
   step,
+  worldOf,
   type GameState,
   type LoadedContent,
 } from '@game/sim-core';
@@ -20,7 +21,9 @@ import type { Row, RunResult } from './report';
 function monthRows(state: GameState, content: LoadedContent, seed: number, bot: string): Row[] {
   const month = state.clock.day / DAYS_PER_MONTH - 1;
   const shares = selectors.marketShares(state, content);
+  const world = worldOf(content);
   return state.companyIds.map((companyId): Row => {
+    const company = state.companies[companyId];
     const statement = (state.statements[companyId] ?? []).find((s) => s.month === month);
     const b = currentBalances(state.ledger, companyId);
     const open = state.storeIds
@@ -29,11 +32,22 @@ function monthRows(state: GameState, content: LoadedContent, seed: number, bot: 
     const served = open.flatMap((s) =>
       s && s.lastMonth.days > 0 ? [s.lastMonth.served / s.lastMonth.days] : [],
     );
+    const cities = new Set<number>();
+    for (const s of open) {
+      const at = s ? world.indexOf.get(s.districtId) : undefined;
+      const k = at === undefined ? undefined : world.cityOf[at];
+      if (k !== undefined) cities.add(k);
+    }
     return {
       seed,
       bot,
       month,
       companyId,
+      kind: company?.kind ?? 'ai',
+      tier: company?.qualityTier ?? '',
+      reach: company?.kind === 'ai' ? company.profile.reach : '',
+      homeCity: company?.kind === 'ai' ? company.profile.homeCityId : '',
+      cities: cities.size,
       stores: open.length,
       revenue: statement?.pnl.revenue ?? 0,
       ebitda: statement?.pnl.ebitda ?? 0,

@@ -5,9 +5,10 @@
 import { loadContent } from '@game/content';
 import { createGame, DAYS_PER_YEAR, step } from '@game/sim-core';
 import { parseDocument } from 'yaml';
-import { readDefaultYaml } from './content';
+import { loadScenarioContent, readDefaultYaml } from './content';
 
 const TARGET_MS = 1500;
+const ATLAS_TARGET_MS_PER_DAY = 10;
 const STORES_PER_COMPANY = 15;
 
 /** m1-default với mỗi công ty 15 cửa hàng ban đầu, đủ tiền, AI không mở thêm (giữ đúng 60 cửa hàng). */
@@ -53,4 +54,24 @@ function main(): void {
   }
 }
 
+/** Atlas (M1.8): 7 thành phố, đối thủ sinh từ seed. In ms / ngày mô phỏng theo từng năm; mục tiêu ≤ 10 ms. */
+function atlas(): void {
+  const content = loadScenarioContent('atlas');
+  let state = createGame(content, { seed: 42 });
+  const perYear: string[] = [];
+  let worst = 0;
+  for (let year = 1; year <= 3; year++) {
+    const t0 = performance.now();
+    for (let d = 0; d < DAYS_PER_YEAR; d++) state = step(state, content);
+    const msPerDay = (performance.now() - t0) / DAYS_PER_YEAR;
+    worst = Math.max(worst, msPerDay);
+    perYear.push(`năm ${year}: ${msPerDay.toFixed(1)} ms/ngày`);
+  }
+  const open = state.storeIds.filter((id) => state.stores[id]?.status === 'open').length;
+  console.log(
+    `Atlas: ${state.companyIds.length} công ty, ${open} cửa hàng sau 3 năm — ${perYear.join(', ')}; mục tiêu ≤ ${ATLAS_TARGET_MS_PER_DAY} ms/ngày: ${worst <= ATLAS_TARGET_MS_PER_DAY ? 'ĐẠT' : 'CHƯA ĐẠT'}`,
+  );
+}
+
 main();
+atlas();

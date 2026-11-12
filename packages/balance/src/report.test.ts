@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { calibration, median, summarize, toCsv, type Row, type RunResult } from './report';
+import { atlasStats, calibration, median, summarize, toCsv, type Row, type RunResult } from './report';
 
 const row = (over: Partial<Row>): Row => ({
   seed: 1,
   bot: 'none',
   month: 0,
   companyId: 'player',
+  kind: 'player',
+  tier: 'standard',
+  reach: '',
+  homeCity: '',
+  cities: 0,
   stores: 0,
   revenue: 0,
   ebitda: 0,
@@ -26,9 +31,9 @@ describe('toCsv', () => {
     const csv = toCsv([row({ companyId: 'a,"b"', avgUtilization: 0.5 })]);
     const [header, line] = csv.trim().split('\n');
     expect(header).toBe(
-      'seed,bot,month,companyId,stores,revenue,ebitda,netIncome,cash,debt,status,avgUtilization,marketShare,equity,industryShare,servedPerStoreDay',
+      'seed,bot,month,companyId,stores,revenue,ebitda,netIncome,cash,debt,status,avgUtilization,marketShare,equity,industryShare,servedPerStoreDay,kind,tier,reach,homeCity,cities',
     );
-    expect(line).toBe('1,none,0,"a,""b""",0,0,0,0,0,0,active,0.5,0,0,0,');
+    expect(line).toBe('1,none,0,"a,""b""",0,0,0,0,0,0,active,0.5,0,0,0,,player,standard,,,0');
   });
 });
 
@@ -83,5 +88,65 @@ describe('calibration (economic-model §14)', () => {
     expect(c.industryShare).toBeCloseTo(0.4, 12);
     expect(c.servedPerStoreDay).toBeCloseTo(350, 12);
     expect(c.balancedEbitdaMargin).toBeCloseTo(0.15, 12);
+  });
+});
+
+describe('atlasStats (rival life cycle per year, M1.8)', () => {
+  const ai = (companyId: string, month: number, over: Partial<Row> = {}): Row =>
+    row({
+      companyId,
+      kind: 'ai',
+      tier: 'basic',
+      reach: 'local',
+      month,
+      stores: 2,
+      revenue: 100,
+      ebitda: 10,
+      ...over,
+    });
+  const months = (f: (m: number) => Row[]) => Array.from({ length: 24 }, (_, m) => f(m)).flat();
+  const run: RunResult = {
+    seed: 1,
+    bot: 'none',
+    violations: [],
+    ms: 1,
+    rows: months((m) => [
+      row({ month: m, industryShare: 0.4 }),
+      ai('ai-000001', m),
+      // lỗ cả năm 1, rút lui từ tháng 12
+      ai(
+        'ai-000002',
+        m,
+        m < 12
+          ? { ebitda: -20, tier: 'premium' }
+          : { status: 'exited', stores: 0, revenue: 0, ebitda: 0, tier: 'premium' },
+      ),
+      // gia nhập ở tháng 14
+      ...(m >= 14 ? [ai('ai-000003', m, { tier: 'premium', ebitda: 30 })] : []),
+    ]),
+  };
+
+  it('counts active, out and entrants at each year end, margins by tier and losing rivals', () => {
+    const stats = atlasStats([run], 2);
+    expect(stats.runs).toBe(1);
+    expect(stats.years[0]).toMatchObject({
+      year: 1,
+      rivalsActive: 2,
+      rivalsOut: 0,
+      entrants: 0,
+      rivalStores: 4,
+    });
+    expect(stats.years[0]?.industryShare).toBeCloseTo(0.4, 12);
+    expect(stats.years[0]?.marginByTier).toEqual({ basic: 0.1, premium: -0.2 });
+    expect(stats.years[0]?.losingShare).toBe(0.5);
+    expect(stats.years[1]).toMatchObject({
+      year: 2,
+      rivalsActive: 2,
+      rivalsOut: 1,
+      entrants: 1,
+      rivalStores: 4,
+    });
+    expect(stats.years[1]?.marginByTier).toEqual({ basic: 0.1, premium: 0.3 });
+    expect(stats.years[1]?.losingShare).toBe(0);
   });
 });
