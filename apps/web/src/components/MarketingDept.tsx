@@ -1,4 +1,4 @@
-import { CITY_TARGET, GENERAL_CHANNEL, money, type ChannelEffect } from '@game/sim-core';
+import { GENERAL_CHANNEL, money, type ChannelEffect } from '@game/sim-core';
 import { useState } from 'react';
 import { channelKey } from '../sim/pending';
 import type { Snapshot } from '../sim/snapshot';
@@ -143,7 +143,7 @@ function ChannelCard({
   district: string;
 }) {
   const send = useUi((s) => s.send);
-  const target = channel.scope === 'city' ? CITY_TARGET : district;
+  const target = channel.scope === 'city' ? snap.city.id : district;
   const current = channel.budgets.find((b) => b.target === target)?.monthly ?? 0;
   const pending = snap.pending.channelBudgets[channelKey(channel.channel, target)];
   const strong = Object.keys(channel.segmentWeight)

@@ -49,12 +49,12 @@ describe('loadContent — default content', () => {
     expect(Object.keys(content.industry.segments).sort()).toEqual(['office', 'other', 'premium', 'students']);
     expect(content.industry.aiPersonalities.balanced.qualityTier).toBe('standard');
     expect(content.scenario.id).toBe('m1-default');
-    expect(content.scenario.city.districts).toHaveLength(9);
+    expect(content.scenario.cities[0]?.districts ?? []).toHaveLength(9);
     expect(content.scenario.companies.map((c) => c.id)).toEqual(['player', 'ai-bean', 'ai-daily', 'ai-aura']);
   });
 
   it('every district mix sums to 1 (±1e-9)', () => {
-    for (const d of content.scenario.city.districts) {
+    for (const d of content.scenario.cities[0]?.districts ?? []) {
       const total = Object.values(d.mix).reduce((a, b) => a + b, 0);
       expect(Math.abs(total - 1)).toBeLessThanOrEqual(1e-9);
     }
@@ -70,10 +70,10 @@ describe('loadContent — default content', () => {
   it('is deep-frozen', () => {
     expect(Object.isFrozen(content)).toBe(true);
     expect(Object.isFrozen(content.industry.segments['office']?.betas)).toBe(true);
-    expect(Object.isFrozen(content.scenario.city.districts[0]?.mix)).toBe(true);
+    expect(Object.isFrozen((content.scenario.cities[0]?.districts ?? [])[0]?.mix)).toBe(true);
     // Reflect.set trả false (không ném) khi object bị đóng băng.
     expect(Reflect.set(content.industry, 'unitCost', 1)).toBe(false);
-    expect(Reflect.set(content.scenario.city.districts, 0, null)).toBe(false);
+    expect(Reflect.set(content.scenario.cities[0]?.districts ?? [], 0, null)).toBe(false);
     expect(content.industry.unitCost).toBe(90);
   });
 
@@ -231,6 +231,65 @@ describe('loadContent — validation errors point to the field', () => {
       at(d, 'marketingChannels', 'social')['scope'] = 'country';
     });
     expectIssue(issuesOf(badScope, scenarioYaml), 'industry', 'marketingChannels.social.scope');
+  });
+
+  it('`city:` (M1) is normalized to one city with an id from its name and zone central', () => {
+    const { scenario } = loadContent(industryYaml, scenarioYaml);
+    expect(scenario.cities.map((c) => c.id)).toEqual(['riverton']);
+    expect(scenario.cities[0]?.districts.every((d) => d.zone === 'central')).toBe(true);
+    expect('city' in scenario).toBe(false);
+  });
+
+  it('`cities:` accepts several cities; ids of cities and districts are unique across the scenario', () => {
+    const toCities = (mutate?: (second: Record<string, unknown>) => void) =>
+      edit(scenarioYaml, (d) => {
+        const first = at(d, 'city');
+        delete d['city'];
+        const districts = Array.isArray(first['districts']) ? first['districts'] : [];
+        const second: Record<string, unknown> = {
+          ...first,
+          id: 'harbor',
+          name: 'Harbor',
+          districts: districts.map((x: unknown) =>
+            isRecord(x) ? { ...x, id: `h-${String(x['id'])}`, zone: 'budget' } : x,
+          ),
+        };
+        mutate?.(second);
+        d['cities'] = [{ ...first, id: 'riverton' }, second];
+      });
+    const { scenario } = loadContent(industryYaml, toCities());
+    expect(scenario.cities.map((c) => c.id)).toEqual(['riverton', 'harbor']);
+    expect(scenario.cities[1]?.districts[0]).toMatchObject({ id: 'h-nw', zone: 'budget' });
+
+    const sameCityId = toCities((second) => {
+      second['id'] = 'riverton';
+    });
+    expectIssue(issuesOf(industryYaml, sameCityId), 'scenario', 'cities[1].id', /riverton/);
+    const sameDistrictId = toCities((second) => {
+      const list = second['districts'];
+      if (Array.isArray(list) && isRecord(list[0])) list[0]['id'] = 'nw';
+    });
+    expectIssue(issuesOf(industryYaml, sameDistrictId), 'scenario', 'cities[1].districts[0].id', /nw/);
+    const noId = toCities((second) => {
+      delete second['id'];
+    });
+    expectIssue(issuesOf(industryYaml, noId), 'scenario', 'cities[1].id');
+    const badZone = toCities((second) => {
+      const list = second['districts'];
+      if (Array.isArray(list) && isRecord(list[0])) list[0]['zone'] = 'suburb';
+    });
+    expectIssue(issuesOf(industryYaml, badZone), 'scenario', 'cities[1].districts[0].zone');
+  });
+
+  it('a scenario needs exactly one of `city` and `cities`', () => {
+    const both = edit(scenarioYaml, (d) => {
+      d['cities'] = [{ ...at(d, 'city'), id: 'riverton' }];
+    });
+    expectIssue(issuesOf(industryYaml, both), 'scenario', '', /city/);
+    const neither = edit(scenarioYaml, (d) => {
+      delete d['city'];
+    });
+    expectIssue(issuesOf(industryYaml, neither), 'scenario', '', /city/);
   });
 
   it('initial stores must reference existing districts', () => {

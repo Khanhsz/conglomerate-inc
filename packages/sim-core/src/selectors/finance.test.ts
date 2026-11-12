@@ -8,7 +8,7 @@ import type { GameState } from '../types/state';
 import { financeAdvice, storePnl } from './finance';
 
 const content = fixtureContent((d) => {
-  for (const district of d.scenario.city.districts) district.pop *= 3;
+  for (const district of d.scenario.cities.flatMap((c) => c.districts)) district.pop *= 3;
 });
 const AI = 'ai-1';
 const play = (s: GameState, cmds: Command[], days: number) =>

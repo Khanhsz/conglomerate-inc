@@ -89,5 +89,5 @@ export {
   segmentIdsOf,
   uniformAwareness,
 } from './awareness';
-export { CITY_TARGET } from './commands/marketing';
 export { marketingEffect, type ChannelEffect, type MarketingEffect } from './selectors/marketing';
+export { cityOfDistrict, districtById, worldDistricts, worldOf, type World } from './world';

@@ -18,7 +18,7 @@ export function benchContent() {
   const industry = parseDocument(yaml.industry);
   industry.setIn(['aiRules', 'expansion', 'minMonthlyRoi'], 1e9);
   const scenario = parseDocument(yaml.scenario);
-  const districtIds = base.city.districts.map((d) => d.id);
+  const districtIds = base.cities.flatMap((c) => c.districts).map((d) => d.id);
   const twice = [...districtIds, ...districtIds].slice(0, STORES_PER_COMPANY);
   base.companies.forEach((_, i) => {
     scenario.setIn(['companies', i, 'startingCash'], 1_000_000_000); // $10M

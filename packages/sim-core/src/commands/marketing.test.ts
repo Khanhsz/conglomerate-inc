@@ -38,7 +38,7 @@ const ready = play(fresh, [
 
 describe('SetChannelBudget (economic-model §18.2)', () => {
   it('needs the Marketing department; SetMarketingBudget (general) stays unlocked', () => {
-    expect(reason(fresh, channel('social', 'city', 100_000))).toMatch(/Marketing/);
+    expect(reason(fresh, channel('social', 'testville', 100_000))).toMatch(/Marketing/);
     expect(
       reason(fresh, {
         type: 'SetMarketingBudget',
@@ -46,14 +46,15 @@ describe('SetChannelBudget (economic-model §18.2)', () => {
         payload: { monthly: money(100_000) },
       }),
     ).toBeNull();
-    expect(reason(ready, channel('social', 'city', 100_000))).toBeNull();
+    expect(reason(ready, channel('social', 'testville', 100_000))).toBeNull();
   });
 
   it('rejects general, unknown channels, a target that does not fit the scope and bad amounts', () => {
     expect(reason(ready, channel('general', 'city', 100_000))).toMatch(/SetMarketingBudget/);
     expect(reason(ready, channel('radio', 'city', 100_000))).toMatch(/không tồn tại/);
     expect(reason(ready, channel('social', 'w', 100_000))).toMatch(/toàn thành phố/);
-    expect(reason(ready, channel('flyers', 'city', 100_000))).toMatch(/theo quận/);
+    expect(reason(ready, channel('flyers', 'testville', 100_000))).toMatch(/theo quận/);
+    expect(reason(ready, channel('social', 'city', 100_000))).toMatch(/toàn thành phố/);
     expect(reason(ready, channel('flyers', 'nowhere', 100_000))).toMatch(/không tồn tại/);
     expect(reason(ready, channel('flyers', 'w', -1))).toMatch(/không hợp lệ/);
     expect(reason(ready, channel('flyers', 'w', 100_000_001))).toMatch(/không hợp lệ/);
@@ -69,25 +70,25 @@ describe('SetChannelBudget (economic-model §18.2)', () => {
 
   it('upserts in a fixed order (channel id, then district order); 0 removes the line', () => {
     const s = play(ready, [
-      channel('social', 'city', 240_000),
+      channel('social', 'testville', 240_000),
       channel('flyers', 'e', 30_000),
       channel('flyers', 'w', 60_000),
     ]);
     expect(player(s).channelBudgets).toEqual([
       { channel: 'flyers', target: 'w', monthly: 60_000 },
       { channel: 'flyers', target: 'e', monthly: 30_000 },
-      { channel: 'social', target: 'city', monthly: 240_000 },
+      { channel: 'social', target: 'testville', monthly: 240_000 },
     ]);
-    const changed = play(s, [channel('flyers', 'w', 0), channel('social', 'city', 120_000)]);
+    const changed = play(s, [channel('flyers', 'w', 0), channel('social', 'testville', 120_000)]);
     expect(player(changed).channelBudgets).toEqual([
       { channel: 'flyers', target: 'e', monthly: 30_000 },
-      { channel: 'social', target: 'city', monthly: 120_000 },
+      { channel: 'social', target: 'testville', monthly: 120_000 },
     ]);
   });
 
   it('closing the Marketing department (or releasing the office) drops channel budgets, not general', () => {
     const s = play(ready, [
-      channel('social', 'city', 240_000),
+      channel('social', 'testville', 240_000),
       { type: 'SetMarketingBudget', companyId: 'player', payload: { monthly: money(90_000) } },
     ]);
     const closed = play(s, [
@@ -107,7 +108,7 @@ describe('SetChannelBudget (economic-model §18.2)', () => {
       start,
       [
         { type: 'SetMarketingBudget', companyId: 'player', payload: { monthly: money(90_000) } },
-        channel('social', 'city', 240_000),
+        channel('social', 'testville', 240_000),
         channel('flyers', 'e', 30_000),
       ],
       30,

@@ -6,7 +6,7 @@ import { hashValue, type IndustryContent, type LoadedContent, type ScenarioConte
 import { parseDocument } from 'yaml';
 import type { z } from 'zod';
 import { deepFreeze } from './freeze';
-import { industrySchema, scenarioSchema } from './schema';
+import { industrySchema, scenarioSchema, type ScenarioParsed } from './schema';
 
 export type ContentSource = 'industry' | 'scenario';
 
@@ -67,7 +67,12 @@ function validate<S extends z.ZodType>(
 }
 
 /** Ràng buộc giữa hai tài liệu. */
-function crossCheck(industry: IndustryContent, scenario: ScenarioContent, issues: ContentIssue[]): void {
+function crossCheck(
+  industry: IndustryContent,
+  scenario: ScenarioContent,
+  legacyCity: boolean,
+  issues: ContentIssue[],
+): void {
   if (scenario.industry !== industry.id) {
     issues.push({
       source: 'scenario',
@@ -75,17 +80,40 @@ function crossCheck(industry: IndustryContent, scenario: ScenarioContent, issues
       message: `scenario dành cho ngành "${scenario.industry}" nhưng industry pack là "${industry.id}"`,
     });
   }
-  scenario.city.districts.forEach((d, i) => {
-    for (const segment of Object.keys(d.mix).sort()) {
-      if (!Object.hasOwn(industry.segments, segment)) {
-        issues.push({
-          source: 'scenario',
-          path: formatPath(['city', 'districts', i, 'mix', segment]),
-          message: `phân khúc "${segment}" không có trong industry.segments`,
-        });
+  scenario.cities.forEach((city, k) => {
+    city.districts.forEach((d, i) => {
+      for (const segment of Object.keys(d.mix).sort()) {
+        if (!Object.hasOwn(industry.segments, segment)) {
+          issues.push({
+            source: 'scenario',
+            // Đường dẫn theo đúng dạng người viết YAML đã dùng: `city` (M1) hoặc `cities[k]`.
+            path: formatPath([...(legacyCity ? ['city'] : ['cities', k]), 'districts', i, 'mix', segment]),
+            message: `phân khúc "${segment}" không có trong industry.segments`,
+          });
+        }
       }
-    }
+    });
   });
+}
+
+/** Id cho thành phố khai theo dạng cũ (`city:` không có id): tên viết thường, khoảng trắng thành gạch nối. */
+function cityIdFromName(name: string): string {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug === '' ? 'city' : slug;
+}
+
+/** Chuẩn hóa về `cities` (ADR-0003): `city:` của M1 thành danh sách một phần tử, mọi thành phố có id. */
+function normalizeScenario(parsed: ScenarioParsed): ScenarioContent {
+  const { city, cities, ...rest } = parsed;
+  const list = cities ?? (city ? [city] : []);
+  return {
+    ...rest,
+    cities: list.map((c) => ({ ...c, id: c.id ?? cityIdFromName(c.name) })),
+  };
 }
 
 export function loadContent(industryYaml: string, scenarioYaml: string): LoadedContent {
@@ -96,10 +124,11 @@ export function loadContent(industryYaml: string, scenarioYaml: string): LoadedC
   // Gán vào kiểu của sim-core: lỗi biên dịch ở đây nghĩa là schema lệch khỏi types/content.ts.
   const industry: IndustryContent | undefined =
     industryRaw === undefined ? undefined : validate(industrySchema, industryRaw, 'industry', issues);
-  const scenario: ScenarioContent | undefined =
+  const parsed =
     scenarioRaw === undefined ? undefined : validate(scenarioSchema, scenarioRaw, 'scenario', issues);
+  const scenario: ScenarioContent | undefined = parsed === undefined ? undefined : normalizeScenario(parsed);
 
-  if (industry && scenario) crossCheck(industry, scenario, issues);
+  if (industry && scenario) crossCheck(industry, scenario, parsed?.city !== undefined, issues);
   if (issues.length > 0 || !industry || !scenario) throw new ContentValidationError(issues);
 
   return deepFreeze({ industry, scenario, contentVersion: hashValue({ industry, scenario }) });

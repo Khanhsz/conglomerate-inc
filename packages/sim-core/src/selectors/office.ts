@@ -12,6 +12,7 @@ import {
   type OfficeSize,
 } from '../types/content';
 import type { GameState } from '../types/state';
+import { worldDistricts } from '../world';
 
 export interface LeaseOption {
   readonly districtId: DistrictId;
@@ -57,7 +58,7 @@ export function officeView(
 ): OfficeView | null {
   const company = state.companies[companyId];
   if (!company) return null;
-  const { industry, scenario } = content;
+  const { industry } = content;
   const priceIndex = state.macro.priceIndex;
   const departments = DEPARTMENTS.map((dept) => ({
     dept,
@@ -88,7 +89,7 @@ export function officeView(
           office.overheadMonthly,
           ...departments.filter((d) => d.openedDay !== null).map((d) => d.fixedMonthly),
         ]);
-  const leaseOptions = scenario.city.districts.flatMap((district) =>
+  const leaseOptions = worldDistricts(content).flatMap((district) =>
     OFFICE_SIZES.map((size) => ({
       districtId: district.id,
       size,

@@ -2,7 +2,8 @@
  * Màn hình cửa hàng (M1.7, spec M1.7 §3): đánh giá sao theo tiêu chí và thị phần khu vực. Hàm thuần, không đổi kinh tế.
  */
 import { segmentIdsOf } from '../awareness';
-import { candidateUtility, demandCandidates, distanceKm, logitShares } from '../systems/demand';
+import { candidateUtility, demandCandidates, kmToCandidate, logitShares } from '../systems/demand';
+import { worldOf } from '../world';
 import type { CompanyId, LoadedContent } from '../types/content';
 import type { GameState, StoreId } from '../types/state';
 
@@ -74,9 +75,10 @@ export interface AreaShare {
  */
 export function areaShares(state: GameState, content: LoadedContent, storeId: StoreId): AreaShare[] | null {
   const store = state.stores[storeId];
-  const { industry, scenario } = content;
-  const e = scenario.city.districts.findIndex((d) => d.id === store?.districtId);
-  const origin = scenario.city.districts[e];
+  const { industry } = content;
+  const world = worldOf(content);
+  const e = store ? (world.indexOf.get(store.districtId) ?? -1) : -1;
+  const origin = world.districts[e];
   if (!store || !origin) return null;
   const segmentIds = segmentIdsOf(content);
   const candidates = demandCandidates(state, content);
@@ -89,16 +91,14 @@ export function areaShares(state: GameState, content: LoadedContent, storeId: St
     if (segmentId === undefined || !segment) continue;
     const visits = origin.pop * (origin.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
     if (visits === 0) continue;
-    const reach = candidates.filter(
-      (c) => distanceKm(scenario.city, origin, c.district) <= segment.maxTravelKm,
-    );
+    const reach = candidates.filter((c) => kmToCandidate(world, e, c) <= segment.maxTravelKm);
     const utilities = reach.map((c) =>
       candidateUtility(
         segmentId,
         segment,
         state.macro.incomeIndex,
         c,
-        distanceKm(scenario.city, origin, c.district),
+        kmToCandidate(world, e, c),
         e * segmentIds.length + s,
       ),
     );

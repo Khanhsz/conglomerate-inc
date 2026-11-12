@@ -20,6 +20,7 @@ import {
   type LoadedContent,
   type Money,
   type Rng,
+  worldDistricts,
 } from '@game/sim-core';
 
 export type Bot = (state: GameState, content: LoadedContent, rng: Rng) => Command[];
@@ -64,7 +65,7 @@ function randomCommand(
   const between = (lo: number, hi: number): Money => money(rng.int(Math.ceil(lo), Math.floor(hi)));
   switch (rng.int(0, 8)) {
     case 0: {
-      const district = pick(rng, content.scenario.city.districts);
+      const district = pick(rng, worldDistricts(content));
       return district ? { type: 'OpenStore', companyId, payload: { districtId: district.id } } : null;
     }
     case 1: {

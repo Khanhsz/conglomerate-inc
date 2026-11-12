@@ -8,6 +8,7 @@ import { sum, ZERO, type Money } from '../money';
 import { expectedDemand } from '../systems/demand';
 import type { ChannelScope, CompanyId, LoadedContent } from '../types/content';
 import type { Company, GameState } from '../types/state';
+import { worldDistricts } from '../world';
 
 export interface ChannelEffect {
   /** `general` hoặc id kênh trong content. */
@@ -18,7 +19,7 @@ export interface ChannelEffect {
   readonly alpha: number;
   /** Chi mỗi ngày để đạt 63% hiệu quả tối đa, theo giá hôm nay. */
   readonly halfSaturationDaily: number;
-  /** Từng dòng ngân sách đang đặt (`city` hoặc quận). */
+  /** Từng dòng ngân sách đang đặt: id thành phố (kênh `city`), id quận (kênh `district`), `all` với `general`. */
   readonly budgets: readonly { readonly target: string; readonly monthly: Money }[];
   /** Tổng ngân sách tháng của kênh. */
   readonly monthlySpend: Money;
@@ -69,7 +70,7 @@ export function marketingEffect(
 ): MarketingEffect {
   const company = state.companies[companyId];
   if (!company) throw new Error(`marketingEffect: unknown company ${companyId}`);
-  const { industry, scenario } = content;
+  const { industry } = content;
   const segmentIds = segmentIdsOf(content);
   const priceIndex = state.macro.priceIndex;
   const unitCost =
@@ -123,7 +124,7 @@ export function marketingEffect(
       alpha: industry.brand.alpha,
       halfSat: industry.brand.halfSaturationDaily,
     },
-    company.marketingBudgetMonthly > 0 ? [{ target: 'city', monthly: company.marketingBudgetMonthly }] : [],
+    company.marketingBudgetMonthly > 0 ? [{ target: 'all', monthly: company.marketingBudgetMonthly }] : [],
   );
   const others = channelIdsOf(content).flatMap((id) => {
     const def = industry.marketingChannels[id];
@@ -135,7 +136,7 @@ export function marketingEffect(
   });
 
   return {
-    districtIds: scenario.city.districts.map((d) => d.id),
+    districtIds: worldDistricts(content).map((d) => d.id),
     segmentIds,
     awareness: company.awareness,
     meanAwareness: meanAwareness(content, company.awareness),

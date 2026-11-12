@@ -31,6 +31,8 @@ import {
   type StorePnl,
   marketingEffect,
   meanAwareness,
+  worldDistricts,
+  type CityDef,
   type MarketingEffect,
 } from '@game/sim-core';
 import { computeAlerts, type Alert } from './alerts';
@@ -118,7 +120,12 @@ export interface Snapshot {
     readonly marketingBudgetMonthly: Money;
     readonly qualityTier: QualityTier;
   };
-  readonly city: { readonly name: string; readonly gridW: number; readonly gridH: number };
+  readonly city: {
+    readonly id: string;
+    readonly name: string;
+    readonly gridW: number;
+    readonly gridH: number;
+  };
   /** Luật cho ô nhập (validate thật vẫn ở worker). */
   readonly rules: { readonly minStaffPerStore: number; readonly earlyRepaymentFee: number };
   readonly districts: readonly DistrictView[];
@@ -196,7 +203,8 @@ export function buildSnapshot(
     return s && s.status === 'open' ? [s] : [];
   });
 
-  const districts = scenario.city.districts.map((d): DistrictView => {
+  const city = viewedCity(content);
+  const districts = city.districts.map((d): DistrictView => {
     const counts: Record<string, number> = {};
     for (const s of openStores)
       if (s.districtId === d.id) counts[s.companyId] = (counts[s.companyId] ?? 0) + 1;
@@ -269,7 +277,7 @@ export function buildSnapshot(
       marketingBudgetMonthly: player.marketingBudgetMonthly,
       qualityTier: player.qualityTier,
     },
-    city: { name: scenario.city.name, gridW: scenario.city.gridW, gridH: scenario.city.gridH },
+    city: { id: city.id, name: city.name, gridW: city.gridW, gridH: city.gridH },
     rules: {
       minStaffPerStore: content.industry.minStaffPerStore,
       earlyRepaymentFee: scenario.finance.earlyRepaymentFee,
@@ -329,10 +337,17 @@ function financeView(state: GameState, content: LoadedContent, pid: string): Fin
   };
 }
 
+/** Thành phố đang xem; hiện là thành phố đầu tiên của scenario. */
+function viewedCity(content: LoadedContent): CityDef {
+  const city = content.scenario.cities[0];
+  if (!city) throw new Error('scenario has no city');
+  return city;
+}
+
 function marketingSection(state: GameState, content: LoadedContent, pid: string): Snapshot['marketing'] {
   const view = marketingEffect(state, content, pid);
   const S = view.segmentIds.length;
-  const byDistrict = content.scenario.city.districts.map((d, e) => {
+  const byDistrict = worldDistricts(content).map((d, e) => {
     let weighted = 0;
     let share = 0;
     view.segmentIds.forEach((segmentId, s) => {

@@ -159,7 +159,7 @@ describe('store history (A3)', () => {
   it('keeps the last 14 days and the last 12 months', () => {
     // Thành phố gấp 3 dân số để cửa hàng AI có lãi và mở suốt 13 tháng (fixture gốc: người chơi phá sản sớm).
     const big = fixtureContent((d) => {
-      for (const district of d.scenario.city.districts) district.pop *= 3;
+      for (const district of d.scenario.cities.flatMap((c) => c.districts)) district.pop *= 3;
     });
     const s = runDays(createGame(big), big, 13 * 30);
     const st = must(s.stores['store-000001']);

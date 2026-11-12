@@ -9,6 +9,7 @@ import { post } from '../ledger/post';
 import { add, type Money, mul, ZERO } from '../money';
 import { policyMoraleTarget } from '../hr';
 import type { System } from '../types/context';
+import { districtById } from '../world';
 
 /** productivity = 0.7 + 0.6 × morale ∈ [0.7, 1.3] (economic-model §4.1). */
 export function productivity(morale: number): number {
@@ -21,7 +22,7 @@ export function moraleTarget(wageRatio: number, sensitivity: number): number {
 }
 
 export const operationsSystem: System = (draft, ctx) => {
-  const { industry, scenario } = ctx.content;
+  const { industry } = ctx.content;
   const priceIndex = draft.macro.priceIndex;
   const marketWage = draft.macro.marketWageMonthly * priceIndex;
   const revenueByCompany: Record<string, Money> = {};
@@ -45,7 +46,7 @@ export const operationsSystem: System = (draft, ctx) => {
     }
 
     if (ctx.day >= store.rentResetDay) {
-      const district = scenario.city.districts.find((d) => d.id === store.districtId);
+      const district = districtById(ctx.content, store.districtId);
       if (district) store.rentMonthly = mul(district.rentMonthly, priceIndex);
       store.rentResetDay += RENT_TERM_DAYS;
     }

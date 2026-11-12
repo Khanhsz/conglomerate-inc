@@ -144,7 +144,7 @@ describe('tax reversal at month close (economic-model §6.2)', () => {
   it('a loss month after a profitable month reverses the tax: Dr TaxPayable / Cr IncomeTax', () => {
     // Fixture gốc quá nhỏ để AI có lãi; dân số × 3 thì cửa hàng chạy hết công suất và có lãi ở tháng 0.
     const big = fixtureContent((d) => {
-      for (const district of d.scenario.city.districts) district.pop *= 3;
+      for (const district of d.scenario.cities.flatMap((c) => c.districts)) district.pop *= 3;
     });
     const m0 = runDays(createGame(big), big, 30);
     const tax0 = must(m0.statements['ai-1']?.[0]).pnl.incomeTax;

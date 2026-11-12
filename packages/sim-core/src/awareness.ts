@@ -4,6 +4,7 @@
  * (cùng thứ tự với vòng lặp của cầu, §3.3).
  */
 import type { IndustryContent, LoadedContent } from './types/content';
+import { worldDistricts } from './world';
 
 /** Kênh M1 (§5): toàn thành phố, mọi phân khúc trọng số 1, ngân sách ở `marketingBudgetMonthly`. */
 export const GENERAL_CHANNEL = 'general';
@@ -32,7 +33,7 @@ export function channelIdsOf(content: LoadedContent): readonly string[] {
 }
 
 export function awarenessCellCount(content: LoadedContent): number {
-  return content.scenario.city.districts.length * segmentIdsOf(content).length;
+  return worldDistricts(content).length * segmentIdsOf(content).length;
 }
 
 /** Mọi ô cùng một giá trị (trạng thái đầu game; với chỉ kênh `general` các ô luôn bằng nhau). */
@@ -46,7 +47,7 @@ export function meanAwareness(content: LoadedContent, cells: readonly number[]):
   const S = segmentIds.length;
   let weighted = 0;
   let people = 0;
-  content.scenario.city.districts.forEach((d, e) => {
+  worldDistricts(content).forEach((d, e) => {
     segmentIds.forEach((segmentId, s) => {
       const n = d.pop * (d.mix[segmentId] ?? 0);
       weighted += n * (cells[e * S + s] ?? 0);

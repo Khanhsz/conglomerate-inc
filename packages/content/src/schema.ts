@@ -3,7 +3,7 @@
  * ràng buộc chéo giữa industry và scenario nằm ở load.ts.
  * Output phải gán được vào IndustryContent / ScenarioContent của sim-core (kiểm tra ở load.ts lúc biên dịch).
  */
-import { DEPARTMENTS, MAX_STAFF_PER_STORE, money, PERSONALITIES, QUALITY_TIERS } from '@game/sim-core';
+import { DEPARTMENTS, MAX_STAFF_PER_STORE, money, PERSONALITIES, QUALITY_TIERS, ZONES } from '@game/sim-core';
 import { z } from 'zod';
 
 const MIX_TOLERANCE = 1e-9;
@@ -198,6 +198,8 @@ const districtDef = z.strictObject({
   id,
   x: z.number().int(),
   y: z.number().int(),
+  /** Khu Bình dân / Trung tâm / Cao cấp (M1.8); YAML cũ không khai thì là `central`. */
+  zone: z.enum(ZONES).default('central'),
   pop: z.number().int().min(0),
   mix: z.record(id, unit),
   rentMonthly: moneyCents,
@@ -206,6 +208,8 @@ const districtDef = z.strictObject({
 
 const city = z
   .strictObject({
+    /** Bắt buộc trong `cities`; dạng `city:` cũ suy từ tên. */
+    id: id.optional(),
     name: z.string(),
     gridW: z.number().int().min(1),
     gridH: z.number().int().min(1),
@@ -313,10 +317,44 @@ export const scenarioSchema = z
         commitmentFeeAnnual: unit,
       }),
     }),
-    city,
+    /** Dạng M1: một thành phố. Dùng `city` hoặc `cities`, không dùng cả hai. */
+    city: city.optional(),
+    /** Nhiều thành phố (M1.8, ADR-0003). */
+    cities: z.array(city).min(1).optional(),
     companies: z.array(company).min(1),
   })
   .superRefine((s, ctx) => {
+    if ((s.city === undefined) === (s.cities === undefined)) {
+      ctx.addIssue({ code: 'custom', path: [], message: 'cần đúng một trong hai: `city` hoặc `cities`' });
+    }
+    const cityIds = new Map<string, number>();
+    const allDistricts = new Map<string, string>();
+    (s.cities ?? []).forEach((c, k) => {
+      if (c.id === undefined) {
+        ctx.addIssue({ code: 'custom', path: ['cities', k, 'id'], message: 'thiếu id thành phố' });
+        return;
+      }
+      const first = cityIds.get(c.id);
+      if (first === undefined) cityIds.set(c.id, k);
+      else {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['cities', k, 'id'],
+          message: `id thành phố "${c.id}" trùng với cities[${first}]`,
+        });
+      }
+      c.districts.forEach((d, i) => {
+        const owner = allDistricts.get(d.id);
+        if (owner === undefined) allDistricts.set(d.id, c.id ?? '');
+        else if (owner !== c.id) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['cities', k, 'districts', i, 'id'],
+            message: `id quận "${d.id}" đã dùng ở thành phố ${owner}; id quận phải duy nhất trong cả scenario`,
+          });
+        }
+      });
+    });
     const players = s.companies.filter((c) => c.kind === 'player').length;
     if (players !== 1) {
       ctx.addIssue({
@@ -337,7 +375,9 @@ export const scenarioSchema = z
         });
       }
     });
-    const districtIds = new Set(s.city.districts.map((d) => d.id));
+    const districtIds = new Set(
+      [...(s.city ? [s.city] : []), ...(s.cities ?? [])].flatMap((c) => c.districts.map((d) => d.id)),
+    );
     s.companies.forEach((c, i) => {
       c.initialStores.forEach((districtId, j) => {
         if (!districtIds.has(districtId)) {

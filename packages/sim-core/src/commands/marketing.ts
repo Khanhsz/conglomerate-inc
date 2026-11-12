@@ -1,4 +1,4 @@
-/** Lệnh của phòng Marketing (economic-model §18.2, spec M1.6 §3). */
+/** Lệnh của phòng Marketing (economic-model §18.2, spec M1.6 §3, M1.8). */
 import { channelIdsOf, GENERAL_CHANNEL } from '../awareness';
 import { MAX_MARKETING_BUDGET_MONTHLY } from '../constants';
 import { money, toDisplay } from '../money';
@@ -7,17 +7,20 @@ import type { Validation } from '../types/commands';
 import type { LoadedContent } from '../types/content';
 import type { SimContext } from '../types/context';
 import type { ChannelBudget, GameState } from '../types/state';
+import { worldOf } from '../world';
 import { companyProblem, getCompany, isSafeInt, OK, reject, type CommandOf } from './common';
 
-export const CITY_TARGET = 'city';
-
-/** Vị trí sắp xếp của một dòng ngân sách: kênh theo id tăng dần, rồi `city` hoặc quận theo thứ tự scenario. */
+/**
+ * Vị trí sắp xếp của một dòng ngân sách: kênh theo id tăng dần, rồi mục tiêu theo thứ tự scenario
+ * (thành phố với kênh `city`, địa điểm với kênh `district`).
+ */
 function budgetRank(
   content: LoadedContent,
   b: { channel: string; target: string },
 ): readonly [number, number] {
-  const districts = content.scenario.city.districts;
-  return [channelIdsOf(content).indexOf(b.channel), districts.findIndex((d) => d.id === b.target)];
+  const world = worldOf(content);
+  const target = world.cityIndexOf.get(b.target) ?? world.indexOf.get(b.target) ?? -1;
+  return [channelIdsOf(content).indexOf(b.channel), target];
 }
 
 export const setChannelBudget = {
@@ -34,10 +37,13 @@ export const setChannelBudget = {
     const def = typeof channel === 'string' ? ctx.content.industry.marketingChannels[channel] : undefined;
     if (typeof channel !== 'string' || !def || !channelIdsOf(ctx.content).includes(channel))
       return reject(`kênh marketing "${String(channel)}" không tồn tại`);
+    const world = worldOf(ctx.content);
     if (def.scope === 'city') {
-      if (target !== CITY_TARGET)
-        return reject(`kênh ${def.name} chạy toàn thành phố: target phải là "city"`);
-    } else if (!ctx.content.scenario.city.districts.some((d) => d.id === target)) {
+      if (typeof target !== 'string' || !world.cityIndexOf.has(target))
+        return reject(
+          `kênh ${def.name} chạy toàn thành phố: target phải là id một thành phố, "${String(target)}" không tồn tại`,
+        );
+    } else if (typeof target !== 'string' || !world.indexOf.has(target)) {
       return reject(`kênh ${def.name} chạy theo quận: quận "${String(target)}" không tồn tại`);
     }
     if (!isSafeInt(monthly) || monthly < 0 || monthly > MAX_MARKETING_BUDGET_MONTHLY) {

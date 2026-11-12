@@ -15,6 +15,7 @@ import { createRngFactory } from './rng';
 import { defaultHrPolicy, emptyOfficeAccrued, noDepartments } from './office';
 import { deepFreeze, devChecksEnabled } from './devChecks';
 import { beginTick } from './tick';
+import { worldDistricts } from './world';
 import { aiSystem, aiTargetPrice } from './systems/ai';
 import { brandSystem } from './systems/brand';
 import { demandSystem } from './systems/demand';
@@ -114,7 +115,7 @@ export function createGame(content: LoadedContent, opts: { readonly seed?: numbe
     seed: opts.seed ?? scenario.seed,
     clock: { day: 0 },
     macro: { ...scenario.macro },
-    city: { districtIds: scenario.city.districts.map((d) => d.id) },
+    city: { districtIds: worldDistricts(content).map((d) => d.id) },
     companies: {},
     companyIds: [],
     stores: {},

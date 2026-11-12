@@ -155,33 +155,38 @@ const scenario: ScenarioContent = {
     earlyRepaymentFee: 0.01,
     creditLine: { revenueMultiple: 2, maxLeverage: 2, spreadDiscount: 0.02, commitmentFeeAnnual: 0.005 },
   },
-  city: {
-    name: 'Testville',
-    gridW: 2,
-    gridH: 1,
-    districtSizeKm: 2,
-    sameDistrictKm: 0.5,
-    districts: [
-      {
-        id: 'w',
-        x: 0,
-        y: 0,
-        pop: 10_000,
-        mix: { office: 0.5, students: 0.5 },
-        rentMonthly: money(500_000),
-        fitOutCost: money(10_000_000),
-      },
-      {
-        id: 'e',
-        x: 1,
-        y: 0,
-        pop: 12_000,
-        mix: { office: 0.7, students: 0.3 },
-        rentMonthly: money(700_000),
-        fitOutCost: money(12_000_000),
-      },
-    ],
-  },
+  cities: [
+    {
+      id: 'testville',
+      name: 'Testville',
+      gridW: 2,
+      gridH: 1,
+      districtSizeKm: 2,
+      sameDistrictKm: 0.5,
+      districts: [
+        {
+          id: 'w',
+          x: 0,
+          y: 0,
+          zone: 'central',
+          pop: 10_000,
+          mix: { office: 0.5, students: 0.5 },
+          rentMonthly: money(500_000),
+          fitOutCost: money(10_000_000),
+        },
+        {
+          id: 'e',
+          x: 1,
+          y: 0,
+          zone: 'central',
+          pop: 12_000,
+          mix: { office: 0.7, students: 0.3 },
+          rentMonthly: money(700_000),
+          fitOutCost: money(12_000_000),
+        },
+      ],
+    },
+  ],
   companies: [
     { id: 'player', name: 'Player Co.', kind: 'player', startingCash: money(25_000_000), initialStores: [] },
     {
@@ -198,6 +203,36 @@ const scenario: ScenarioContent = {
 export interface ContentPair {
   readonly industry: IndustryContent;
   readonly scenario: ScenarioContent;
+}
+
+/**
+ * Fixture hai thành phố: thêm "Eastville", bản sao của Testville với id địa điểm `w2` / `e2`, không có cửa hàng nào.
+ * Dùng để kiểm các luật nhiều thành phố (economic-model §2, §5).
+ */
+export function twoCityContent(edit?: (draft: Draft<ContentPair>) => void): LoadedContent {
+  return fixtureContent((d) => {
+    const first = d.scenario.cities[0];
+    if (!first) throw new Error('fixture has no city');
+    d.scenario.cities.push({
+      id: 'eastville',
+      name: 'Eastville',
+      gridW: first.gridW,
+      gridH: first.gridH,
+      districtSizeKm: first.districtSizeKm,
+      sameDistrictKm: first.sameDistrictKm,
+      districts: first.districts.map((x) => ({
+        id: `${x.id}2`,
+        x: x.x,
+        y: x.y,
+        zone: x.zone,
+        pop: x.pop,
+        mix: { ...x.mix },
+        rentMonthly: x.rentMonthly,
+        fitOutCost: x.fitOutCost,
+      })),
+    });
+    edit?.(d);
+  });
 }
 
 /** Content fixture, có thể chỉnh qua `edit` (draft immer). Kết quả bị deep-freeze như loadContent. */

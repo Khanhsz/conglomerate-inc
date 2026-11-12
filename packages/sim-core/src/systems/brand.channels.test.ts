@@ -63,7 +63,7 @@ describe('awareness by district and segment (economic-model §18)', () => {
   });
 
   it('a city channel reaches every district, scaled by segment weight', () => {
-    const s = runBrand(withBudgets(base, 0, [budget('social', 'city', 240_000)])); // $80/ngày = halfSat
+    const s = runBrand(withBudgets(base, 0, [budget('social', 'testville', 240_000)])); // $80/ngày = halfSat
     const full = 0.012 * (1 - Math.exp(-1));
     for (const i of [W_STUDENTS, E_STUDENTS]) {
       expect(cell(s, i)).toBeCloseTo(0.05 + 0.95 * full - DELTA * 0.05, 15);
@@ -75,7 +75,7 @@ describe('awareness by district and segment (economic-model §18)', () => {
 
   it('channels combine as lift = 1 − Π(1 − lift_ch), starting from `general`', () => {
     const s = runBrand(
-      withBudgets(base, 300_000, [budget('flyers', 'w', 30_000), budget('social', 'city', 240_000)]),
+      withBudgets(base, 300_000, [budget('flyers', 'w', 30_000), budget('social', 'testville', 240_000)]),
     );
     const g = 0.01 * (1 - Math.exp(-1));
     const f = 0.015 * (1 - Math.exp(-1));
@@ -94,7 +94,7 @@ describe('awareness by district and segment (economic-model §18)', () => {
   });
 
   it('a budget for a channel that left the content is ignored', () => {
-    const s = runBrand(withBudgets(base, 0, [budget('radio', 'city', 500_000)]));
+    const s = runBrand(withBudgets(base, 0, [budget('radio', 'testville', 500_000)]));
     expect(cells(s)).toEqual(cells(runBrand(base)));
   });
 });
@@ -125,7 +125,7 @@ describe('channel contributions (economic-model §18.3)', () => {
     });
     let s = withBudgets(createGame(c), 300_000, [
       budget('flyers', 'e', 60_000),
-      budget('social', 'city', 150_000),
+      budget('social', 'testville', 150_000),
     ]);
     for (let i = 0; i < 400; i++) s = runBrand(s, c);
     const company = must(s.companies['player']);
@@ -156,7 +156,7 @@ describe('channel contributions (economic-model §18.3)', () => {
           let s = withBudgets(base, g, [
             budget('flyers', 'w', fw),
             budget('flyers', 'e', fe),
-            budget('social', 'city', so),
+            budget('social', 'testville', so),
           ]);
           s = produce(s, (d) => {
             must(d.stores['store-000001']).companyId = 'player';

@@ -4,12 +4,13 @@
  * - whatIf / priceCurve: ước tính kỳ vọng nếu đổi giá / nhân viên / lương, đối thủ giữ nguyên, chưa tính nhiễu.
  */
 import { segmentIdsOf } from '../awareness';
+import { worldOf } from '../world';
 import { AI_PRICE_TICK, DAYS_PER_MONTH, PRICE_BAND } from '../constants';
 import { money, mul, sub, sum, type Money } from '../money';
 import {
   demandCandidates,
-  distanceKm,
   expectedDemand,
+  kmToCandidate,
   logitShares,
   candidateUtility,
   utilityParts,
@@ -89,8 +90,8 @@ interface Cell {
 
 export function inspectStore(state: GameState, content: LoadedContent, storeId: string): StoreInspection {
   const store = getStore(state, storeId);
-  const { industry, scenario } = content;
-  const { city } = scenario;
+  const { industry } = content;
+  const world = worldOf(content);
   const incomeIndex = state.macro.incomeIndex;
   const candidates = demandCandidates(state, content);
   const me = candidates.find((c) => c.id === storeId);
@@ -104,9 +105,9 @@ export function inspectStore(state: GameState, content: LoadedContent, storeId: 
   const segmentIds = segmentIdsOf(content);
   const S = segmentIds.length;
   if (me) {
-    for (let e = 0; e < city.districts.length; e++) {
-      const origin = city.districts[e];
-      if (!origin) continue;
+    for (let e = 0; e < world.districts.length; e++) {
+      const origin = world.districts[e];
+      if (!origin || world.cityOf[e] !== me.city) continue;
       for (let s = 0; s < S; s++) {
         const segmentId = segmentIds[s];
         const segment = segmentId === undefined ? undefined : industry.segments[segmentId];
@@ -115,7 +116,7 @@ export function inspectStore(state: GameState, content: LoadedContent, storeId: 
         const visits = origin.pop * (origin.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
         if (visits === 0) continue;
         const reachable = candidates.flatMap((c) => {
-          const km = distanceKm(city, origin, c.district);
+          const km = kmToCandidate(world, e, c);
           return km > segment.maxTravelKm
             ? []
             : [{ c, km, u: candidateUtility(segmentId, segment, incomeIndex, c, km, index) }];
@@ -370,8 +371,8 @@ export function ownDemandAtPrices(
   storeId: string,
   prices: readonly number[],
 ): number[] {
-  const { industry, scenario } = content;
-  const { city } = scenario;
+  const { industry } = content;
+  const world = worldOf(content);
   const incomeIndex = state.macro.incomeIndex;
   const candidates = demandCandidates(state, content);
   const me = candidates.find((c) => c.id === storeId);
@@ -379,9 +380,9 @@ export function ownDemandAtPrices(
   if (!me) return out;
   const segmentIds = segmentIdsOf(content);
   const S = segmentIds.length;
-  for (let e = 0; e < city.districts.length; e++) {
-    const origin = city.districts[e];
-    if (!origin) continue;
+  for (let e = 0; e < world.districts.length; e++) {
+    const origin = world.districts[e];
+    if (!origin || world.cityOf[e] !== me.city) continue;
     for (let s = 0; s < S; s++) {
       const segmentId = segmentIds[s];
       const segment = segmentId === undefined ? undefined : industry.segments[segmentId];
@@ -389,12 +390,12 @@ export function ownDemandAtPrices(
       const index = e * S + s;
       const visits = origin.pop * (origin.mix[segmentId] ?? 0) * segment.visitsPerPersonPerDay;
       if (visits === 0) continue;
-      const ownKm = distanceKm(city, origin, me.district);
+      const ownKm = kmToCandidate(world, e, me);
       if (ownKm > segment.maxTravelKm) continue;
       const others: number[] = [segment.outsideUtility];
       for (const c of candidates) {
         if (c.id === storeId) continue;
-        const km = distanceKm(city, origin, c.district);
+        const km = kmToCandidate(world, e, c);
         if (km <= segment.maxTravelKm)
           others.push(candidateUtility(segmentId, segment, incomeIndex, c, km, index));
       }

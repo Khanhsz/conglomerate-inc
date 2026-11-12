@@ -1,12 +1,14 @@
 /**
  * Nhận biết thương hiệu: adstock có bão hòa + truyền miệng (economic-model §5), theo quận × phân khúc với
- * nhiều kênh (§18). Chạy trước demand. Chỉ dùng kênh `general` thì mọi ô bằng nhau và đúng bằng §5.
+ * nhiều kênh (§18) và nhiều thành phố (M1.8). Chạy trước demand.
+ * Một thành phố và chỉ kênh `general` thì mọi ô bằng nhau và đúng bằng §5 của M1.
  */
 import { GENERAL_CHANNEL, segmentIdsOf } from '../awareness';
 import { DAYS_PER_MONTH } from '../constants';
 import type { LoadedContent } from '../types/content';
 import type { System } from '../types/context';
 import type { ChannelAwareness, Company } from '../types/state';
+import { worldOf, type World } from '../world';
 
 /** lift = α(1 − exp(−spendDaily / (halfSat × priceIndex))); chi ≤ 0 → 0. */
 export function brandLift(
@@ -29,13 +31,14 @@ interface ChannelLift {
 }
 
 /**
- * Lift từng kênh đang có ngân sách (§18.2): kênh `city` dùng cùng một giá trị cho mọi quận, kênh `district`
- * chỉ có ở quận được chi. Kênh không còn trong content hoặc ngân sách 0 thì bỏ qua.
+ * Lift từng kênh đang có ngân sách (§18.2): kênh `city` dùng cùng một giá trị cho mọi quận của thành phố được
+ * chi, kênh `district` chỉ có ở quận được chi. Kênh không còn trong content, mục tiêu không tồn tại hoặc ngân
+ * sách 0 thì bỏ qua.
  */
 export function channelLifts(company: Company, content: LoadedContent, priceIndex: number): ChannelLift[] {
   if (company.channelBudgets.length === 0) return [];
-  const { industry, scenario } = content;
-  const districts = scenario.city.districts;
+  const { industry } = content;
+  const world = worldOf(content);
   const segmentIds = segmentIdsOf(content);
   const out: ChannelLift[] = [];
   let current: { channel: string; byDistrict: number[]; bySegment: number[] } | null = null;
@@ -47,16 +50,19 @@ export function channelLifts(company: Company, content: LoadedContent, priceInde
     if (!current || current.channel !== b.channel) {
       current = {
         channel: b.channel,
-        byDistrict: districts.map(() => 0),
+        byDistrict: world.districts.map(() => 0),
         bySegment: segmentIds.map((s) => def.segmentWeight[s] ?? 0),
       };
       out.push(current);
     }
     if (def.scope === 'city') {
-      current.byDistrict.fill(lift);
+      const k = world.cityIndexOf.get(b.target);
+      const start = k === undefined ? undefined : world.cityStart[k];
+      const size = k === undefined ? undefined : world.citySize[k];
+      if (start !== undefined && size !== undefined) current.byDistrict.fill(lift, start, start + size);
     } else {
-      const e = districts.findIndex((d) => d.id === b.target);
-      if (e >= 0) current.byDistrict[e] = lift;
+      const e = world.indexOf.get(b.target);
+      if (e !== undefined) current.byDistrict[e] = lift;
     }
   }
   return out;
@@ -75,7 +81,35 @@ function cellsOf(list: ChannelAwareness[], channel: string, size: number): numbe
 }
 
 /**
- * Mỗi ô (e, s): A ← A + (1 − A)·lift − δ·A, rồi A ← A + γ·Σ served / dân số thành phố, kẹp [0, 1].
+ * Lift của kênh `general` ở từng thành phố (§5, M1.8): ngân sách chia theo dân số cho các thành phố công ty
+ * đang có cửa hàng mở (chưa có cửa hàng nào: mọi thành phố). Một thành phố thì tỷ lệ chia bằng 1.
+ */
+export function generalLiftByCity(
+  world: World,
+  hasStore: readonly boolean[] | undefined,
+  spendDaily: number,
+  alpha: number,
+  halfSaturationDaily: number,
+  priceIndex: number,
+): number[] {
+  const anywhere = hasStore?.some((x) => x) ?? false;
+  const included = world.cities.map((_, k) => (anywhere ? (hasStore?.[k] ?? false) : true));
+  let pop = 0;
+  let count = 0;
+  included.forEach((inc, k) => {
+    if (!inc) return;
+    pop += world.cityPop[k] ?? 0;
+    count += 1;
+  });
+  return world.cities.map((_, k) => {
+    if (!included[k]) return 0;
+    const share = pop > 0 ? (world.cityPop[k] ?? 0) / pop : 1 / count;
+    return brandLift(alpha, spendDaily * share, halfSaturationDaily, priceIndex);
+  });
+}
+
+/**
+ * Mỗi ô (e, s) của thành phố k: A ← A + (1 − A)·lift − δ·A, rồi A ← A + γ·Σ served ở k / dân số k, kẹp [0, 1].
  * `lift = 1 − Π_ch (1 − lift_ch)`, bắt đầu từ lift của `general` nên khi không có kênh khác thì đúng bằng §5.
  * `served` là của hôm qua: operations hôm nay chưa chạy nên `store.today` vẫn giữ số của ngày trước.
  *
@@ -84,17 +118,26 @@ function cellsOf(list: ChannelAwareness[], channel: string, size: number): numbe
  */
 export const brandSystem: System = (draft, ctx) => {
   const { brand } = ctx.content.industry;
-  const districts = ctx.content.scenario.city.districts;
+  const world = worldOf(ctx.content);
   const S = segmentIdsOf(ctx.content).length;
-  const size = districts.length * S;
-  let cityPopulation = 0;
-  for (const d of districts) cityPopulation += d.pop;
+  const D = world.districts.length;
+  const size = D * S;
+  const cityCount = world.cities.length;
 
-  const servedYesterday: Record<string, number> = {};
+  // Theo công ty và thành phố: lượt phục vụ hôm qua và có cửa hàng đang mở hay không.
+  const servedYesterday: Record<string, number[]> = {};
+  const hasStore: Record<string, boolean[]> = {};
   for (const id of draft.storeIds) {
     const store = draft.stores[id];
-    if (store)
-      servedYesterday[store.companyId] = (servedYesterday[store.companyId] ?? 0) + store.today.served;
+    if (!store) continue;
+    const at = world.indexOf.get(store.districtId);
+    const k = at === undefined ? undefined : world.cityOf[at];
+    if (k === undefined) continue;
+    const served = (servedYesterday[store.companyId] ??= Array<number>(cityCount).fill(0));
+    served[k] = (served[k] ?? 0) + store.today.served;
+    if (store.status === 'open') {
+      (hasStore[store.companyId] ??= Array<boolean>(cityCount).fill(false))[k] = true;
+    }
   }
 
   const keep = 1 - brand.decayPerDay;
@@ -102,18 +145,33 @@ export const brandSystem: System = (draft, ctx) => {
     const company = draft.companies[companyId];
     if (!company || company.status === 'bankrupt') continue;
     const spendDaily = company.marketingBudgetMonthly / DAYS_PER_MONTH;
-    const general = brandLift(brand.alpha, spendDaily, brand.halfSaturationDaily, draft.macro.priceIndex);
+    const generalByCity = generalLiftByCity(
+      world,
+      hasStore[companyId],
+      spendDaily,
+      brand.alpha,
+      brand.halfSaturationDaily,
+      draft.macro.priceIndex,
+    );
     const channels = channelLifts(company, ctx.content, draft.macro.priceIndex);
-    const wordOfMouth =
-      cityPopulation > 0 ? (brand.wordOfMouth * (servedYesterday[companyId] ?? 0)) / cityPopulation : 0;
+    const served = servedYesterday[companyId];
+    const wordOfMouth = world.cityPop.map((pop, k) =>
+      pop > 0 ? (brand.wordOfMouth * (served?.[k] ?? 0)) / pop : 0,
+    );
 
     const contributions = company.channelAwareness;
     for (const c of contributions) for (let i = 0; i < size; i++) c.cells[i] = (c.cells[i] ?? 0) * keep;
-    const generalCells = general > 0 ? cellsOf(contributions, GENERAL_CHANNEL, size) : null;
+    const generalCells = generalByCity.some((l) => l > 0)
+      ? cellsOf(contributions, GENERAL_CHANNEL, size)
+      : null;
     const channelCells = channels.map((ch) => cellsOf(contributions, ch.channel, size));
 
     const cells = company.awareness;
-    for (let e = 0; e < districts.length; e++) {
+    for (let e = 0; e < D; e++) {
+      const k = world.cityOf[e] ?? 0;
+      const general = generalByCity[k] ?? 0;
+      const cityHasPeople = (world.cityPop[k] ?? 0) > 0;
+      const wom = wordOfMouth[k] ?? 0;
       for (let s = 0; s < S; s++) {
         const i = e * S + s;
         let lift = general;
@@ -128,16 +186,16 @@ export const brandSystem: System = (draft, ctx) => {
         const before = cells[i] ?? 0;
         let a = before;
         a = a + (1 - a) * lift - brand.decayPerDay * a;
-        if (cityPopulation > 0) a += wordOfMouth;
+        if (cityHasPeople) a += wom;
         const next = clamp01(a);
         cells[i] = next;
 
         if (liftSum > 0) {
           const gained = ((1 - before) * lift) / liftSum;
-          if (generalCells) generalCells[i] = (generalCells[i] ?? 0) + gained * general;
-          channels.forEach((ch, k) => {
+          if (generalCells && general > 0) generalCells[i] = (generalCells[i] ?? 0) + gained * general;
+          channels.forEach((ch, c) => {
             const l = (ch.byDistrict[e] ?? 0) * (ch.bySegment[s] ?? 0);
-            const target = channelCells[k];
+            const target = channelCells[c];
             if (l > 0 && target) target[i] = (target[i] ?? 0) + gained * l;
           });
         }

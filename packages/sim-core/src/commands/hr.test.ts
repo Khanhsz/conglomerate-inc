@@ -15,7 +15,7 @@ import type { GameState, HrPolicy } from '../types/state';
 
 /** Thành phố gấp 3 dân số để cửa hàng người chơi có lãi đóng góp (cần cho thưởng). */
 const content = fixtureContent((d) => {
-  for (const district of d.scenario.city.districts) district.pop *= 3;
+  for (const district of d.scenario.cities.flatMap((c) => c.districts)) district.pop *= 3;
 });
 const RUNS = Number(process.env['FC_RUNS'] ?? 100);
 const P = 'player';

@@ -9,6 +9,7 @@ import { must } from '../test-support/must';
 import type { LoadedContent, SegmentDef } from '../types/content';
 import type { SimContext } from '../types/context';
 import type { GameState } from '../types/state';
+import { worldDistricts } from '../world';
 import { demandSystem, distanceKm, expectedDemand, logitShares, storeUtility } from './demand';
 
 const finite = (min: number, max: number) => fc.double({ min, max, noNaN: true, noDefaultInfinity: true });
@@ -126,7 +127,7 @@ describe('storeUtility (economic-model §3.1)', () => {
 });
 
 describe('distanceKm (economic-model §2)', () => {
-  const { city } = fixtureContent().scenario;
+  const city = must(fixtureContent().scenario.cities[0]);
   const [w, e] = city.districts;
   it('Manhattan × district size; same district uses sameDistrictKm', () => {
     if (!w || !e) throw new Error('fixture needs two districts');
@@ -152,7 +153,7 @@ describe('expectedDemand (economic-model §3.3)', () => {
     const seg = content.industry.segments;
     const x = { quality: 0.6, price: 350, refPrice: 350, awareness: 0.05, serviceLevel: 0.6 };
     let expected = 0;
-    for (const d of content.scenario.city.districts) {
+    for (const d of worldDistricts(content)) {
       for (const [id, s] of Object.entries(seg)) {
         const km = d.id === 'e' ? 0.5 : 2;
         if (km > s.maxTravelKm) continue;
@@ -174,7 +175,7 @@ describe('expectedDemand (economic-model §3.3)', () => {
     const state = createGame(content);
     const near = fixtureContent((d) => {
       for (const s of Object.values(d.industry.segments)) s.maxTravelKm = 1;
-      must(d.scenario.city.districts[0]).pop = 0; // không ai ở w: kết quả không đổi nếu w vốn đã ngoài tầm
+      must(must(d.scenario.cities[0]).districts[0]).pop = 0; // không ai ở w: kết quả không đổi nếu w vốn đã ngoài tầm
     });
     const a = expectedDemand(state, content).byStore['store-000001'];
     const b = expectedDemand(createGame(near), near).byStore['store-000001'];

@@ -15,7 +15,7 @@ import { beginTick } from './tick';
 
 /** Thành phố gấp 3 dân số: mọi công ty có lãi, chạy đủ 2 năm không phá sản (để mọi nhánh đều chạy). */
 const content = fixtureContent((d) => {
-  for (const district of d.scenario.city.districts) district.pop *= 3;
+  for (const district of d.scenario.cities.flatMap((c) => c.districts)) district.pop *= 3;
 });
 const RUNS = Number(process.env['FC_RUNS'] ?? 100);
 

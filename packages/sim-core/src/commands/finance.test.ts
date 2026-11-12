@@ -13,7 +13,7 @@ import type { GameState } from '../types/state';
 
 /** Thành phố gấp 3 dân số: AI `ai-1` có lãi, nên có lịch sử EBITDA dương để vay (như test lịch sử A3). */
 const content = fixtureContent((d) => {
-  for (const district of d.scenario.city.districts) district.pop *= 3;
+  for (const district of d.scenario.cities.flatMap((c) => c.districts)) district.pop *= 3;
 });
 const AI = 'ai-1';
 const lease: Command = { type: 'LeaseOffice', companyId: AI, payload: { districtId: 'e', size: 'small' } };

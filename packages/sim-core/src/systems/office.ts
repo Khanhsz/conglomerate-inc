@@ -6,16 +6,17 @@ import { DAYS_PER_MONTH, RENT_TERM_DAYS } from '../constants';
 import { officeRent } from '../office';
 import { DEPARTMENTS } from '../types/content';
 import type { System } from '../types/context';
+import { districtById } from '../world';
 
 export const officeSystem: System = (draft, ctx) => {
-  const { industry, scenario } = ctx.content;
+  const { industry } = ctx.content;
   const priceIndex = draft.macro.priceIndex;
   for (const companyId of draft.companyIds) {
     const company = draft.companies[companyId];
     const office = company?.office;
     if (!company || !office || company.status === 'bankrupt') continue;
     if (ctx.day >= office.rentResetDay) {
-      const district = scenario.city.districts.find((d) => d.id === office.districtId);
+      const district = districtById(ctx.content, office.districtId);
       if (district) office.rentMonthly = officeRent(draft, ctx.content, district, office.size);
       office.rentResetDay += RENT_TERM_DAYS;
     }

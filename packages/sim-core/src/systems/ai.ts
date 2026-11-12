@@ -22,6 +22,7 @@ import type { Command } from '../types/commands';
 import type { DistrictDef, ExpansionRule, LoadedContent, Personality, QualityTier } from '../types/content';
 import type { System } from '../types/context';
 import type { GameState, Store } from '../types/state';
+import { worldDistricts } from '../world';
 import { productivity } from './operations';
 
 export interface AiPolicy {
@@ -132,7 +133,7 @@ function chooseDistrict(
   }
   let best: DistrictDef[] = [];
   let bestScore = -Infinity;
-  for (const d of content.scenario.city.districts) {
+  for (const d of worldDistricts(content)) {
     if ((ownCount[d.id] ?? 0) >= MAX_STORES_PER_DISTRICT) continue;
     if (cash < policy.expansion.cashMultiple * storeCapex(state, d)) continue;
     const score = districtPotential(content, d) / (1 + (openCount[d.id] ?? 0));

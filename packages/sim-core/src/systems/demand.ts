@@ -3,8 +3,9 @@ import { segmentIdsOf } from '../awareness';
 import type { CityDef, DistrictDef, LoadedContent, SegmentDef, SegmentId } from '../types/content';
 import type { System } from '../types/context';
 import type { GameState, StoreId } from '../types/state';
+import { worldOf, type World } from '../world';
 
-/** Khoảng cách Manhattan giữa hai quận; cùng quận = sameDistrictKm (economic-model §2). */
+/** Khoảng cách Manhattan giữa hai quận của cùng một thành phố; cùng quận = sameDistrictKm (economic-model §2). */
 export function distanceKm(city: CityDef, from: DistrictDef, to: DistrictDef): number {
   if (from.id === to.id) return city.sameDistrictKm;
   return (Math.abs(from.x - to.x) + Math.abs(from.y - to.y)) * city.districtSizeKm;
@@ -94,6 +95,8 @@ export interface DemandCandidate {
   readonly id: StoreId;
   readonly companyId: string;
   readonly district: DistrictDef;
+  /** Chỉ số thành phố của cửa hàng (thứ tự scenario). */
+  readonly city: number;
   readonly x: Omit<UtilityInputs, 'distanceKm' | 'awareness'>;
   /** A_{c,e,s} của công ty (§18.1): ô (e, s) ở `e × S + s`. */
   readonly awareness: readonly number[];
@@ -140,20 +143,23 @@ export function candidateUtility(
 
 /** Cửa hàng đang mở của công ty chưa phá sản, theo thứ tự storeIds. */
 export function demandCandidates(state: GameState, content: LoadedContent): DemandCandidate[] {
-  const { industry, scenario } = content;
+  const { industry } = content;
+  const world = worldOf(content);
   const refPrice = industry.referencePrice * state.macro.priceIndex;
-  const districts = new Map(scenario.city.districts.map((d) => [d.id, d]));
   const candidates: DemandCandidate[] = [];
   for (const id of state.storeIds) {
     const store = state.stores[id];
     if (!store || store.status !== 'open') continue;
     const company = state.companies[store.companyId];
-    const district = districts.get(store.districtId);
-    if (!company || company.status === 'bankrupt' || !district) continue;
+    const at = world.indexOf.get(store.districtId);
+    const district = at === undefined ? undefined : world.districts[at];
+    const city = at === undefined ? undefined : world.cityOf[at];
+    if (!company || company.status === 'bankrupt' || !district || city === undefined) continue;
     candidates.push({
       id,
       companyId: company.id,
       district,
+      city,
       x: {
         quality: industry.qualityTiers[company.qualityTier].quality,
         price: store.price,
@@ -167,10 +173,22 @@ export function demandCandidates(state: GameState, content: LoadedContent): Dema
   return candidates;
 }
 
+/**
+ * Khoảng cách từ địa điểm gốc `e` (chỉ số trong thế giới) tới cửa hàng ứng viên; khác thành phố thì không với
+ * tới (∞, economic-model §2).
+ */
+export function kmToCandidate(world: World, e: number, c: DemandCandidate): number {
+  const k = world.cityOf[e];
+  const city = k === undefined ? undefined : world.cities[k];
+  const origin = world.districts[e];
+  if (!city || !origin || c.city !== k) return Infinity;
+  return distanceKm(city, origin, c.district);
+}
+
 /** Cầu kỳ vọng (trước nhiễu) của mọi cửa hàng đang mở (economic-model §3.3). Chỉ đọc state. */
 export function expectedDemand(state: GameState, content: LoadedContent): DemandSnapshot {
-  const { industry, scenario } = content;
-  const { city } = scenario;
+  const { industry } = content;
+  const world = worldOf(content);
   const candidates = demandCandidates(state, content);
 
   const byStore: Record<StoreId, number> = {};
@@ -180,9 +198,11 @@ export function expectedDemand(state: GameState, content: LoadedContent): Demand
   const segmentIds = segmentIdsOf(content);
   const S = segmentIds.length;
 
-  for (let e = 0; e < city.districts.length; e++) {
-    const origin = city.districts[e];
-    if (!origin) continue;
+  for (let e = 0; e < world.districts.length; e++) {
+    const origin = world.districts[e];
+    const k = world.cityOf[e];
+    const city = k === undefined ? undefined : world.cities[k];
+    if (!origin || !city) continue;
     for (let s = 0; s < S; s++) {
       const segmentId = segmentIds[s];
       const segment = segmentId === undefined ? undefined : industry.segments[segmentId];
@@ -193,6 +213,8 @@ export function expectedDemand(state: GameState, content: LoadedContent): Demand
       const reachable: DemandCandidate[] = [];
       const utilities: number[] = [];
       for (const c of candidates) {
+        // Khách chỉ mua trong thành phố mình sống (§2); thứ tự ứng viên giữ theo storeIds.
+        if (c.city !== k) continue;
         const km = distanceKm(city, origin, c.district);
         if (km > segment.maxTravelKm) continue;
         reachable.push(c);

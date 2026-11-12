@@ -207,10 +207,16 @@ export interface CreditLineParams {
   readonly commitmentFeeAnnual: number;
 }
 
+export const ZONES = ['budget', 'central', 'premium'] as const;
+/** Khu trong thành phố (M1.8): Bình dân / Trung tâm / Cao cấp. Chỉ là nhãn; kinh tế nằm ở pop, mix, thuê. */
+export type Zone = (typeof ZONES)[number];
+
 export interface DistrictDef {
+  /** Duy nhất trong cả scenario. */
   readonly id: DistrictId;
   readonly x: number;
   readonly y: number;
+  readonly zone: Zone;
   readonly pop: number;
   /** Tỷ trọng phân khúc, tổng = 1. Phân khúc vắng mặt = 0. */
   readonly mix: { readonly [segment: SegmentId]: number };
@@ -219,6 +225,7 @@ export interface DistrictDef {
 }
 
 export interface CityDef {
+  readonly id: string;
   readonly name: string;
   readonly gridW: number;
   readonly gridH: number;
@@ -252,7 +259,8 @@ export interface ScenarioContent {
   readonly seed: number;
   readonly macro: MacroParams;
   readonly finance: FinanceParams;
-  readonly city: CityDef;
+  /** Các thành phố (ADR-0003); khách chỉ mua trong thành phố mình sống. Thứ tự này là thứ tự chuẩn của thế giới. */
+  readonly cities: readonly CityDef[];
   readonly companies: readonly CompanyDef[];
 }
 

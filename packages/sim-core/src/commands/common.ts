@@ -5,6 +5,7 @@ import type { Money } from '../money';
 import type { Command, Validation } from '../types/commands';
 import type { DistrictDef, LoadedContent } from '../types/content';
 import type { Company, GameState, Store, StoreId } from '../types/state';
+import { districtById } from '../world';
 
 export type CommandOf<T extends Command['type']> = Extract<Command, { type: T }>;
 
@@ -76,9 +77,7 @@ export function getStore(state: GameState, storeId: string): Store {
 }
 
 export function findDistrict(content: LoadedContent, districtId: unknown): DistrictDef | undefined {
-  return typeof districtId === 'string'
-    ? content.scenario.city.districts.find((d) => d.id === districtId)
-    : undefined;
+  return typeof districtId === 'string' ? districtById(content, districtId) : undefined;
 }
 
 /** Pref hiện tại (cent, số thực) = referencePrice × priceIndex. */
