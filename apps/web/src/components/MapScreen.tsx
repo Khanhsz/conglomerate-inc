@@ -62,7 +62,7 @@ export function MapScreen({ snap }: { snap: Snapshot }) {
           )}
         </section>
         <section className="panel">
-          <h2>Thị phần thành phố</h2>
+          <h2>Thị phần ở {snap.city.name}</h2>
           <CityShareDonut snap={snap} />
         </section>
         <AlertsPanel snap={snap} />

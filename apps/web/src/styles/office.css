@@ -268,3 +268,21 @@ button.level.active {
     white-space: normal;
   }
 }
+
+/* M1.8: hồ sơ đối thủ. */
+.rivals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 10px;
+  margin: 8px 0;
+}
+.card.rival h3 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+}
+.rival-style {
+  margin: 4px 0 6px;
+  line-height: 1.9;
+}

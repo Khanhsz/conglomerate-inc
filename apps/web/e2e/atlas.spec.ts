@@ -29,6 +29,17 @@ test('atlas: seven cities, switch city, open stores in two cities, start a new g
   await expect(page.getByTestId('city-riverton')).toContainText('◆1');
   await expect(page.getByTestId('city-ironbridge')).toContainText('◆1');
 
+  // Hồ sơ đối thủ ở Trụ sở: lọc theo thành phố đang xem, mỗi thẻ có phong cách và doanh thu ước tính.
+  await page.getByTestId('open-hq').click();
+  await page.getByTestId('tab-marketing').click();
+  const cards = page.getByTestId('rival-list').locator('article');
+  await expect(cards.first()).toContainText('Doanh thu tháng (ước tính)');
+  const here = await cards.count();
+  expect(here).toBeGreaterThanOrEqual(2);
+  await page.getByTestId('rivals-all').click();
+  expect(await cards.count()).toBeGreaterThan(here);
+  await page.getByTestId('close-screen').click();
+
   // Ván mới với seed tự nhập: về ngày 0, không còn cửa hàng, seed hiện trên thanh trên.
   await page.getByTestId('new-game').click();
   await page.getByTestId('new-game-seed').fill('123');

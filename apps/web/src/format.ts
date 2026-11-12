@@ -20,22 +20,38 @@ export function compactUsd(cents: number): string {
 /** Nhãn tháng: N1·T1 = năm 1, tháng 1. */
 export const monthLabel = (m: number): string => `N${Math.floor(m / 12) + 1}·T${(m % 12) + 1}`;
 
-/** Ký hiệu và màu theo thứ tự công ty (người chơi đứng đầu). */
-const GLYPHS = ['◆', '▲', '■', '●', '★'];
-const COLOR_TOKENS = 5;
-/** Màu lấy từ token CSS `--company-N` (có bản sáng và tối). */
-export function companyStyle(index: number): { glyph: string; color: string } {
-  return { glyph: GLYPHS[index % GLYPHS.length] ?? '●', color: `var(--company-${index % COLOR_TOKENS})` };
+/** Ký hiệu của đối thủ; người chơi luôn là ◆. */
+const RIVAL_GLYPHS = ['▲', '■', '●', '★'];
+/** Số màu dành cho đối thủ (token `--company-1` … `--company-7`); `--company-0` là người chơi. */
+const RIVAL_COLORS = 7;
+/**
+ * Màu và ký hiệu cố định theo `colorIndex` của công ty (0 = người chơi; đối thủ đánh số theo thứ tự thành lập).
+ * Màu lấy từ token CSS (có bản sáng và tối, đã kiểm bằng validator); ký hiệu đổi theo chu kỳ khác với màu nên
+ * 28 đối thủ đầu tiên không trùng cả màu lẫn ký hiệu.
+ */
+export function companyStyle(colorIndex: number): { glyph: string; color: string } {
+  if (colorIndex <= 0) return { glyph: '◆', color: 'var(--company-0)' };
+  const n = colorIndex - 1;
+  return {
+    glyph: RIVAL_GLYPHS[n % RIVAL_GLYPHS.length] ?? '●',
+    color: `var(--company-${1 + (n % RIVAL_COLORS)})`,
+  };
 }
 
 /** Một dòng mô tả event bằng tiếng Việt. */
-export function eventText(e: GameEvent, names: Readonly<Record<string, string>>, playerId: string): string {
+export function eventText(
+  e: GameEvent,
+  names: Readonly<Record<string, string>>,
+  playerId: string,
+  /** Tên hiển thị của một địa điểm; mặc định là mã ngắn. */
+  place: (districtId: string) => string = districtLabel,
+): string {
   const who = (id: string) => (id === playerId ? 'Bạn' : (names[id] ?? id));
   switch (e.kind) {
     case 'commandRejected':
       return `✗ ${who(e.companyId)}: lệnh ${e.commandType} bị từ chối — ${e.reason}`;
     case 'storeOpened':
-      return `${who(e.companyId)} mở cửa hàng ${e.storeId} ở ${districtLabel(e.districtId)}`;
+      return `${who(e.companyId)} mở cửa hàng ${e.storeId} ở ${place(e.districtId)}`;
     case 'storeClosed':
       return `${who(e.companyId)} đóng cửa hàng ${e.storeId}`;
     case 'distress':
@@ -51,7 +67,7 @@ export function eventText(e: GameEvent, names: Readonly<Record<string, string>>,
     case 'loanRepaid':
       return `${who(e.companyId)} trả sớm ${e.loanId}: gốc ${usd(e.principal)}, phí ${usd(e.fee)}`;
     case 'officeLeased':
-      return `${who(e.companyId)} thuê văn phòng ${OFFICE_SIZE_LABEL[e.size]} ở ${districtLabel(e.districtId)}`;
+      return `${who(e.companyId)} thuê văn phòng ${OFFICE_SIZE_LABEL[e.size]} ở ${place(e.districtId)}`;
     case 'officeReleased':
       return `${who(e.companyId)} trả văn phòng`;
     case 'departmentOpened':

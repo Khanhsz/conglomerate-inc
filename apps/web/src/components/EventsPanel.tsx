@@ -1,6 +1,7 @@
 import type { Snapshot } from '../sim/snapshot';
 import { useUi } from '../store';
 import { eventText } from '../format';
+import { placeName } from '../sim/places';
 
 export function EventsPanel({ snap }: { snap: Snapshot }) {
   const { notices, dismissNotice } = useUi();
@@ -22,7 +23,8 @@ export function EventsPanel({ snap }: { snap: Snapshot }) {
             key={`${e.day}-${i}`}
             className={`event event-${e.kind} ${e.companyId === snap.player.id ? 'mine' : ''}`}
           >
-            <span className="muted">ngày {e.day}</span> {eventText(e, names, snap.player.id)}
+            <span className="muted">ngày {e.day}</span>{' '}
+            {eventText(e, names, snap.player.id, (id) => placeName(snap.cities, id))}
           </li>
         ))}
       </ol>

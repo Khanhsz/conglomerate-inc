@@ -11,7 +11,7 @@ const DENSE_FROM_COLUMNS = 5;
 /** Bản đồ một thành phố: lưới địa điểm theo tọa độ (cho phép ô trống), nhãn khu, cửa hàng theo công ty. */
 export function CityMap({ snap }: { snap: Snapshot }) {
   const { selectedDistrict, selectDistrict, viewCity, send } = useUi();
-  const index = new Map(snap.companies.map((c, i) => [c.id, i]));
+  const index = new Map(snap.companies.map((c) => [c.id, c.colorIndex]));
   const selected = snap.districts.find((d) => d.id === selectedDistrict);
   const canOpen = snap.player.status === 'active';
   const dense = snap.city.gridW >= DENSE_FROM_COLUMNS;
@@ -108,9 +108,9 @@ export function CityMap({ snap }: { snap: Snapshot }) {
         <p className="muted">Bấm một địa điểm để xem và mở cửa hàng.</p>
       )}
       <p className="legend">
-        {snap.companies.map((c, i) => {
+        {snap.companies.map((c) => {
           if (c.kind !== 'player' && !present.has(c.id)) return null;
-          const style = companyStyle(i);
+          const style = companyStyle(c.colorIndex);
           return (
             <span key={c.id}>
               <span style={{ color: style.color }}>{style.glyph}</span> {c.kind === 'player' ? 'Bạn' : c.name}

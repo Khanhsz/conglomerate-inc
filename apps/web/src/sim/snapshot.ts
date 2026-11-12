@@ -32,7 +32,11 @@ import {
   marketingEffect,
   meanAwareness,
   worldOf,
+  expectedDemand,
+  money,
   type CityDef,
+  type Reach,
+  type RivalProfile,
   type Zone,
   type MarketingEffect,
 } from '@game/sim-core';
@@ -78,7 +82,29 @@ export interface CompanyView {
   readonly brandAwareness: number;
   readonly storeCount: number;
   readonly avgPrice: Money | null;
+  /** Thị phần ở thành phố đang xem (lượt mua kỳ vọng / tổng lượt tiềm năng của thành phố). */
   readonly marketShare: number;
+  /** Màu và ký hiệu cố định của công ty: 0 = người chơi, đối thủ đánh số theo thứ tự thành lập. */
+  readonly colorIndex: number;
+  /** Số cửa hàng đang mở ở thành phố đang xem. */
+  readonly storesHere: number;
+  /** Hồ sơ công khai của đối thủ (M1.8); null với người chơi. Không gồm markup, tiền mặt, lợi nhuận. */
+  readonly dossier: RivalDossier | null;
+}
+
+/** Tốc độ mở rộng, suy từ hồ sơ để mô tả bằng lời. */
+export type RivalPace = 'cautious' | 'steady' | 'fast';
+
+export interface RivalDossier {
+  readonly foundedDay: number;
+  readonly qualityTier: QualityTier;
+  readonly reach: Reach;
+  readonly pace: RivalPace;
+  readonly homeCity: string;
+  /** Tên các thành phố đang có cửa hàng. */
+  readonly cities: readonly string[];
+  /** Doanh thu tháng gần nhất làm tròn 2 chữ số có nghĩa; null khi chưa có tháng nào. */
+  readonly revenueEstimate: Money | null;
 }
 
 export interface FinanceView {
@@ -221,7 +247,6 @@ export function buildSnapshot(
   const pending = pendingChanges(state);
   const office = officeView(state, content, pid);
   if (!office) throw new Error(`missing player company ${pid}`);
-  const shares = selectors.marketShares(state, content);
 
   const openStores = state.storeIds.flatMap((id) => {
     const s = state.stores[id];
@@ -267,12 +292,31 @@ export function buildSnapshot(
     };
   });
 
+  const viewedIndex = world.cityIndexOf.get(city.id) ?? 0;
+  const shares = cityMarketShares(state, content, viewedIndex);
+  // Màu theo thứ tự thành lập (ngày, rồi id): không đổi khi có công ty mới.
+  const founded = state.companyIds
+    .flatMap((id) => {
+      const c = state.companies[id];
+      return c && c.kind === 'ai' ? [{ id, day: c.foundedDay }] : [];
+    })
+    .sort((a, b) => a.day - b.day || (a.id < b.id ? -1 : 1));
+  const colorOf = new Map(founded.map((x, i) => [x.id, i + 1]));
   const companyOrder = [pid, ...state.companyIds.filter((id) => id !== pid)];
   const companies = companyOrder.flatMap((id): CompanyView[] => {
     const c = state.companies[id];
     if (!c) return [];
     const own = openStores.filter((s) => s.companyId === id);
     const priceSum = own.reduce((a, s) => a + s.price, 0);
+    const inCities = new Set<number>();
+    let storesHere = 0;
+    for (const s of own) {
+      const at = world.indexOf.get(s.districtId);
+      const k = at === undefined ? undefined : world.cityOf[at];
+      if (k === undefined) continue;
+      inCities.add(k);
+      if (k === viewedIndex) storesHere += 1;
+    }
     return [
       {
         id,
@@ -283,6 +327,21 @@ export function buildSnapshot(
         storeCount: own.length,
         avgPrice: own.length > 0 ? fromFloatCents(priceSum / own.length) : null,
         marketShare: shares.byCompany[id] ?? 0,
+        colorIndex: colorOf.get(id) ?? 0,
+        storesHere,
+        dossier:
+          c.kind === 'ai'
+            ? {
+                foundedDay: c.foundedDay,
+                qualityTier: c.profile.qualityTier,
+                reach: c.profile.reach,
+                pace: paceOf(c.profile),
+                homeCity:
+                  world.cities.find((x) => x.id === c.profile.homeCityId)?.name ?? c.profile.homeCityId,
+                cities: world.cities.filter((_, k) => inCities.has(k)).map((x) => x.name),
+                revenueEstimate: roughly(state.statements[id]?.at(-1)?.pnl.revenue ?? null),
+              }
+            : null,
       },
     ];
   });
@@ -295,8 +354,24 @@ export function buildSnapshot(
   });
 
   // Người chơi chỉ thấy thông tin công khai của đối thủ: mở/đóng cửa hàng, distress, phá sản.
+  // Tin mở / đóng cửa hàng của đối thủ chỉ giữ ở thành phố đang xem hoặc nơi người chơi có cửa hàng (M1.8):
+  // với nhiều thành phố, tin ở nơi khác chỉ là nhiễu.
+  const relevantCities = new Set<number>([viewedIndex]);
+  cities.forEach((c, k) => {
+    if (c.ownStores > 0) relevantCities.add(k);
+  });
+  const cityOfStore = (districtId: string | undefined): number | undefined => {
+    const at = districtId === undefined ? undefined : world.indexOf.get(districtId);
+    return at === undefined ? undefined : world.cityOf[at];
+  };
+  const isLocal = (e: GameEvent): boolean => {
+    if (e.kind === 'storeOpened') return relevantCities.has(cityOfStore(e.districtId) ?? -1);
+    if (e.kind === 'storeClosed')
+      return relevantCities.has(cityOfStore(state.stores[e.storeId]?.districtId) ?? -1);
+    return true;
+  };
   const events = state.events
-    .filter((e) => e.companyId === pid || PUBLIC_EVENTS.has(e.kind))
+    .filter((e) => e.companyId === pid || (PUBLIC_EVENTS.has(e.kind) && isLocal(e)))
     .slice(-EVENT_LIMIT)
     .reverse();
   const gameOver =
@@ -337,7 +412,7 @@ export function buildSnapshot(
     financeMom: monthOverMonth(state.statements[pid] ?? []),
     loans,
     companies,
-    outsideShare: 1 - shares.industryShare,
+    outsideShare: shares.outside,
     events,
     gameOver,
     limits: sliderLimits(state, content),
@@ -384,6 +459,41 @@ function financeView(state: GameState, content: LoadedContent, pid: string): Fin
       netCash: sub(m.balanceSheet.cash, m.balanceSheet.overdraft),
     })),
   };
+}
+
+/** Ngưỡng mô tả tốc độ mở rộng theo số tháng hoàn vốn đối thủ chấp nhận (chỉ để hiển thị). */
+const FAST_PAYBACK_MONTHS = 24;
+const CAUTIOUS_PAYBACK_MONTHS = 16;
+
+function paceOf(profile: RivalProfile): RivalPace {
+  if (profile.expansion.rule !== 'marginalGain') return 'steady';
+  if (profile.expansion.maxPaybackMonths >= FAST_PAYBACK_MONTHS) return 'fast';
+  return profile.expansion.maxPaybackMonths <= CAUTIOUS_PAYBACK_MONTHS ? 'cautious' : 'steady';
+}
+
+/** Làm tròn 2 chữ số có nghĩa: số ước tính công khai, không lộ số chính xác của đối thủ. */
+function roughly(amount: Money | null): Money | null {
+  if (amount === null || amount <= 0) return amount === null ? null : money(0);
+  const scale = 10 ** Math.max(0, Math.floor(Math.log10(amount)) - 1);
+  return money(Math.round(amount / scale) * scale);
+}
+
+/** Thị phần trong một thành phố: lượt mua kỳ vọng của từng công ty / tổng lượt tiềm năng của thành phố. */
+function cityMarketShares(
+  state: GameState,
+  content: LoadedContent,
+  cityIndex: number,
+): { byCompany: Record<string, number>; outside: number } {
+  const demand = expectedDemand(state, content, cityIndex);
+  const byCompany: Record<string, number> = {};
+  if (demand.potential <= 0) return { byCompany, outside: 1 };
+  for (const id of state.storeIds) {
+    const store = state.stores[id];
+    const d = demand.byStore[id];
+    if (!store || d === undefined) continue;
+    byCompany[store.companyId] = (byCompany[store.companyId] ?? 0) + d / demand.potential;
+  }
+  return { byCompany, outside: 1 - demand.captured / demand.potential };
 }
 
 /** Thành phố đang xem; id lạ hoặc null thì là thành phố đầu tiên của scenario. */

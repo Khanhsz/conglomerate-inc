@@ -17,11 +17,16 @@
   /* Series biểu đồ cột (doanh thu, lợi nhuận): đã qua validate_palette (CVD, độ sáng, tương phản). */
   --series-1: #2459d6;
   --series-2: #c4660a;
+  /* Màu công ty: 0 = người chơi, 1–7 = đối thủ. Đã qua validate_palette ở cả hai chế độ; ba màu sáng
+     tương phản thấp trên nền trắng nên luôn đi kèm ký hiệu hình dạng và tên công ty. */
   --company-0: #2459d6;
-  --company-1: #8a3ffc;
-  --company-2: #c4660a;
-  --company-3: #0e8a63;
-  --company-4: #d92d20;
+  --company-1: #eb6834;
+  --company-2: #1baf7a;
+  --company-3: #eda100;
+  --company-4: #e87ba4;
+  --company-5: #008300;
+  --company-6: #6250d6;
+  --company-7: #e34948;
   --outside: #98a2b3;
   color-scheme: light;
   font-family:
@@ -51,11 +56,14 @@
     --scrim: rgba(0, 0, 0, 0.6);
     --series-1: #5b87ee;
     --series-2: #d9772f;
-    --company-0: #6d97f5;
-    --company-1: #b692f6;
-    --company-2: #f38744;
-    --company-3: #3ccb9a;
-    --company-4: #f97066;
+    --company-0: #5b87ee;
+    --company-1: #d95926;
+    --company-2: #199e70;
+    --company-3: #c98500;
+    --company-4: #d55181;
+    --company-5: #008300;
+    --company-6: #9085e9;
+    --company-7: #e66767;
     --outside: #667085;
     color-scheme: dark;
   }
@@ -76,11 +84,14 @@
   --scrim: rgba(0, 0, 0, 0.6);
   --series-1: #5b87ee;
   --series-2: #d9772f;
-  --company-0: #6d97f5;
-  --company-1: #b692f6;
-  --company-2: #f38744;
-  --company-3: #3ccb9a;
-  --company-4: #f97066;
+  --company-0: #5b87ee;
+  --company-1: #d95926;
+  --company-2: #199e70;
+  --company-3: #c98500;
+  --company-4: #d55181;
+  --company-5: #008300;
+  --company-6: #9085e9;
+  --company-7: #e66767;
   --outside: #667085;
   color-scheme: dark;
 }

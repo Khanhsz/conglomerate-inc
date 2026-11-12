@@ -140,6 +140,41 @@ describe('buildSnapshot', () => {
     expect(buildSnapshot(opened, atlas, 0, null, 'nowhere').city.id).toBe('riverton');
   });
 
+  it('rivals have a public dossier, a stable color index, and no private numbers (M1.8)', () => {
+    const atlas = loadGameContent('atlas');
+    const state = runDays(createGame(atlas, { seed: 7 }), atlas, 61);
+    const view = buildSnapshot(state, atlas, 0, null, 'riverton');
+    const rivals = view.companies.filter((c) => c.kind === 'ai');
+    expect(rivals.length).toBeGreaterThanOrEqual(16);
+    expect(view.companies[0]).toMatchObject({ kind: 'player', colorIndex: 0, dossier: null });
+    // Màu theo thứ tự thành lập: 1..n, không trùng.
+    expect([...rivals.map((c) => c.colorIndex)].sort((x, y) => x - y)).toEqual(rivals.map((_, i) => i + 1));
+    for (const c of rivals) {
+      const d = c.dossier;
+      expect(d).not.toBeNull();
+      if (!d) continue;
+      expect(Object.keys(d).sort()).toEqual(
+        ['cities', 'foundedDay', 'homeCity', 'pace', 'qualityTier', 'reach', 'revenueEstimate'].sort(),
+      );
+      // Doanh thu ước tính: 2 chữ số có nghĩa của doanh thu tháng gần nhất.
+      const real = state.statements[c.id]?.at(-1)?.pnl.revenue ?? 0;
+      const estimate = d.revenueEstimate ?? 0;
+      expect(Math.abs(estimate - real)).toBeLessThanOrEqual(real * 0.05 + 1);
+      expect(String(estimate).replace(/0+$/, '').length).toBeLessThanOrEqual(2);
+    }
+    // Thị phần tính trong thành phố đang xem: tổng công ty + "không mua" = 1.
+    const total = view.companies.reduce((a, c) => a + c.marketShare, 0) + view.outsideShare;
+    expect(total).toBeCloseTo(1, 9);
+    const here = rivals.filter((c) => c.storesHere > 0);
+    expect(here.length).toBeGreaterThanOrEqual(2);
+    for (const c of rivals) if (c.storesHere === 0) expect(c.marketShare).toBe(0);
+    // Không có markup, tiền mặt hay lợi nhuận của đối thủ trong snapshot.
+    const json = JSON.stringify(view.companies);
+    for (const secret of ['markup', 'wageRatio', 'cashMultiple', 'maxPaybackMonths', 'netIncome']) {
+      expect(json).not.toContain(secret);
+    }
+  });
+
   it('keeps only the last 12 months of statements and 50 events', () => {
     const s = runDays(s0, content, 15 * 30);
     const later = buildSnapshot(s, content, 0);

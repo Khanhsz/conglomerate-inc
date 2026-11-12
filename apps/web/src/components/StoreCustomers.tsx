@@ -14,7 +14,7 @@ const CRITERION: { readonly [C in ReviewCriterion]: string } = {
 export function StoreCustomers({ snap }: { snap: Snapshot }) {
   const view = snap.inspection;
   if (!view) return null;
-  const index = new Map(snap.companies.map((c, i) => [c.id, i]));
+  const index = new Map(snap.companies.map((c) => [c.id, c.colorIndex]));
   const names = new Map(snap.companies.map((c) => [c.id, c.kind === 'player' ? 'Bạn' : c.name]));
   const r = view.reviews;
   return (
